@@ -7,10 +7,12 @@ export class UserController {
   static async getProfile(ctx: CustomContext) {
     try {
       const user = ctx.user!
+      console.log("user", user);
+
       const result = await getUserProfile_func(
-        { currentDB: ctx.currentDB, user },
-        { userId: user.id }
-      )
+        {
+          reqObject: { user }
+        })
 
       ctx.set.status = result?.success === true ? 200 : 404
       return result
@@ -75,7 +77,7 @@ export class UserController {
       const user = ctx.user!
 
       // For security, require password confirmation
-      const { password } = ctx.body
+      const { password } = ctx.body as any
 
       if (!password) {
         ctx.set.status = 400
@@ -97,7 +99,6 @@ export class UserController {
         message: 'Account deletion initiated. This action cannot be undone.'
       }
     } catch (err: any) {
-      logger.error('DeleteAccount Controller Error:', err)
       ctx.set.status = 500
       return {
         success: false,

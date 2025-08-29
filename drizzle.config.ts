@@ -5,6 +5,6 @@ export default {
   out: './src/app/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://localhost:5432/elysia_db'
+    url: 'postgresql://root:example@localhost:5432/space_vision'
   }
 } satisfies Config

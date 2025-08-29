@@ -12,22 +12,31 @@ const authRoute = new Elysia({ prefix: '/api/auth' })
     // beforeHandle: [checkUser(permission["POST_/api/auth/signup"])],
     body: SignUpSchema,
     tags: ['Authentication'],
-    summary: 'Sign up a new user',
-    description: 'Create a new user account with email and optional password'
+    detail: {
+      summary: 'Sign up a new user',
+      description: 'Create a new user account with email and optional password',
+      operationId: 'signUpUser'
+    }
   })
   
   .post('/login', AuthController.signIn, {
     body: SignInSchema,
     tags: ['Authentication'],
-    summary: 'User login',
-    description: 'Authenticate user with email and password'
+    detail: {
+      summary: 'User login',
+      description: 'Authenticate user with email and password',
+      operationId: 'signInUser'
+    }
   })
   
   .post('/logout', AuthController.signOut, {
     beforeHandle: [checkUser(permission)],
     tags: ['Authentication'],
-    summary: 'User logout',
-    description: 'Log out user and invalidate session'
+    detail: {
+      summary: 'User logout',
+      description: 'Log out user and invalidate session',
+      operationId: 'signOutUser'
+    }
   })
   
   // .post('/refresh', AuthController.refreshToken, {

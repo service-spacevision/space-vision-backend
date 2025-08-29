@@ -3,9 +3,11 @@ import { users } from '../../../models/User'
 import { eq } from 'drizzle-orm'
 import { ReqObjectType } from '../../../utils/types'
 
-export const getUserProfile_func = async (
+export const getUserProfile_func = async ({
+  reqObject,
+}: {
   reqObject: ReqObjectType,
-  { userId }: { userId: string }
+}
 ) => {
   try {
     // Get user profile
@@ -27,7 +29,7 @@ export const getUserProfile_func = async (
         updatedAt: users.updatedAt
       })
       .from(users)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, reqObject.user.id))
       .limit(1)
 
     if (result.length === 0) {

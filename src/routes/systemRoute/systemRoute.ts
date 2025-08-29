@@ -43,8 +43,11 @@ const systemRoute = new Elysia({ prefix: '/api/system' })
       })
     },
     tags: ['System'],
-    summary: 'Health check',
-    description: 'Check system health status'
+    detail: {
+      summary: 'Health check',
+      description: 'Check system health status',
+      operationId: 'getSystemHealth'
+    }
   })
   
   .get('/status', () => {
@@ -68,8 +71,11 @@ const systemRoute = new Elysia({ prefix: '/api/system' })
       })
     },
     tags: ['System'],
-    summary: 'System status',
-    description: 'Get system status information'
+    detail: {
+      summary: 'System status',
+      description: 'Get system status information',
+      operationId: 'getSystemStatus'
+    }
   })
   
   .get('/version', () => {
@@ -87,8 +93,11 @@ const systemRoute = new Elysia({ prefix: '/api/system' })
       })
     },
     tags: ['System'],
-    summary: 'API version',
-    description: 'Get API version information'
+    detail: {
+      summary: 'API version',
+      description: 'Get API version information',
+      operationId: 'getApiVersion'
+    }
   })
 
 export default systemRoute
