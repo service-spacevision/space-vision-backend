@@ -1,7 +1,4 @@
 import { pgTable, uuid, varchar, jsonb, text, boolean, timestamp, unique } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
-
-
 
 export const sessions = pgTable("sessions", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
