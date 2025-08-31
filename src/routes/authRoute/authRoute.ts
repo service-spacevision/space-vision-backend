@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { cookie } from '@elysiajs/cookie'
 import { AuthController } from '../../app/controllers/authControllers/authController'
 import { checkUser } from '../../app/middlewares/permissions'
 import { SignUpSchema, SignInSchema, UserResponseSchema } from '../../app/models/User'
@@ -8,6 +9,7 @@ const permission = {
 }
 
 const authRoute = new Elysia({ prefix: '/api/auth' })
+  .use(cookie())
   .post('/signup', AuthController.signUpUser, {
     // beforeHandle: [checkUser(permission["POST_/api/auth/signup"])],
     body: SignUpSchema,

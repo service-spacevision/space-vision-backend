@@ -10,7 +10,7 @@ export const users = pgTable('users', {
   password: varchar('password', { length: 255 }),
   fullName: varchar('full_name', { length: 200 }),
   username: varchar('username', { length: 100 }).unique(),
-  role: varchar('role', { length: 50 }).default('user'),
+  roleId: uuid('role_id'),
   isActive: boolean('is_active').default(true),
   isEmailVerified: boolean('is_email_verified').default(false),
   emailVerificationToken: varchar('email_verification_token', { length: 255 }),
@@ -32,7 +32,7 @@ export type NewUser = InferInsertModel<typeof users>
 export type UserWithoutPassword = Omit<User, 'password' | 'mfaSecret' | 'emailVerificationToken' | 'passwordResetToken'>
 
 export type UserProfile = Pick<User, 
-  'id' | 'email' | 'fullName' | 'username' | 'role' | 'isActive' | 
+  'id' | 'email' | 'fullName' | 'username' | 'roleId' | 'isActive' | 
   'isEmailVerified' | 'mfaEnabled' | 'lastLoginAt' | 'profilePicture' | 
   'bio' | 'preferences' | 'createdAt' | 'updatedAt'
 >
@@ -42,7 +42,7 @@ export type CreateUserData = Pick<NewUser,
 >
 
 export type UpdateUserData = Partial<Pick<User, 
-  'fullName' | 'username' | 'isActive' | 'role' | 'profilePicture' | 'bio' | 'preferences'
+  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences'
 >>
 
 // Elysia schemas for request/response validation
@@ -99,8 +99,8 @@ export const UpdateProfileSchema = t.Object({
   isActive: t.Optional(t.Boolean({
     description: 'User active status (admin only)'
   })),
-  role: t.Optional(t.String({
-    description: 'User role (admin only)'
+  roleId: t.Optional(t.String({
+    description: 'User role ID (admin only)'
   }))
 })
 
@@ -125,7 +125,7 @@ export const UserResponseSchema = t.Object({
   email: t.String(),
   fullName: t.Optional(t.String()),
   username: t.Optional(t.String()),
-  role: t.String(),
+  roleId: t.Optional(t.String()),
   isActive: t.Boolean(),
   isEmailVerified: t.Boolean(),
   mfaEnabled: t.Boolean(),

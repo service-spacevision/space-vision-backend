@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { users } from '../../../models/User'
+import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { ReqObjectType } from '../../../utils/types'
@@ -30,6 +31,20 @@ export const signUpUser_func = async (
       }
     }
 
+    // Get default user role
+    const [defaultRole] = await db
+      .select()
+      .from(userRoles)
+      .where(eq(userRoles.name, 'user'))
+      .limit(1)
+
+    if (!defaultRole) {
+      return {
+        success: false,
+        message: 'Default user role not found. Please contact administrator.'
+      }
+    }
+
     // Hash password if provided
     let hashedPassword: string | undefined
     if (password) {
@@ -47,14 +62,14 @@ export const signUpUser_func = async (
         username,
         isActive: true,
         isEmailVerified: false,
-        role: 'user'
+        roleId: defaultRole.id
       })
       .returning({
         id: users.id,
         email: users.email,
         fullName: users.fullName,
         username: users.username,
-        role: users.role,
+        roleId: users.roleId,
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,

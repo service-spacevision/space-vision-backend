@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { users } from '../../../models/User'
+import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import { ReqObjectType } from '../../../utils/types'
 import { UpdateUserData } from '../../../models/User'
@@ -27,10 +28,23 @@ export const updateUserProfile_func = async (
     if (bio !== undefined) updateData.bio = bio
     if (preferences !== undefined) updateData.preferences = preferences
 
+    // Get user's role to check permissions
+    const [userWithRole] = await db
+      .select({
+        role: {
+          name: userRoles.name,
+          permissions: userRoles.permissions
+        }
+      })
+      .from(users)
+      .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+      .where(eq(users.id, reqObject.user.id))
+      .limit(1)
+
     // Admin users can update additional fields
-    if (reqObject.user?.role === 'admin') {
+    if (userWithRole?.role?.name === 'admin') {
       if (data.isActive !== undefined) updateData.isActive = data.isActive
-      if (data.role !== undefined) updateData.role = data.role
+      if (data.roleId !== undefined) updateData.roleId = data.roleId
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -53,7 +67,7 @@ export const updateUserProfile_func = async (
         email: users.email,
         fullName: users.fullName,
         username: users.username,
-        role: users.role,
+        roleId: users.roleId,
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,

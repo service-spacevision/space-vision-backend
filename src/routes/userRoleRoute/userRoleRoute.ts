@@ -1,0 +1,89 @@
+import { Elysia, t } from 'elysia'
+import { cookie } from '@elysiajs/cookie'
+import { UserRoleController } from '../../app/controllers/userRoleControllers/userRoleController'
+import { checkUser } from '../../app/middlewares/permissions'
+import { CreateUserRoleSchema, UpdateUserRoleSchema, UserRoleResponseSchema } from '../../app/models/UserRole'
+
+const permission = {
+  "POST_/api/user-roles": "create_user_role",
+  "GET_/api/user-roles": "read_user_roles",
+  "GET_/api/user-roles/:id": "read_user_role",
+  "PUT_/api/user-roles/:id": "update_user_role",
+  "DELETE_/api/user-roles/:id": "delete_user_role"
+}
+
+const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
+  .use(cookie())
+  .post('/', UserRoleController.createRole, {
+    beforeHandle: [checkUser(permission["POST_/api/user-roles"])],
+    body: CreateUserRoleSchema,
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Create user role',
+      description: 'Create a new user role with permissions',
+      operationId: 'createUserRole',
+    },
+  })
+
+  .get('/', UserRoleController.getRoles, {
+    beforeHandle: [checkUser(permission["GET_/api/user-roles"])],
+    query: t.Object({
+      includeInactive: t.Optional(t.String({
+        description: 'Include inactive roles (true/false)'
+      }))
+    }),
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Get user roles',
+      description: 'Retrieve all user roles',
+      operationId: 'getUserRoles',
+    },
+  })
+
+  .get('/:id', UserRoleController.getRoleById, {
+    beforeHandle: [checkUser(permission["GET_/api/user-roles/:id"])],
+    params: t.Object({
+      id: t.String({
+        description: 'User role ID'
+      })
+    }),
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Get user role by ID',
+      description: 'Retrieve a specific user role by ID',
+      operationId: 'getUserRoleById',
+    },
+  })
+
+  .put('/:id', UserRoleController.updateRole, {
+    beforeHandle: [checkUser(permission["PUT_/api/user-roles/:id"])],
+    params: t.Object({
+      id: t.String({
+        description: 'User role ID'
+      })
+    }),
+    body: UpdateUserRoleSchema,
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Update user role',
+      description: 'Update an existing user role',
+      operationId: 'updateUserRole',
+    }
+  })
+
+  .delete('/:id', UserRoleController.deleteRole, {
+    beforeHandle: [checkUser(permission["DELETE_/api/user-roles/:id"])],
+    params: t.Object({
+      id: t.String({
+        description: 'User role ID'
+      })
+    }),
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Delete user role',
+      description: 'Delete a user role (cannot delete system roles or roles with assigned users)',
+      operationId: 'deleteUserRole',
+    }
+  })
+
+export default userRoleRoute

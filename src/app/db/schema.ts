@@ -2,10 +2,15 @@
 import { relations } from 'drizzle-orm'
 import { users } from '../models/User'
 import { sessions } from '../models/Session'
+import { userRoles } from '../models/UserRole'
 
 // Define relations here to avoid circular imports
-export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(sessions)
+export const usersRelations = relations(users, ({ many, one }) => ({
+  sessions: many(sessions),
+  role: one(userRoles, {
+    fields: [users.roleId],
+    references: [userRoles.id]
+  })
 }))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -15,5 +20,9 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   })
 }))
 
+export const userRolesRelations = relations(userRoles, ({ many }) => ({
+  users: many(users)
+}))
+
 // Export all tables
-export { users, sessions }
+export { users, sessions, userRoles }

@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { users } from '../../../models/User'
+import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import { ReqObjectType } from '../../../utils/types'
 
@@ -10,14 +11,14 @@ export const getUserProfile_func = async ({
 }
 ) => {
   try {
-    // Get user profile
+    // Get user profile with role information
     const result = await db
       .select({
         id: users.id,
         email: users.email,
         fullName: users.fullName,
         username: users.username,
-        role: users.role,
+        roleId: users.roleId,
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
@@ -26,9 +27,16 @@ export const getUserProfile_func = async ({
         bio: users.bio,
         preferences: users.preferences,
         createdAt: users.createdAt,
-        updatedAt: users.updatedAt
+        updatedAt: users.updatedAt,
+        role: {
+          id: userRoles.id,
+          name: userRoles.name,
+          displayName: userRoles.displayName,
+          permissions: userRoles.permissions
+        }
       })
       .from(users)
+      .leftJoin(userRoles, eq(users.roleId, userRoles.id))
       .where(eq(users.id, reqObject.user.id))
       .limit(1)
 

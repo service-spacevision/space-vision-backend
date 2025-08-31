@@ -1,12 +1,14 @@
 import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
+import { cookie } from '@elysiajs/cookie'
 import { APP_CONFIG } from './app/constants/constants'
 import { connectDatabase } from './app/db/connection'
 import { corsMiddleware } from './app/middlewares/cors'
 // import { loggingMiddleware } from './app/middlewares/logging'
-import { authRoutes, userRoutes, systemRoutes } from './routes/indexRoute'
+import { authRoutes, userRoutes, userRoleRoutes, systemRoutes } from './routes/indexRoute'
 
 const app = new Elysia()
+  .use(cookie())
   .use(swagger({
     documentation: {
       info: {
@@ -17,6 +19,7 @@ const app = new Elysia()
       tags: [
         { name: 'Authentication', description: 'Authentication endpoints' },
         { name: 'User', description: 'User management endpoints' },
+        { name: 'UserRole', description: 'User role management endpoints' },
         { name: 'System', description: 'System health and status endpoints' }
       ],
       servers: [
@@ -42,11 +45,13 @@ const app = new Elysia()
       health: '/api/system/health',
       status: '/api/system/status',
       auth: '/api/auth',
-      users: '/api/users'
+      users: '/api/users',
+      userRoles: '/api/user-roles'
     }
   }))
   .use(authRoutes)
   .use(userRoutes)
+  .use(userRoleRoutes)
   .use(systemRoutes)
   .onError(({ error, code, set }) => {
     console.error('Application error:', error)

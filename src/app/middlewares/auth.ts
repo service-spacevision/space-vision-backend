@@ -7,8 +7,31 @@ import { AuthUser } from '../utils/types'
 export const authMiddleware = async (ctx: Context) => {
   try {
     // Try to get token from cookie first, then Authorization header
-    let token = ctx.cookie.jwt_token?.value
+    console.log("ctx", ctx.cookie);
     
+    let token: string | undefined
+    
+    // Try to get token from Elysia cookie object
+    if (ctx.cookie && ctx.cookie.jwt_token) {
+      token = ctx.cookie.jwt_token.value
+    }
+    
+    // If no token from cookie object, parse from cookie header
+    if (!token) {
+      const cookieHeader = ctx.request.headers.get('cookie')
+      if (cookieHeader) {
+        const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=')
+          if (key && value) {
+            acc[key] = value
+          }
+          return acc
+        }, {} as Record<string, string>)
+        token = cookies.jwt_token
+      }
+    }
+    
+    // If still no token, try Authorization header
     if (!token) {
       const authHeader = ctx.request.headers.get('authorization')
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -17,7 +40,7 @@ export const authMiddleware = async (ctx: Context) => {
     }
 
     if (!token) {
-      return { success: false, message: "Toekn not found" }
+      return { success: false, message: "Token not found" }
     }
 
     // Verify JWT token
@@ -29,8 +52,6 @@ export const authMiddleware = async (ctx: Context) => {
     
     // Check if session exists and is valid
     const session = await getSession({ user_Id: decoded.id })
-    console.log("session", session);
-    
     if (!session || !session.isActive || new Date() > session.expiresAt) {
       return { success: false, message: 'Invalid or expired session' }
     }
@@ -46,6 +67,8 @@ export const authMiddleware = async (ctx: Context) => {
 
     return { success: true, message: "User found", data: user }
   } catch (error: any) {
+    console.log("error", error);
+    
     if (error.name === 'TokenExpiredError') {
       return { success: false, message: 'Token expired',  }
     }

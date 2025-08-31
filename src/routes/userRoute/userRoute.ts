@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { cookie } from '@elysiajs/cookie'
 import { UserController } from '../../app/controllers/userControllers/userController'
 import { checkUser } from '../../app/middlewares/permissions'
 import { UpdateProfileSchema, ChangePasswordSchema, DeleteAccountSchema, UserResponseSchema } from '../../app/models/User'
@@ -11,6 +12,7 @@ const permission = {
 }
 
 const userRoute = new Elysia({ prefix: '/api/users' })
+  .use(cookie())
   .get('/profile', UserController.getProfile, {
     beforeHandle: [checkUser(permission["GET_/api/users/profile"])],
     tags: ['User'],

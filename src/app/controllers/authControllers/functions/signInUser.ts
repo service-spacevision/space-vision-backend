@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { users } from '../../../models/User'
+import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -17,12 +18,37 @@ export const signInUser_func = async (
     const body = data
     console.log("data", body);
 
-    // Find user by email
-    const [user] = await db
-      .select()
+    // Find user by email with role information
+    const [userWithRole] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        password: users.password,
+        fullName: users.fullName,
+        username: users.username,
+        roleId: users.roleId,
+        isActive: users.isActive,
+        isEmailVerified: users.isEmailVerified,
+        mfaEnabled: users.mfaEnabled,
+        lastLoginAt: users.lastLoginAt,
+        profilePicture: users.profilePicture,
+        bio: users.bio,
+        preferences: users.preferences,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        role: {
+          id: userRoles.id,
+          name: userRoles.name,
+          displayName: userRoles.displayName,
+          permissions: userRoles.permissions
+        }
+      })
       .from(users)
+      .leftJoin(userRoles, eq(users.roleId, userRoles.id))
       .where(eq(users.email, body.email))
       .limit(1)
+
+    const user = userWithRole
 
     if (!user) {
       return {
