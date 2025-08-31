@@ -5,7 +5,19 @@ import { APP_CONFIG } from './app/constants/constants'
 import { connectDatabase } from './app/db/connection'
 import { corsMiddleware } from './app/middlewares/cors'
 // import { loggingMiddleware } from './app/middlewares/logging'
-import { authRoutes, userRoutes, userRoleRoutes, systemRoutes } from './routes/indexRoute'
+import {
+  authRoutes,
+  userRoutes,
+  userRoleRoutes,
+  systemRoutes,
+  vesselRoutes,
+  vesselGroupRoutes,
+  groupAccessRoutes,
+  starlinkUsageRoutes,
+  bluetideUsageRoutes,
+  mikrotikVesselRoutes,
+  telephonyDidRoutes
+} from './routes/indexRoute'
 
 const app = new Elysia()
   .use(cookie())
@@ -20,15 +32,22 @@ const app = new Elysia()
         { name: 'Authentication', description: 'Authentication endpoints' },
         { name: 'User', description: 'User management endpoints' },
         { name: 'UserRole', description: 'User role management endpoints' },
-        { name: 'System', description: 'System health and status endpoints' }
+        { name: 'System', description: 'System health and status endpoints' },
+        { name: 'Vessels', description: 'Vessel management endpoints' },
+        { name: 'Vessel Groups', description: 'Vessel group management endpoints' },
+        { name: 'Group Access', description: 'Group access management endpoints' },
+        { name: 'Starlink Usage', description: 'Starlink usage tracking endpoints' },
+        { name: 'Bluetide Usage', description: 'Bluetide usage tracking endpoints' },
+        { name: 'Mikrotik Vessels', description: 'Mikrotik vessel management endpoints' },
+        { name: 'Telephony DIDs', description: 'Telephony DID management endpoints' }
       ],
       servers: [
         {
-          url: process.env.NODE_ENV === 'production' 
-            ? 'https://your-domain.com' 
+          url: process.env.NODE_ENV === 'production'
+            ? 'https://your-domain.com'
             : `http://localhost:${APP_CONFIG.PORT}`,
-          description: process.env.NODE_ENV === 'production' 
-            ? 'Production server' 
+          description: process.env.NODE_ENV === 'production'
+            ? 'Production server'
             : 'Development server'
         }
       ]
@@ -46,40 +65,54 @@ const app = new Elysia()
       status: '/api/system/status',
       auth: '/api/auth',
       users: '/api/users',
-      userRoles: '/api/user-roles'
+      userRoles: '/api/user-roles',
+      vessels: '/api/vessels',
+      vesselGroups: '/api/vessel-groups',
+      groupAccess: '/api/group-access',
+      starlinkUsage: '/api/starlink-usage',
+      bluetideUsage: '/api/bluetide-usage',
+      mikrotikVessels: '/api/mikrotik-vessels',
+      telephonyDids: '/api/telephony-dids'
     }
   }))
   .use(authRoutes)
   .use(userRoutes)
   .use(userRoleRoutes)
   .use(systemRoutes)
+  .use(vesselRoutes)
+  .use(vesselGroupRoutes)
+  .use(groupAccessRoutes)
+  .use(starlinkUsageRoutes)
+  .use(bluetideUsageRoutes)
+  .use(mikrotikVesselRoutes)
+  .use(telephonyDidRoutes)
   .onError(({ error, code, set }) => {
     console.error('Application error:', error)
-    
+
     if (code === 'NOT_FOUND') {
       set.status = 404
-      return { 
+      return {
         success: false,
-        error: 'Route not found', 
-        status: 404 
+        error: 'Route not found',
+        status: 404
       }
     }
-    
+
     if (code === 'VALIDATION') {
       set.status = 400
-      return { 
+      return {
         success: false,
-        error: 'Validation error', 
+        error: 'Validation error',
         message: error.message,
-        status: 400 
+        status: 400
       }
     }
-    
+
     set.status = 500
-    return { 
+    return {
       success: false,
-      error: 'Internal server error', 
-      status: 500 
+      error: 'Internal server error',
+      status: 500
     }
   })
   .listen(APP_CONFIG.PORT)
