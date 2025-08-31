@@ -26,9 +26,10 @@ export const authMiddleware = async (ctx: Context) => {
     if (!decoded || !decoded.id) {
       return { success: false, message: 'Invalid token format' }
     }
-
+    
     // Check if session exists and is valid
     const session = await getSession({ user_Id: decoded.id })
+    console.log("session", session);
     
     if (!session || !session.isActive || new Date() > session.expiresAt) {
       return { success: false, message: 'Invalid or expired session' }
@@ -43,7 +44,7 @@ export const authMiddleware = async (ctx: Context) => {
       username: decoded.username
     }
 
-    return { success: true, user }
+    return { success: true, message: "User found", data: user }
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
       return { success: false, message: 'Token expired',  }

@@ -8,14 +8,14 @@ import { createSession } from '../../../middlewares/session'
 import { ReqObjectType } from '../../../utils/types'
 
 export const signInUser_func = async (
-  { data, ipAddress, userAgent }: { 
-    data: { email: string; password: string }
-    ipAddress?: string
-    userAgent?: string
-  }
+  {
+    data }: {
+      data: { email: string; password: string }
+    }
 ) => {
   try {
-    const body  = data
+    const body = data
+    console.log("data", body);
 
     // Find user by email
     const [user] = await db
@@ -25,25 +25,25 @@ export const signInUser_func = async (
       .limit(1)
 
     if (!user) {
-      return { 
-        success: false, 
-        message: 'Invalid email or password' 
+      return {
+        success: false,
+        message: 'Invalid email or password'
       }
     }
 
     // Check if user is active
     if (!user.isActive) {
-      return { 
-        success: false, 
-        message: 'Account is deactivated. Please contact support.' 
+      return {
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
       }
     }
 
     // Verify password
     if (!user.password || !await bcrypt.compare(body.password, user.password)) {
-      return { 
-        success: false, 
-        message: 'Invalid email or password' 
+      return {
+        success: false,
+        message: 'Invalid email or password'
       }
     }
 
@@ -62,28 +62,28 @@ export const signInUser_func = async (
       username: user.username
     }
 
-    const token = jwt.sign(tokenPayload, JWT_CONFIG.SECRET, {
-      expiresIn: JWT_CONFIG.EXPIRES_IN
-    })
+    const token = jwt.sign(
+      tokenPayload,
+      JWT_CONFIG.SECRET as string,
+      // {
+      //   expiresIn: JWT_CONFIG.EXPIRES_IN as string
+      // }
+    )
 
     // Create session
     const session = await createSession({
       user_Id: user.id,
       sessionData: {
         loginTime: new Date(),
-        deviceInfo: userAgent,
-        location: ipAddress
       },
-      ipAddress,
-      userAgent
     })
 
     // Return user data without sensitive information
-    const {password, ...others} = user
+    const { password, ...others } = user
 
-    return { 
-      success: true, 
-      message: 'User logged in successfully', 
+    return {
+      success: true,
+      message: 'User logged in successfully',
       data: {
         user: others,
         token,
@@ -92,9 +92,9 @@ export const signInUser_func = async (
     }
   } catch (error: any) {
     console.error('Sign in error:', error)
-    return { 
-      success: false, 
-      message: error.message || 'Login failed' 
+    return {
+      success: false,
+      message: error.message || 'Login failed'
     }
   }
 }

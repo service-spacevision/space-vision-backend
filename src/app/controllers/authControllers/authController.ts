@@ -25,17 +25,14 @@ export class AuthController {
   static async signIn(ctx: CustomContext) {
     try {
       const { body } = ctx
-      const ipAddress = ctx.request.headers.get('x-forwarded-for') || 
-                       ctx.request.headers.get('x-real-ip') || 
-                       'unknown'
-      const userAgent = ctx.request.headers.get('user-agent') || 'unknown'
+      // const ipAddress = ctx.request.headers.get('x-forwarded-for') || 
+      //                  ctx.request.headers.get('x-real-ip') || 
+      //                  'unknown'
+      // const userAgent = ctx.request.headers.get('user-agent') || 'unknown'
 
       const result = await signInUser_func(
-        { currentDB: ctx.currentDB, user: ctx.user },
-        { 
-          data: body,
-          ipAddress: ipAddress as string,
-          userAgent
+        {
+          data: body as any
         }
       )
 
@@ -43,9 +40,9 @@ export class AuthController {
         // Set JWT token as HTTP-only cookie
         ctx.cookie.jwt_token.set({
           value: result.data.token,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
+          httpOnly: process.env.PRODUCTION_MODE === "false" ? false : true,
+          sameSite: process.env.PRODUCTION_MODE === "false" ? "lax" : "none",
+          secure: process.env.PRODUCTION_MODE === "false" ? false : true,
           maxAge: 24 * 60 * 60 // 24 hours
         })
       }

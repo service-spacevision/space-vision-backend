@@ -1,8 +1,8 @@
 import { Context } from 'elysia'
-import { User } from '../models/User'
 
 export interface CustomContext extends Context {
   user?: AuthUser
+  file?: any
 }
 
 export interface ReqObjectType {

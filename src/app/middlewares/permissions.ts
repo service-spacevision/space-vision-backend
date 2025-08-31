@@ -7,9 +7,10 @@ export const checkUser = (permission) => {
   return async (ctx: Context) => {
     // First check authentication
     const authResult = await authMiddleware(ctx)
-    if(!authResult){
+
+    if(!authResult || !authResult.success){
       ctx.set.status = 401
-      return {success: false, message: "Auth failed"}
+      return authResult
     }
     // if (!authResult.success) {
     //   ctx.set.status = authResult.status || 401
@@ -27,8 +28,8 @@ export const checkUser = (permission) => {
     //     message: "Access denied"
     //   }
     // }
-
-    return { success: true }
+    (ctx as any).user = authResult.data
+    return
   }
 }
 
