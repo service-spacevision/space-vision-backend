@@ -32,6 +32,11 @@ export interface PaginationParams {
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
+export interface IPagination {
+  currentPage: number;
+  pageSize: number;
+  all?: string;
+}
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   pagination: {

@@ -29,8 +29,12 @@ export class UserRoleController {
     try {
       const { query } = ctx
       const includeInactive = query?.includeInactive === 'true'
-
-      const result = await getUserRoles_func({ includeInactive })
+      const pagination = {
+        currentPage: Number(query?.page) || 1,
+        pageSize: Number(query?.pageSize) || 10,
+        all: query?.all || "false"
+      }
+      const result = await getUserRoles_func({ includeInactive, pagination })
 
       ctx.set.status = result?.success === true ? 200 : 404
       return result

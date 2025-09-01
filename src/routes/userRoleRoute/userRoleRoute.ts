@@ -30,6 +30,18 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     query: t.Object({
       includeInactive: t.Optional(t.String({
         description: 'Include inactive roles (true/false)'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all user roles (true/false)',
+        default: "false"
       }))
     }),
     tags: ['UserRole'],
