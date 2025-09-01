@@ -1,12 +1,13 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
+import { vesselGroups } from './VesselGroup'
 
 export const vessels = pgTable('vessels', {
   vesselsKitNumber: text('vesselskit_number').primaryKey(),
   name: text('name'),
   subscriptionPlan: text('subscription_plan'),
-  groupName: text('group_name'),
+  groupId: integer('group_id').references(() => vesselGroups.groupId),
   deviceId: text('device_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -25,8 +26,8 @@ export const CreateVesselSchema = t.Object({
   subscriptionPlan: t.Optional(t.String({
     description: 'Subscription plan'
   })),
-  groupName: t.Optional(t.String({
-    description: 'Group name (foreign key)'
+  groupId: t.Optional(t.Number({
+    description: 'Group ID (foreign key to vessel_groups.group_id)'
   })),
   deviceId: t.Optional(t.String({
     description: 'Device ID'
@@ -40,8 +41,8 @@ export const UpdateVesselSchema = t.Object({
   subscriptionPlan: t.Optional(t.String({
     description: 'Subscription plan'
   })),
-  groupName: t.Optional(t.String({
-    description: 'Group name (foreign key)'
+  groupId: t.Optional(t.Number({
+    description: 'Group ID (foreign key to vessel_groups.group_id)'
   })),
   deviceId: t.Optional(t.String({
     description: 'Device ID'
@@ -52,7 +53,7 @@ export const VesselResponseSchema = t.Object({
   vesselsKitNumber: t.String(),
   name: t.Optional(t.String()),
   subscriptionPlan: t.Optional(t.String()),
-  groupName: t.Optional(t.String()),
+  groupId: t.Optional(t.Number()),
   deviceId: t.Optional(t.String()),
   createdAt: t.Date(),
   updatedAt: t.Date()

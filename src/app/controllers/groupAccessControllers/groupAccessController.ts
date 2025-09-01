@@ -9,10 +9,17 @@ export class GroupAccessController {
     try {
       const { query } = ctx
       const user = ctx.user!
+      
+      const pagination = {
+        currentPage: Number(query?.currentPage) || 1,
+        pageSize: Number(query?.pageSize) || 10,
+        all: query?.all || "false"
+      }
 
       const result = await getGroupAccess_func({
         reqObject: { user },
-        query: query as any
+        query: query as any,
+        pagination
       })
 
       ctx.set.status = result?.success === true ? 200 : 404

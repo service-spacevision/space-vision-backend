@@ -1,9 +1,10 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, serial } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 export const vesselGroups = pgTable('vessel_groups', {
-  groupName: text('group_name').primaryKey(),
+  groupId: serial('group_id').primaryKey(),
+  groupName: text('group_name').notNull().unique(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 })
@@ -13,17 +14,18 @@ export type NewVesselGroup = InferInsertModel<typeof vesselGroups>
 
 export const CreateVesselGroupSchema = t.Object({
   groupName: t.String({
-    description: 'Group name (primary key)'
+    description: 'Group name (unique)'
   })
 })
 
 export const UpdateVesselGroupSchema = t.Object({
-  groupName: t.String({
-    description: 'Group name (primary key)'
-  })
+  groupName: t.Optional(t.String({
+    description: 'Group name (unique)'
+  }))
 })
 
 export const VesselGroupResponseSchema = t.Object({
+  groupId: t.Number(),
   groupName: t.String(),
   createdAt: t.Date(),
   updatedAt: t.Date()

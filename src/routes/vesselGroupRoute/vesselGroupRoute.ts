@@ -18,6 +18,18 @@ const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
     query: t.Object({
       groupName: t.Optional(t.String({
         description: 'Filter by group name'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all vessel groups (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Vessel Groups'],
@@ -58,8 +70,8 @@ const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
   .delete('/', VesselGroupController.deleteVesselGroup, {
     beforeHandle: [checkUser(permission["DELETE_/api/vessel-groups"])],
     query: t.Object({
-      groupName: t.String({
-        description: 'Group name to delete'
+      groupId: t.String({
+        description: 'Group Id to delete'
       })
     }),
     tags: ['Vessel Groups'],

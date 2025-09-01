@@ -21,6 +21,18 @@ const mikrotikVesselRoute = new Elysia({ prefix: '/api/mikrotik-vessels' })
       })),
       routerIp: t.Optional(t.String({
         description: 'Filter by router IP'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all mikrotik vessels (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Mikrotik Vessels'],

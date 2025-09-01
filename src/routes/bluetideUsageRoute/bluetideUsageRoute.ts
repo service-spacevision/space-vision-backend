@@ -24,6 +24,18 @@ const bluetideUsageRoute = new Elysia({ prefix: '/api/bluetide-usage' })
       })),
       name: t.Optional(t.String({
         description: 'Filter by name'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all bluetide usage (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Bluetide Usage'],

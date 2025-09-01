@@ -19,8 +19,20 @@ const groupAccessRoute = new Elysia({ prefix: '/api/group-access' })
       role: t.Optional(t.String({
         description: 'Filter by role'
       })),
-      groupName: t.Optional(t.String({
-        description: 'Filter by group name'
+      groupId: t.Optional(t.String({
+        description: 'Filter by group ID'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all group access (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Group Access'],
@@ -48,8 +60,8 @@ const groupAccessRoute = new Elysia({ prefix: '/api/group-access' })
       role: t.String({
         description: 'Role to update'
       }),
-      groupName: t.String({
-        description: 'Group name to update'
+      groupId: t.String({
+        description: 'Group ID to update'
       })
     }),
     body: UpdateGroupAccessSchema,
@@ -67,8 +79,8 @@ const groupAccessRoute = new Elysia({ prefix: '/api/group-access' })
       role: t.String({
         description: 'Role to delete'
       }),
-      groupName: t.String({
-        description: 'Group name to delete'
+      groupId: t.String({
+        description: 'Group ID to delete'
       })
     }),
     tags: ['Group Access'],

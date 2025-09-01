@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
 import { starlinkUsage } from '../../../models/StarlinkUsage'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, count, desc, SQL } from 'drizzle-orm'
+import { IPagination } from '../../../utils/types'
 
 interface GetStarlinkUsageParams {
   reqObject: {
@@ -11,13 +12,12 @@ interface GetStarlinkUsageParams {
     kitNumber?: string
     vesselName?: string
   }
+  pagination?: IPagination
 }
 
-export async function getStarlinkUsage_func({ reqObject, query }: GetStarlinkUsageParams) {
+export async function getStarlinkUsage_func({ reqObject, query, pagination }: GetStarlinkUsageParams) {
   try {
-    let queryBuilder = db.select().from(starlinkUsage)
-
-    const conditions = []
+    const conditions: SQL[] = []
     if (query?.dateKey) {
       conditions.push(eq(starlinkUsage.dateKey, query.dateKey))
     }
@@ -28,16 +28,57 @@ export async function getStarlinkUsage_func({ reqObject, query }: GetStarlinkUsa
       conditions.push(eq(starlinkUsage.vesselName, query.vesselName))
     }
 
-    if (conditions.length > 0) {
-      queryBuilder = queryBuilder.where(and(...conditions))
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined
+
+    // If pagination.all is set, return all records without pagination
+    if (pagination?.all === 'true' || pagination?.all === '1') {
+      const result = await db.select()
+        .from(starlinkUsage)
+        .where(whereCondition)
+        .orderBy(desc(starlinkUsage.createdAt))
+
+      return {
+        success: true,
+        message: 'Starlink usage retrieved successfully',
+        data: result,
+        pagination: {
+          total: result.length,
+          page: 1,
+          pageSize: result.length
+        }
+      }
     }
 
-    const result = await queryBuilder
+    // Default pagination values
+    const page = pagination?.currentPage || 1
+    const pageSize = pagination?.pageSize || 10
+    const offset = (page - 1) * pageSize
+
+    // Get total count
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(starlinkUsage)
+      .where(whereCondition)
+
+    const total = totalResult.count
+
+    // Get paginated data
+    const result = await db.select()
+      .from(starlinkUsage)
+      .where(whereCondition)
+      .orderBy(desc(starlinkUsage.createdAt))
+      .limit(pageSize)
+      .offset(offset)
 
     return {
       success: true,
+      message: 'Starlink usage retrieved successfully',
       data: result,
-      message: 'Starlink usage retrieved successfully'
+      pagination: {
+        total,
+        page,
+        pageSize
+      }
     }
   } catch (error: any) {
     console.error('Error fetching starlink usage:', error)

@@ -24,6 +24,18 @@ const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
       })),
       vesselName: t.Optional(t.String({
         description: 'Filter by vessel name'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all starlink usage (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Starlink Usage'],

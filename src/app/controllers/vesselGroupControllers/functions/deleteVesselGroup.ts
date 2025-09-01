@@ -7,22 +7,30 @@ interface DeleteVesselGroupParams {
     user: any
   }
   query: {
-    groupName: string
+    groupId: string
   }
 }
 
 export async function deleteVesselGroup_func({ reqObject, query }: DeleteVesselGroupParams) {
   try {
-    if (!query.groupName) {
+    if (!query.groupId) {
       return {
         success: false,
-        message: 'Group name is required'
+        message: 'Group ID is required'
+      }
+    }
+
+    const groupId = parseInt(query.groupId, 10)
+    if (isNaN(groupId)) {
+      return {
+        success: false,
+        message: 'Invalid group ID format'
       }
     }
 
     const result = await db
       .delete(vesselGroups)
-      .where(eq(vesselGroups.groupName, query.groupName))
+      .where(eq(vesselGroups.groupId, groupId))
       .returning()
 
     if (result.length === 0) {

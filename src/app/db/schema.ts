@@ -38,8 +38,8 @@ export const vesselGroupsRelations = relations(vesselGroups, ({ many }) => ({
 
 export const vesselsRelations = relations(vessels, ({ one, many }) => ({
   group: one(vesselGroups, {
-    fields: [vessels.groupName],
-    references: [vesselGroups.groupName]
+    fields: [vessels.groupId],
+    references: [vesselGroups.groupId]
   }),
   starlinkUsage: many(starlinkUsage),
   mikrotikVessel: one(mikrotikVessels, {
@@ -50,8 +50,8 @@ export const vesselsRelations = relations(vessels, ({ one, many }) => ({
 
 export const groupAccessRelations = relations(groupAccess, ({ one }) => ({
   group: one(vesselGroups, {
-    fields: [groupAccess.groupName],
-    references: [vesselGroups.groupName]
+    fields: [groupAccess.groupId],
+    references: [vesselGroups.groupId]
   })
 }))
 

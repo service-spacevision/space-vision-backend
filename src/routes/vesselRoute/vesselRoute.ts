@@ -19,8 +19,20 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
       vesselsKitNumber: t.Optional(t.String({
         description: 'Filter by vessel kit number'
       })),
-      groupName: t.Optional(t.String({
-        description: 'Filter by group name'
+      groupId: t.Optional(t.String({
+        description: 'Filter by group ID'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all vessels (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Vessels'],

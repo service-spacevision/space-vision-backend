@@ -8,16 +8,16 @@ interface DeleteGroupAccessParams {
   }
   query: {
     role: string
-    groupName: string
+    groupId: string
   }
 }
 
 export async function deleteGroupAccess_func({ reqObject, query }: DeleteGroupAccessParams) {
   try {
-    if (!query.role || !query.groupName) {
+    if (!query.role || !query.groupId) {
       return {
         success: false,
-        message: 'Role and group name are required'
+        message: 'Role and group ID are required'
       }
     }
 
@@ -25,7 +25,7 @@ export async function deleteGroupAccess_func({ reqObject, query }: DeleteGroupAc
       .delete(groupAccess)
       .where(and(
         eq(groupAccess.role, query.role),
-        eq(groupAccess.groupName, query.groupName)
+        eq(groupAccess.groupId, parseInt(query.groupId))
       ))
       .returning()
 

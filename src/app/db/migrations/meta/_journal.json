@@ -29,6 +29,20 @@
       "when": 1756729473450,
       "tag": "0003_chemical_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1756747709239,
+      "tag": "0004_greedy_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756748000000,
+      "tag": "0005_update_group_schema",
+      "breakpoints": true
     }
   ]
 }

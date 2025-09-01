@@ -24,6 +24,18 @@ const telephonyDidRoute = new Elysia({ prefix: '/api/telephony-dids' })
       })),
       terminated: t.Optional(t.Boolean({
         description: 'Filter by terminated status'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all telephony DIDs (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Telephony DIDs'],

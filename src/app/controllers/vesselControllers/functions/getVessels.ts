@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
 import { vessels } from '../../../models/Vessel'
-import { eq } from 'drizzle-orm'
+import { eq, and, count, desc, SQL } from 'drizzle-orm'
+import { IPagination } from '../../../utils/types'
 
 interface GetVesselsParams {
   reqObject: {
@@ -8,28 +9,72 @@ interface GetVesselsParams {
   }
   query?: {
     vesselsKitNumber?: string
-    groupName?: string
+    groupId?: string
   }
+  pagination?: IPagination
 }
 
-export async function getVessels_func({ reqObject, query }: GetVesselsParams) {
+export async function getVessels_func({ reqObject, query, pagination }: GetVesselsParams) {
   try {
-    let queryBuilder = db.select().from(vessels)
-
+    const conditions: SQL[] = []
     if (query?.vesselsKitNumber) {
-      queryBuilder = queryBuilder.where(eq(vessels.vesselsKitNumber, query.vesselsKitNumber))
+      conditions.push(eq(vessels.vesselsKitNumber, query.vesselsKitNumber))
+    }
+    if (query?.groupId) {
+      conditions.push(eq(vessels.groupId, parseInt(query.groupId)))
     }
 
-    if (query?.groupName) {
-      queryBuilder = queryBuilder.where(eq(vessels.groupName, query.groupName))
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined
+
+    // If pagination.all is set, return all records without pagination
+    if (pagination?.all === 'true' || pagination?.all === '1') {
+      const result = await db.select()
+        .from(vessels)
+        .where(whereCondition)
+        .orderBy(desc(vessels.createdAt))
+
+      return {
+        success: true,
+        message: 'Vessels retrieved successfully',
+        data: result,
+        pagination: {
+          total: result.length,
+          page: 1,
+          pageSize: result.length
+        }
+      }
     }
 
-    const result = await queryBuilder
+    // Default pagination values
+    const page = pagination?.currentPage || 1
+    const pageSize = pagination?.pageSize || 10
+    const offset = (page - 1) * pageSize
+
+    // Get total count
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(vessels)
+      .where(whereCondition)
+
+    const total = totalResult.count
+
+    // Get paginated data
+    const result = await db.select()
+      .from(vessels)
+      .where(whereCondition)
+      .orderBy(desc(vessels.createdAt))
+      .limit(pageSize)
+      .offset(offset)
 
     return {
       success: true,
+      message: 'Vessels retrieved successfully',
       data: result,
-      message: 'Vessels retrieved successfully'
+      pagination: {
+        total,
+        page,
+        pageSize
+      }
     }
   } catch (error: any) {
     console.error('Error fetching vessels:', error)

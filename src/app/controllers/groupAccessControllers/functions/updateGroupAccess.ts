@@ -8,20 +8,20 @@ interface UpdateGroupAccessParams {
   }
   query: {
     role: string
-    groupName: string
+    groupId: string
   }
   data: {
     role?: string
-    groupName?: string
+    groupId?: number
   }
 }
 
 export async function updateGroupAccess_func({ reqObject, query, data }: UpdateGroupAccessParams) {
   try {
-    if (!query.role || !query.groupName) {
+    if (!query.role || !query.groupId) {
       return {
         success: false,
-        message: 'Role and group name are required'
+        message: 'Role and group ID are required'
       }
     }
 
@@ -35,7 +35,7 @@ export async function updateGroupAccess_func({ reqObject, query, data }: UpdateG
       .set(updateData)
       .where(and(
         eq(groupAccess.role, query.role),
-        eq(groupAccess.groupName, query.groupName)
+        eq(groupAccess.groupId, parseInt(query.groupId))
       ))
       .returning()
 

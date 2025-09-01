@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
 import { mikrotikVessels } from '../../../models/MikrotikVessel'
-import { eq } from 'drizzle-orm'
+import { eq, and, count, desc, SQL } from 'drizzle-orm'
+import { IPagination } from '../../../utils/types'
 
 interface GetMikrotikVesselsParams {
   reqObject: {
@@ -10,26 +11,70 @@ interface GetMikrotikVesselsParams {
     vesselName?: string
     routerIp?: string
   }
+  pagination?: IPagination
 }
 
-export async function getMikrotikVessels_func({ reqObject, query }: GetMikrotikVesselsParams) {
+export async function getMikrotikVessels_func({ reqObject, query, pagination }: GetMikrotikVesselsParams) {
   try {
-    let queryBuilder = db.select().from(mikrotikVessels)
-
+    const conditions: SQL[] = []
     if (query?.vesselName) {
-      queryBuilder = queryBuilder.where(eq(mikrotikVessels.vesselName, query.vesselName))
+      conditions.push(eq(mikrotikVessels.vesselName, query.vesselName))
     }
-
     if (query?.routerIp) {
-      queryBuilder = queryBuilder.where(eq(mikrotikVessels.routerIp, query.routerIp))
+      conditions.push(eq(mikrotikVessels.routerIp, query.routerIp))
     }
 
-    const result = await queryBuilder
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined
+
+    // If pagination.all is set, return all records without pagination
+    if (pagination?.all === 'true' || pagination?.all === '1') {
+      const result = await db.select()
+        .from(mikrotikVessels)
+        .where(whereCondition)
+        .orderBy(desc(mikrotikVessels.createdAt))
+
+      return {
+        success: true,
+        message: 'Mikrotik vessels retrieved successfully',
+        data: result,
+        pagination: {
+          total: result.length,
+          page: 1,
+          pageSize: result.length
+        }
+      }
+    }
+
+    // Default pagination values
+    const page = pagination?.currentPage || 1
+    const pageSize = pagination?.pageSize || 10
+    const offset = (page - 1) * pageSize
+
+    // Get total count
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(mikrotikVessels)
+      .where(whereCondition)
+
+    const total = totalResult.count
+
+    // Get paginated data
+    const result = await db.select()
+      .from(mikrotikVessels)
+      .where(whereCondition)
+      .orderBy(desc(mikrotikVessels.createdAt))
+      .limit(pageSize)
+      .offset(offset)
 
     return {
       success: true,
+      message: 'Mikrotik vessels retrieved successfully',
       data: result,
-      message: 'Mikrotik vessels retrieved successfully'
+      pagination: {
+        total,
+        page,
+        pageSize
+      }
     }
   } catch (error: any) {
     console.error('Error fetching mikrotik vessels:', error)
