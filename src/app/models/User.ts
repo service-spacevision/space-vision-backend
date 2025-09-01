@@ -1,6 +1,6 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
 import { pgTable, varchar, timestamp, boolean, text, uuid, jsonb } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+
 import { t } from 'elysia'
 
 // Users table schema
@@ -31,27 +31,27 @@ export type NewUser = InferInsertModel<typeof users>
 
 export type UserWithoutPassword = Omit<User, 'password' | 'mfaSecret' | 'emailVerificationToken' | 'passwordResetToken'>
 
-export type UserProfile = Pick<User, 
-  'id' | 'email' | 'fullName' | 'username' | 'roleId' | 'isActive' | 
-  'isEmailVerified' | 'mfaEnabled' | 'lastLoginAt' | 'profilePicture' | 
+export type UserProfile = Pick<User,
+  'id' | 'email' | 'fullName' | 'username' | 'roleId' | 'isActive' |
+  'isEmailVerified' | 'mfaEnabled' | 'lastLoginAt' | 'profilePicture' |
   'bio' | 'preferences' | 'createdAt' | 'updatedAt'
 >
 
-export type CreateUserData = Pick<NewUser, 
+export type CreateUserData = Pick<NewUser,
   'email' | 'password' | 'fullName' | 'username'
 >
 
-export type UpdateUserData = Partial<Pick<User, 
+export type UpdateUserData = Partial<Pick<User,
   'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences'
 >>
 
 // Elysia schemas for request/response validation
 export const SignUpSchema = t.Object({
-  email: t.String({ 
+  email: t.String({
     format: 'email',
     description: 'User email address'
   }),
-  password: t.Optional(t.String({ 
+  password: t.Optional(t.String({
     minLength: 8,
     description: 'User password (minimum 8 characters)'
   })),
@@ -66,7 +66,7 @@ export const SignUpSchema = t.Object({
 })
 
 export const SignInSchema = t.Object({
-  email: t.String({ 
+  email: t.String({
     format: 'email',
     description: 'User email address'
   }),

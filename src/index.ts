@@ -3,6 +3,8 @@ import { swagger } from '@elysiajs/swagger'
 import { cookie } from '@elysiajs/cookie'
 import { APP_CONFIG } from './app/constants/constants'
 import { connectDatabase } from './app/db/connection'
+import { initializeSystem } from './app/db/initializeSystem'
+import { smartMigrate } from './app/db/syncMigrations'
 import { corsMiddleware } from './app/middlewares/cors'
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
@@ -117,11 +119,23 @@ const app = new Elysia()
   })
   .listen(APP_CONFIG.PORT)
 
-// Initialize database connection
-connectDatabase().catch((error) => {
-  console.error('Failed to connect to database:', error)
-  process.exit(1)
-})
+// Initialize database connection and system setup
+async function startServer() {
+  try {
+    await connectDatabase()
+    
+    // Use smart migration system
+    await smartMigrate()
+    
+    // Initialize system (seed roles and admin)
+    await initializeSystem()
+  } catch (error) {
+    console.error('Failed to initialize server:', error)
+    process.exit(1)
+  }
+}
+
+startServer()
 
 console.log(`🦊 ${APP_CONFIG.NAME} is running at http://${app.server?.hostname}:${app.server?.port}`)
 console.log(`📚 API Documentation available at http://${app.server?.hostname}:${app.server?.port}/swagger`)

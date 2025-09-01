@@ -51,6 +51,8 @@ export const signInUser_func = async (
     const user = userWithRole
 
     if (!user) {
+      console.log("its in here", user);
+
       return {
         success: false,
         message: 'Invalid email or password'
@@ -66,12 +68,30 @@ export const signInUser_func = async (
     }
 
     // Verify password
-    if (!user.password || !await bcrypt.compare(body.password, user.password)) {
+    console.log('Password verification:')
+    console.log('Input password:', body.password)
+    console.log('Stored hash:', user.password?.substring(0, 20) + '...')
+
+    if (!user.password) {
+      console.log('❌ No password stored for user')
       return {
         success: false,
         message: 'Invalid email or password'
       }
     }
+
+    const passwordMatch = await bcrypt.compare(body.password, user.password)
+    console.log('Password match result:', passwordMatch)
+
+    if (!passwordMatch) {
+      console.log('❌ Password does not match')
+      return {
+        success: false,
+        message: 'Invalid email or password'
+      }
+    }
+
+    console.log('✅ Password verified successfully')
 
     // Update last login
     await db
@@ -83,7 +103,7 @@ export const signInUser_func = async (
     const tokenPayload = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      // role: user.role,
       fullName: user.fullName,
       username: user.username
     }

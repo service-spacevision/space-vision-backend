@@ -53,7 +53,7 @@ export class AuthController {
       ctx.set.status = 500
       return { 
         success: false, 
-        message: 'Internal server error during login' 
+        message: err
       }
     }
   }

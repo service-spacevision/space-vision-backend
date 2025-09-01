@@ -20,17 +20,17 @@ export type NewUserRole = InferInsertModel<typeof userRoles>
 
 export type UserRoleWithoutSystem = Omit<UserRole, 'isSystem'>
 
-export type CreateUserRoleData = Pick<NewUserRole, 
+export type CreateUserRoleData = Pick<NewUserRole,
   'name' | 'displayName' | 'description' | 'permissions'
 >
 
-export type UpdateUserRoleData = Partial<Pick<UserRole, 
+export type UpdateUserRoleData = Partial<Pick<UserRole,
   'displayName' | 'description' | 'permissions' | 'isActive'
 >>
 
 // Elysia schemas for request/response validation
 export const CreateUserRoleSchema = t.Object({
-  name: t.String({ 
+  name: t.String({
     minLength: 1,
     maxLength: 100,
     description: 'Role name (unique identifier)'
