@@ -1,0 +1,35 @@
+
+services:
+  adminer:
+    image: adminer:latest
+    restart: always
+    ports:
+      - 8090:8080
+
+  # db:
+  #   image: mariadb:latest
+  #   restart: always
+  #   ports:
+  #     - 3306:3306
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example
+  #   volumes:
+  #     - db_data:/var/lib/mysql
+  postgres:
+    image: cgr.dev/chainguard/postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: example
+    ports:
+      - "5432:5432"
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    
+networks:
+  default:
+    name: dbs
+    driver: bridge
+
+volumes:
+  db_data:
