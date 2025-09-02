@@ -11,6 +11,11 @@
     "db:migrate": "bun run src/app/db/migrate.ts",
     "db:smart-migrate": "bun run src/app/db/syncMigrations.ts",
     "db:update": "bun run db:generate && bun run db:migrate",
+    "db:backup": "bun run src/app/db/dbBackupBun.ts",
+    "db:restore": "bun run src/app/db/dbRestoreBun.ts",
+    "db:backup-ts": "bun run src/app/db/dbBackup.ts",
+    "db:restore-ts": "bun run src/app/db/dbRestore.ts",
+    "db:reset": "bun run db:restore && bun run db:smart-migrate",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {
