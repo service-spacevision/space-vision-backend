@@ -1,9 +1,10 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, boolean, serial } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 export const telephonyDids = pgTable('telephony_dids', {
-  number: text('number').primaryKey(),
+  id: serial('id').primaryKey(),
+  number: text('number').notNull().unique(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
   expiresAt: timestamp('expires_at'),
@@ -19,7 +20,7 @@ export type NewTelephonyDid = InferInsertModel<typeof telephonyDids>
 
 export const CreateTelephonyDidSchema = t.Object({
   number: t.String({
-    description: 'Phone number (primary key)'
+    description: 'Phone number (unique identifier)'
   }),
   description: t.Optional(t.String({
     description: 'Description'
@@ -42,6 +43,9 @@ export const CreateTelephonyDidSchema = t.Object({
 })
 
 export const UpdateTelephonyDidSchema = t.Object({
+  number: t.Optional(t.String({
+    description: 'Phone number (unique identifier)'
+  })),
   description: t.Optional(t.String({
     description: 'Description'
   })),
@@ -63,6 +67,7 @@ export const UpdateTelephonyDidSchema = t.Object({
 })
 
 export const TelephonyDidResponseSchema = t.Object({
+  id: t.Number(),
   number: t.String(),
   description: t.Optional(t.String()),
   createdAt: t.Date(),

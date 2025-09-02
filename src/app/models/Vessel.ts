@@ -1,13 +1,14 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, timestamp, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, serial, integer } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 import { vesselGroups } from './VesselGroup'
 
 export const vessels = pgTable('vessels', {
-  vesselsKitNumber: text('vesselskit_number').primaryKey(),
+  id: serial('id').primaryKey(),
+  vesselsKitNumber: text('vesselskit_number').notNull().unique(),
   name: text('name'),
   subscriptionPlan: text('subscription_plan'),
-  groupId: integer('group_id').references(() => vesselGroups.groupId),
+  groupId: integer('group_id').references(() => vesselGroups.id),
   deviceId: text('device_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -18,7 +19,7 @@ export type NewVessel = InferInsertModel<typeof vessels>
 
 export const CreateVesselSchema = t.Object({
   vesselsKitNumber: t.String({
-    description: 'Vessel kit number (primary key)'
+    description: 'Vessel kit number (unique identifier)'
   }),
   name: t.Optional(t.String({
     description: 'Vessel name'
@@ -27,7 +28,7 @@ export const CreateVesselSchema = t.Object({
     description: 'Subscription plan'
   })),
   groupId: t.Optional(t.Number({
-    description: 'Group ID (foreign key to vessel_groups.group_id)'
+    description: 'Group ID (foreign key to vessel_groups.id)'
   })),
   deviceId: t.Optional(t.String({
     description: 'Device ID'
@@ -35,6 +36,9 @@ export const CreateVesselSchema = t.Object({
 })
 
 export const UpdateVesselSchema = t.Object({
+  vesselsKitNumber: t.Optional(t.String({
+    description: 'Vessel kit number (unique identifier)'
+  })),
   name: t.Optional(t.String({
     description: 'Vessel name'
   })),
@@ -42,7 +46,7 @@ export const UpdateVesselSchema = t.Object({
     description: 'Subscription plan'
   })),
   groupId: t.Optional(t.Number({
-    description: 'Group ID (foreign key to vessel_groups.group_id)'
+    description: 'Group ID (foreign key to vessel_groups.id)'
   })),
   deviceId: t.Optional(t.String({
     description: 'Device ID'
@@ -50,6 +54,7 @@ export const UpdateVesselSchema = t.Object({
 })
 
 export const VesselResponseSchema = t.Object({
+  id: t.Number(),
   vesselsKitNumber: t.String(),
   name: t.Optional(t.String()),
   subscriptionPlan: t.Optional(t.String()),

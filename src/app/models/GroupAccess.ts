@@ -1,17 +1,14 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, timestamp, primaryKey, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, serial, integer } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 import { vesselGroups } from './VesselGroup'
 
 export const groupAccess = pgTable('group_access', {
-  role: text('role'),
-  groupId: integer('group_id').references(() => vesselGroups.groupId),
+  id: serial('id').primaryKey(),
+  role: text('role').notNull(),
+  groupId: integer('group_id').notNull().references(() => vesselGroups.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.role, table.groupId] })
-  }
 })
 
 export type GroupAccess = InferSelectModel<typeof groupAccess>
@@ -22,7 +19,7 @@ export const CreateGroupAccessSchema = t.Object({
     description: 'Role name'
   }),
   groupId: t.Number({
-    description: 'Vessel group ID (foreign key to vessel_groups.group_id)'
+    description: 'Vessel group ID (foreign key to vessel_groups.id)'
   })
 })
 
@@ -31,11 +28,12 @@ export const UpdateGroupAccessSchema = t.Object({
     description: 'Role name'
   })),
   groupId: t.Optional(t.Number({
-    description: 'Vessel group ID (foreign key to vessel_groups.group_id)'
+    description: 'Vessel group ID (foreign key to vessel_groups.id)'
   }))
 })
 
 export const GroupAccessResponseSchema = t.Object({
+  id: t.Number(),
   role: t.String(),
   groupId: t.Number(),
   createdAt: t.Date(),

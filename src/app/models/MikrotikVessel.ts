@@ -1,9 +1,10 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 export const mikrotikVessels = pgTable('mikrotik_vessels', {
-  vesselName: text('vessel_name').primaryKey(),
+  id: serial('id').primaryKey(),
+  vesselName: text('vessel_name').notNull().unique(),
   routerIp: text('router_ip'),
   apiPort: integer('api_port'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -15,7 +16,7 @@ export type NewMikrotikVessel = InferInsertModel<typeof mikrotikVessels>
 
 export const CreateMikrotikVesselSchema = t.Object({
   vesselName: t.String({
-    description: 'Vessel name (primary key)'
+    description: 'Vessel name (unique identifier)'
   }),
   routerIp: t.Optional(t.String({
     description: 'Router IP address'
@@ -26,6 +27,9 @@ export const CreateMikrotikVesselSchema = t.Object({
 })
 
 export const UpdateMikrotikVesselSchema = t.Object({
+  vesselName: t.Optional(t.String({
+    description: 'Vessel name (unique identifier)'
+  })),
   routerIp: t.Optional(t.String({
     description: 'Router IP address'
   })),
@@ -35,6 +39,7 @@ export const UpdateMikrotikVesselSchema = t.Object({
 })
 
 export const MikrotikVesselResponseSchema = t.Object({
+  id: t.Number(),
   vesselName: t.String(),
   routerIp: t.Optional(t.String()),
   apiPort: t.Optional(t.Number()),

@@ -3,7 +3,7 @@ import { pgTable, text, timestamp, serial } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 export const vesselGroups = pgTable('vessel_groups', {
-  groupId: serial('group_id').primaryKey(),
+  id: serial('id').primaryKey(),
   groupName: text('group_name').notNull().unique(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -25,7 +25,7 @@ export const UpdateVesselGroupSchema = t.Object({
 })
 
 export const VesselGroupResponseSchema = t.Object({
-  groupId: t.Number(),
+  id: t.Number(),
   groupName: t.String(),
   createdAt: t.Date(),
   updatedAt: t.Date()
