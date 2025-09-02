@@ -1,60 +1,106 @@
 import { db } from '../../../db/connection'
-import { vessels } from '../../../models/Vessel'
-import { eq } from 'drizzle-orm'
+import { vessels, vesselGroups } from '../../../db/schema'
+import { eq, and, ne } from 'drizzle-orm'
 
 interface UpdateVesselParams {
   reqObject: {
     user: any
   }
   query: {
-    vesselsKitNumber: string
+    id: string
   }
-  data: Partial<{
+  data: {
+    vesselsKitNumber?: string
     name?: string
     subscriptionPlan?: string
-    groupName?: string
+    groupId?: number
     deviceId?: string
-  }>
+  }
 }
 
 export async function updateVessel_func({ reqObject, query, data }: UpdateVesselParams) {
   try {
-    if (!query.vesselsKitNumber) {
+    const vesselId = parseInt(query.id)
+
+    if (!vesselId) {
       return {
         success: false,
-        message: 'Vessel kit number is required'
+        message: 'Vessel ID is required'
       }
     }
 
-    const updateData = {
-      ...data,
-      updatedAt: new Date()
-    }
+    // Check if vessel exists
+    const existingVessel = await db
+      .select()
+      .from(vessels)
+      .where(eq(vessels.id, vesselId))
+      .limit(1)
 
-    const result = await db
-      .update(vessels)
-      .set(updateData)
-      .where(eq(vessels.vesselsKitNumber, query.vesselsKitNumber))
-      .returning()
-
-    if (result.length === 0) {
+    if (existingVessel.length === 0) {
       return {
         success: false,
         message: 'Vessel not found'
       }
     }
 
+    // Check if vessel kit number already exists (excluding current vessel)
+    if (data.vesselsKitNumber) {
+      const duplicateVessel = await db
+        .select()
+        .from(vessels)
+        .where(
+          and(
+            eq(vessels.vesselsKitNumber, data.vesselsKitNumber),
+            ne(vessels.id, vesselId)
+          )
+        )
+        .limit(1)
+
+      if (duplicateVessel.length > 0) {
+        return {
+          success: false,
+          message: 'Vessel with this kit number already exists'
+        }
+      }
+    }
+
+    // Validate group exists if groupId is provided
+    if (data.groupId) {
+      const existingGroup = await db
+        .select()
+        .from(vesselGroups)
+        .where(eq(vesselGroups.id, data.groupId))
+        .limit(1)
+
+      if (existingGroup.length === 0) {
+        return {
+          success: false,
+          message: 'Vessel group not found'
+        }
+      }
+    }
+
+    // Update the vessel
+    const updatedVessel = await db
+      .update(vessels)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(vessels.id, vesselId))
+      .returning()
+
     return {
       success: true,
-      data: result[0],
-      message: 'Vessel updated successfully'
+      message: 'Vessel updated successfully',
+      data: updatedVessel[0]
     }
-  } catch (error: any) {
-    console.error('Error updating vessel:', error)
+  } catch (error) {
+    console.error('Error in updateVessel_func:', error)
     return {
       success: false,
       message: 'Failed to update vessel',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
 }

@@ -49,8 +49,8 @@ export class UserRoleController {
 
   static async getRoleById(ctx: CustomContext) {
     try {
-      const { params } = ctx
-      const roleId = params.id
+      const { query } = ctx
+      const roleId = query.id
 
       if (!roleId) {
         ctx.set.status = 400
@@ -75,8 +75,8 @@ export class UserRoleController {
 
   static async updateRole(ctx: CustomContext) {
     try {
-      const { params, body } = ctx
-      const roleId = params.id
+      const { query, body } = ctx
+      const roleId = query.id
 
       if (!roleId) {
         ctx.set.status = 400
@@ -104,8 +104,8 @@ export class UserRoleController {
 
   static async deleteRole(ctx: CustomContext) {
     try {
-      const { params } = ctx
-      const roleId = params.id
+      const { query } = ctx
+      const roleId = query.id
 
       if (!roleId) {
         ctx.set.status = 400

@@ -1,2 +1,0 @@
--- This migration is handled by 0004_greedy_cannonball.sql
--- No additional changes needed

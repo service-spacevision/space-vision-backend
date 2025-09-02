@@ -1,5 +1,5 @@
 import { db } from '../../../db/connection'
-import { vessels } from '../../../models/Vessel'
+import { vessels } from '../../../db/schema'
 import { eq } from 'drizzle-orm'
 
 interface DeleteVesselParams {
@@ -7,42 +7,51 @@ interface DeleteVesselParams {
     user: any
   }
   query: {
-    vesselsKitNumber: string
+    id: string
   }
 }
 
 export async function deleteVessel_func({ reqObject, query }: DeleteVesselParams) {
   try {
-    if (!query.vesselsKitNumber) {
+    const vesselId = parseInt(query.id)
+
+    if (!vesselId) {
       return {
         success: false,
-        message: 'Vessel kit number is required'
+        message: 'Vessel ID is required'
       }
     }
 
-    const result = await db
-      .delete(vessels)
-      .where(eq(vessels.vesselsKitNumber, query.vesselsKitNumber))
-      .returning()
+    // Check if vessel exists
+    const existingVessel = await db
+      .select()
+      .from(vessels)
+      .where(eq(vessels.id, vesselId))
+      .limit(1)
 
-    if (result.length === 0) {
+    if (existingVessel.length === 0) {
       return {
         success: false,
         message: 'Vessel not found'
       }
     }
 
+    // Delete the vessel
+    await db
+      .delete(vessels)
+      .where(eq(vessels.id, vesselId))
+
     return {
       success: true,
-      data: result[0],
-      message: 'Vessel deleted successfully'
+      message: 'Vessel deleted successfully',
+      data: existingVessel[0]
     }
-  } catch (error: any) {
-    console.error('Error deleting vessel:', error)
+  } catch (error) {
+    console.error('Error in deleteVessel_func:', error)
     return {
       success: false,
       message: 'Failed to delete vessel',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
 }

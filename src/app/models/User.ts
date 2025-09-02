@@ -1,16 +1,16 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, varchar, timestamp, boolean, text, uuid, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, varchar, timestamp, boolean, text, serial, integer, jsonb } from 'drizzle-orm/pg-core'
 
 import { t } from 'elysia'
 
 // Users table schema
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: serial('id').primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }),
   fullName: varchar('full_name', { length: 200 }),
   username: varchar('username', { length: 100 }).unique(),
-  roleId: uuid('role_id'),
+  roleId: integer('role_id'),
   isActive: boolean('is_active').default(true),
   isEmailVerified: boolean('is_email_verified').default(false),
   emailVerificationToken: varchar('email_verification_token', { length: 255 }),
@@ -99,7 +99,7 @@ export const UpdateProfileSchema = t.Object({
   isActive: t.Optional(t.Boolean({
     description: 'User active status (admin only)'
   })),
-  roleId: t.Optional(t.String({
+  roleId: t.Optional(t.Number({
     description: 'User role ID (admin only)'
   }))
 })
@@ -121,11 +121,11 @@ export const DeleteAccountSchema = t.Object({
 })
 
 export const UserResponseSchema = t.Object({
-  id: t.String(),
+  id: t.Number(),
   email: t.String(),
   fullName: t.Optional(t.String()),
   username: t.Optional(t.String()),
-  roleId: t.Optional(t.String()),
+  roleId: t.Optional(t.Number()),
   isActive: t.Boolean(),
   isEmailVerified: t.Boolean(),
   mfaEnabled: t.Boolean(),

@@ -1,10 +1,10 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, varchar, timestamp, boolean, text, uuid, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, varchar, timestamp, boolean, text, serial, integer, jsonb } from 'drizzle-orm/pg-core'
 
 // Sessions table schema
 export const sessions = pgTable('sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull(),
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   currentDB: varchar('current_db', { length: 100 }),
   sessionData: jsonb('session_data'),
   ipAddress: varchar('ip_address', { length: 45 }),

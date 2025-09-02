@@ -52,9 +52,9 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     },
   })
 
-  .get('/:id', UserRoleController.getRoleById, {
-    beforeHandle: [checkUser(permission["GET_/api/user-roles/:id"])],
-    params: t.Object({
+  .get('/by-id', UserRoleController.getRoleById, {
+    beforeHandle: [checkUser(permission["GET_/api/user-roles/by-id"])],
+    query: t.Object({
       id: t.String({
         description: 'User role ID'
       })
@@ -67,9 +67,9 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     },
   })
 
-  .put('/:id', UserRoleController.updateRole, {
-    beforeHandle: [checkUser(permission["PUT_/api/user-roles/:id"])],
-    params: t.Object({
+  .put('/update', UserRoleController.updateRole, {
+    beforeHandle: [checkUser(permission["PUT_/api/user-roles/update"])],
+    query: t.Object({
       id: t.String({
         description: 'User role ID'
       })
@@ -83,9 +83,9 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     }
   })
 
-  .delete('/:id', UserRoleController.deleteRole, {
-    beforeHandle: [checkUser(permission["DELETE_/api/user-roles/:id"])],
-    params: t.Object({
+  .delete('/delete', UserRoleController.deleteRole, {
+    beforeHandle: [checkUser(permission["DELETE_/api/user-roles/delete"])],
+    query: t.Object({
       id: t.String({
         description: 'User role ID'
       })

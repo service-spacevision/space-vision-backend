@@ -2,10 +2,11 @@ import { Elysia, t } from 'elysia'
 import { cookie } from '@elysiajs/cookie'
 import { VesselController } from '../../app/controllers/vesselControllers/vesselController'
 import { checkUser } from '../../app/middlewares/permissions'
-import { CreateVesselSchema, UpdateVesselSchema, VesselResponseSchema } from '../../app/models/Vessel'
+import { CreateVesselSchema, UpdateVesselSchema } from '../../app/models/Vessel'
 
 const permission = {
   "GET_/api/vessels": "read_vessels",
+  "GET_/api/vessels/grouped": "read_vessels",
   "POST_/api/vessels": "create_vessel",
   "PUT_/api/vessels": "update_vessel",
   "DELETE_/api/vessels": "delete_vessel"
@@ -13,14 +14,27 @@ const permission = {
 
 const vesselRoute = new Elysia({ prefix: '/api/vessels' })
   .use(cookie())
+  .get('/grouped', VesselController.getAllVesselsGrouped, {
+    beforeHandle: [checkUser(permission["GET_/api/vessels/grouped"])],
+    tags: ['Vessels'],
+    detail: {
+      summary: 'Get all vessels grouped by vessel groups',
+      description: 'Fetches all vessels organized by their vessel groups',
+      operationId: 'getAllVesselsGrouped',
+    },
+  })
+
   .get('/', VesselController.getVessels, {
     beforeHandle: [checkUser(permission["GET_/api/vessels"])],
     query: t.Object({
-      vesselsKitNumber: t.Optional(t.String({
-        description: 'Filter by vessel kit number'
+      name: t.Optional(t.String({
+        description: 'Filter by vessel name'
       })),
       groupId: t.Optional(t.String({
         description: 'Filter by group ID'
+      })),
+      subscriptionPlan: t.Optional(t.String({
+        description: 'Filter by subscription plan'
       })),
       currentPage: t.Optional(t.String({
         description: 'Current Page number',
@@ -38,7 +52,7 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
     tags: ['Vessels'],
     detail: {
       summary: 'Get vessels',
-      description: 'Retrieve vessels with optional filtering',
+      description: 'Retrieve vessels with optional filtering and pagination',
       operationId: 'getVessels',
     },
   })
@@ -57,8 +71,8 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
   .put('/', VesselController.updateVessel, {
     beforeHandle: [checkUser(permission["PUT_/api/vessels"])],
     query: t.Object({
-      vesselsKitNumber: t.String({
-        description: 'Vessel kit number to update'
+      id: t.String({
+        description: 'Vessel ID to update'
       })
     }),
     body: UpdateVesselSchema,
@@ -73,8 +87,8 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
   .delete('/', VesselController.deleteVessel, {
     beforeHandle: [checkUser(permission["DELETE_/api/vessels"])],
     query: t.Object({
-      vesselsKitNumber: t.String({
-        description: 'Vessel kit number to delete'
+      id: t.String({
+        description: 'Vessel ID to delete'
       })
     }),
     tags: ['Vessels'],

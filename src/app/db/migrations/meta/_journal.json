@@ -5,57 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1756450491635,
-      "tag": "0000_boring_paibok",
+      "when": 1756820900000,
+      "tag": "0000_safe_schema_update",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1756662582579,
-      "tag": "0001_rare_arachne",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1756662800000,
-      "tag": "0002_fix_role_id_type",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1756729473450,
-      "tag": "0003_chemical_mesmero",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1756747709239,
-      "tag": "0004_greedy_cannonball",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1756748000000,
-      "tag": "0005_update_group_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1756748100000,
-      "tag": "0006_uuid_primary_keys",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1756758214399,
-      "tag": "0007_lowly_firebird",
+      "when": 1756822467814,
+      "tag": "0001_peaceful_korg",
       "breakpoints": true
     }
   ]

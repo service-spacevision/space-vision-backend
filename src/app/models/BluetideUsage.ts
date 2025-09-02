@@ -1,18 +1,15 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, text, real, timestamp, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, text, real, timestamp, serial } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 export const bluetideUsage = pgTable('bluetide_usage', {
-  date: text('date'),
-  kitp: text('kitp'),
+  id: serial('id').primaryKey(),
+  date: text('date').notNull(),
+  kitp: text('kitp').notNull(),
   name: text('name'),
   usageGb: real('usage_gb'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.date, table.kitp] })
-  }
 })
 
 export type BluetideUsage = InferSelectModel<typeof bluetideUsage>
@@ -43,6 +40,7 @@ export const UpdateBluetideUsageSchema = t.Object({
 })
 
 export const BluetideUsageResponseSchema = t.Object({
+  id: t.Number(),
   date: t.String(),
   kitp: t.String(),
   name: t.Optional(t.String()),

@@ -1,10 +1,32 @@
 import { CustomContext } from '../../utils/types'
+import { getAllVesselsGrouped_func } from './functions/getAllVesselsGrouped'
 import { getVessels_func } from './functions/getVessels'
 import { createVessel_func } from './functions/createVessel'
 import { updateVessel_func } from './functions/updateVessel'
 import { deleteVessel_func } from './functions/deleteVessel'
 
 export class VesselController {
+  static async getAllVesselsGrouped(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      const result = await getAllVesselsGrouped_func({
+        reqObject: { user },
+        query: query as any
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 404
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching vessels grouped by groups'
+      }
+    }
+  }
+
   static async getVessels(ctx: CustomContext) {
     try {
       const { query } = ctx

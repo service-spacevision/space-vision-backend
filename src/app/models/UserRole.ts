@@ -1,10 +1,10 @@
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import { pgTable, varchar, timestamp, boolean, text, uuid, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, varchar, timestamp, boolean, text, serial, jsonb } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
 // UserRoles table schema
 export const userRoles = pgTable('user_roles', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull().unique(),
   displayName: varchar('display_name', { length: 200 }),
   description: text('description'),
@@ -66,7 +66,7 @@ export const UpdateUserRoleSchema = t.Object({
 })
 
 export const UserRoleResponseSchema = t.Object({
-  id: t.String(),
+  id: t.Number(),
   name: t.String(),
   displayName: t.Optional(t.String()),
   description: t.Optional(t.String()),

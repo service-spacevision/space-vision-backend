@@ -1,6 +1,7 @@
 ## After changing anything in schema run
 ### Step:1
 ```
+  bunx drizzle-kit push
   bun run db:generate
 ```
 will show this result
