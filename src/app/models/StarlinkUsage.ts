@@ -6,11 +6,12 @@ import {
   timestamp,
   serial,
   boolean,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { t } from "elysia";
 
 export const starlinkUsage = pgTable("starlink_usage", {
-  id: serial("id").primaryKey(),
+  id: serial("id").unique(),
   dateKey: text("date_key").notNull(),
   kitNumber: text("kit_number").notNull(),
   vesselName: text("vessel_name"),
@@ -21,7 +22,9 @@ export const starlinkUsage = pgTable("starlink_usage", {
   publicIP_Enabled: boolean("public_ip_enabled"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  primaryKey({ columns: [table.dateKey, table.kitNumber] }), // Composite Primary Key
+]);
 
 export type StarlinkUsage = InferSelectModel<typeof starlinkUsage>;
 export type NewStarlinkUsage = InferInsertModel<typeof starlinkUsage>;

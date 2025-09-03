@@ -8,7 +8,9 @@ const permission = {
   "GET_/api/starlink-usage": "read_starlink_usage",
   "POST_/api/starlink-usage": "create_starlink_usage",
   "PUT_/api/starlink-usage": "update_starlink_usage",
-  "DELETE_/api/starlink-usage": "delete_starlink_usage"
+  "DELETE_/api/starlink-usage": "delete_starlink_usage",
+  "POST_/api/starlink-usage/sync": "sync_starlink_usage",
+  "GET_/api/starlink-usage/date-range": "read_starlink_usage"
 }
 
 const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
@@ -91,6 +93,42 @@ const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
       summary: 'Delete starlink usage',
       description: 'Delete an existing starlink usage record',
       operationId: 'deleteStarlinkUsage',
+    }
+  })
+
+  .post('/sync', StarlinkUsageController.syncStarlinkUsage, {
+    beforeHandle: [checkUser(permission["POST_/api/starlink-usage/sync"])],
+    query: t.Object({
+      datekey: t.Optional(t.String({
+        description: 'Optional date key to sync specific date (format: YYYYMMDD)',
+        example: '20250810'
+      }))
+    }),
+    tags: ['Starlink Usage'],
+    detail: {
+      summary: 'Sync starlink usage data',
+      description: 'Fetch and synchronize starlink usage data from external API. If datekey is provided, syncs data for that specific date, otherwise syncs latest data.',
+      operationId: 'syncStarlinkUsage',
+    }
+  })
+
+  .get('/date-range', StarlinkUsageController.getStarlinkUsageByDateRange, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/date-range"])],
+    query: t.Object({
+      startDate: t.String({
+        description: 'Start date for the range (format: YYYYMMDD)',
+        example: '20250801'
+      }),
+      endDate: t.String({
+        description: 'End date for the range (format: YYYYMMDD)',
+        example: '20250831'
+      })
+    }),
+    tags: ['Starlink Usage'],
+    detail: {
+      summary: 'Get starlink usage data by date range',
+      description: 'Retrieve starlink usage data within a specified date range with populated vessel and vessel group information. Returns detailed usage statistics and vessel details.',
+      operationId: 'getStarlinkUsageByDateRange',
     }
   })
 

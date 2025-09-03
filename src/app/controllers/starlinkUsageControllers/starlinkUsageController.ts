@@ -3,6 +3,8 @@ import { getStarlinkUsage_func } from './functions/getStarlinkUsage'
 import { createStarlinkUsage_func } from './functions/createStarlinkUsage'
 import { updateStarlinkUsage_func } from './functions/updateStarlinkUsage'
 import { deleteStarlinkUsage_func } from './functions/deleteStarlinkUsage'
+import { syncStarlinkUsage_func } from './functions/syncStarlinkUsage'
+import { getStarlinkUsageByDateRange_func } from './functions/getStarlinkUsageByDateRange'
 
 export class StarlinkUsageController {
   static async getStarlinkUsage(ctx: CustomContext) {
@@ -93,6 +95,49 @@ export class StarlinkUsageController {
       return {
         success: false,
         message: 'Internal server error while deleting starlink usage'
+      }
+    }
+  }
+
+  static async syncStarlinkUsage(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      const result = await syncStarlinkUsage_func({
+        reqObject: { user },
+        datekey: query?.datekey as string
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while syncing starlink usage'
+      }
+    }
+  }
+
+  static async getStarlinkUsageByDateRange(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      const result = await getStarlinkUsageByDateRange_func({
+        reqObject: { user },
+        startDate: query?.startDate as string,
+        endDate: query?.endDate as string
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching starlink usage by date range'
       }
     }
   }
