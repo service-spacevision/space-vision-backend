@@ -1,33 +1,37 @@
 import { db } from '../db/connection'
 import { sessions } from '../models/Session'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, lt } from 'drizzle-orm'
 import { CreateSessionData, SessionData } from '../models/Session'
 import { SESSION_CONFIG } from '../constants/constants'
 
 export const createSession = async ({
   user_Id,
   currentDB = 'default',
+  token,
   sessionData,
   ipAddress,
   userAgent
 }: {
-  user_Id: string
+  user_Id: number
   currentDB?: string
+  token?: string
   sessionData: SessionData
   ipAddress?: string
   userAgent?: string
 }) => {
   try {
     const expiresAt = new Date(Date.now() + SESSION_CONFIG.EXPIRES_IN)
-    
+
     const sessionPayload: CreateSessionData = {
       userId: user_Id,
+      token: token,
       currentDB,
       sessionData: sessionData,
       ipAddress,
       userAgent,
       expiresAt
     }
+    await db.delete(sessions).where(eq(sessions.userId, user_Id))
 
     const [session] = await db
       .insert(sessions)
@@ -41,12 +45,12 @@ export const createSession = async ({
   }
 }
 
-export const getSession = async ({ 
-  sessionId, 
-  user_Id 
+export const getSession = async ({
+  sessionId,
+  user_Id
 }: {
-  sessionId?: string
-  user_Id?: string
+  sessionId?: number
+  user_Id?: number
 }) => {
   try {
     if (!sessionId && !user_Id) {
@@ -73,7 +77,7 @@ export const getSession = async ({
 }
 
 export const updateSession = async (
-  sessionId: string, 
+  sessionId: number,
   data: Partial<SessionData>
 ) => {
   try {
@@ -93,7 +97,7 @@ export const updateSession = async (
   }
 }
 
-export const invalidateSession = async (sessionId: string) => {
+export const invalidateSession = async (sessionId: number) => {
   try {
     await db
       .update(sessions)
@@ -110,7 +114,7 @@ export const invalidateSession = async (sessionId: string) => {
   }
 }
 
-export const invalidateUserSessions = async (userId: string) => {
+export const invalidateUserSessions = async (userId: number) => {
   try {
     await db
       .update(sessions)
@@ -138,7 +142,7 @@ export const cleanupExpiredSessions = async () => {
       .where(and(
         eq(sessions.isActive, true),
         // Sessions where expiresAt is less than current time
-        eq(sessions.expiresAt, new Date())
+        lt(sessions.expiresAt, new Date())
       ))
 
     console.log(`Cleaned up expired sessions`)

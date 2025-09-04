@@ -5,6 +5,7 @@ import { pgTable, varchar, timestamp, boolean, text, serial, integer, jsonb } fr
 export const sessions = pgTable('sessions', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),
+  token: varchar('token', { length: 255 }),
   currentDB: varchar('current_db', { length: 100 }),
   sessionData: jsonb('session_data'),
   ipAddress: varchar('ip_address', { length: 45 }),
@@ -19,13 +20,14 @@ export type Session = InferSelectModel<typeof sessions>
 export type NewSession = InferInsertModel<typeof sessions>
 
 export type CreateSessionData = Pick<NewSession,
-  'userId' | 'currentDB' | 'sessionData' | 'ipAddress' | 'userAgent' | 'expiresAt'
+  'userId' | 'currentDB' | 'token' | 'sessionData' | 'ipAddress' | 'userAgent' | 'expiresAt'
 >
 
 export type SessionData = {
   loginTime: Date
   deviceInfo?: string
   location?: string
+  role?: any
   [key: string]: any
 }
 

@@ -64,7 +64,7 @@ export class AuthController {
 
       if (user) {
         // Invalidate all user sessions
-        await invalidateUserSessions(user.id)
+        await invalidateUserSessions(Number(user.id))
       }
 
       // Clear JWT cookie

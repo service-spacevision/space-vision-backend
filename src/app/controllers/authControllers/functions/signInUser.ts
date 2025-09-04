@@ -119,6 +119,7 @@ export const signInUser_func = async (
     // Create session
     const session = await createSession({
       user_Id: user.id,
+      token: token,
       sessionData: {
         loginTime: new Date(),
       },

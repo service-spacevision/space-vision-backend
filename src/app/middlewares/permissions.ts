@@ -6,7 +6,12 @@ import { UserRole } from '../utils/types'
 export const checkUser = (permission) => {
   return async (ctx: Context) => {
     // First check authentication
-    const authResult = await authMiddleware(ctx)
+    // console.log("ctx->data", ctx.cookie.jwt_token);
+    let contextToken = ctx.cookie.jwt_token.value
+    if(!contextToken){
+      contextToken = ctx.headers.authorization?.split(' ')[1]
+    }
+    const authResult = await authMiddleware(contextToken)
 
     if(!authResult || !authResult.success){
       ctx.set.status = 401
