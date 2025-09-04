@@ -11,7 +11,7 @@ import {
 import { t } from "elysia";
 
 export const starlinkUsage = pgTable("starlink_usage", {
-  id: serial("id").unique(),
+  id: serial("id"),
   dateKey: text("date_key").notNull(),
   kitNumber: text("kit_number").notNull(),
   vesselName: text("vessel_name"),
