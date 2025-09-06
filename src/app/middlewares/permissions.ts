@@ -1,21 +1,20 @@
-import { Context } from 'elysia'
-import { authMiddleware } from './auth'
-import { UserRole } from '../utils/types'
-
+import { Context } from "elysia";
+import { authMiddleware } from "./auth";
+import { UserRole } from "../utils/types";
 
 export const checkUser = (permission) => {
   return async (ctx: Context) => {
     // First check authentication
     // console.log("ctx->data", ctx.cookie.jwt_token);
-    let contextToken = ctx.cookie.jwt_token.value
-    if(!contextToken){
-      contextToken = ctx.headers.authorization?.split(' ')[1]
+    let contextToken = ctx.cookie.jwt_token.value;
+    if (!contextToken) {
+      contextToken = ctx.headers.authorization?.split(" ")[1];
     }
-    const authResult = await authMiddleware(contextToken)
+    const authResult = await authMiddleware(contextToken);
 
-    if(!authResult || !authResult.success){
-      ctx.set.status = 401
-      return authResult
+    if (!authResult || !authResult.success) {
+      ctx.set.status = 401;
+      return authResult;
     }
     // if (!authResult.success) {
     //   ctx.set.status = authResult.status || 401
@@ -28,31 +27,32 @@ export const checkUser = (permission) => {
 
     // if (!userRole || !allowedRoles.includes(userRole)) {
     //   ctx.set.status = 403
-    //   return { 
-    //     success: false, 
+    //   return {
+    //     success: false,
     //     message: "Access denied"
     //   }
     // }
-    (ctx as any).user = authResult.data
-    return
-  }
-}
+    (ctx as any).user = authResult.data;
+    console.log("ctx->user", ctx);
+    return;
+  };
+};
 
 // export const requireRole = (roles: UserRole[]) => {
 //   return async (ctx: Context) => {
 //     const authResult = await authMiddleware(ctx)
-    
+
 //     if (!authResult.success) {
 //       ctx.set.status = authResult.status || 401
 //       return { success: false, error: authResult.error }
 //     }
 
 //     const userRole = ctx.user?.role as UserRole
-    
+
 //     if (!userRole || !roles.includes(userRole)) {
 //       ctx.set.status = 403
-//       return { 
-//         success: false, 
+//       return {
+//         success: false,
 //         error: 'Access denied',
 //         required: roles,
 //         current: userRole
@@ -70,7 +70,7 @@ export const checkUser = (permission) => {
 // export const checkResourceAccess = (resourceType: 'user' | 'system') => {
 //   return async (ctx: Context) => {
 //     const authResult = await authMiddleware(ctx)
-    
+
 //     if (!authResult.success) {
 //       ctx.set.status = authResult.status || 401
 //       return { success: false, error: authResult.error }
@@ -87,9 +87,9 @@ export const checkUser = (permission) => {
 //     // Users can only access their own resources
 //     if (resourceType === 'user' && targetUserId && user.id !== targetUserId) {
 //       ctx.set.status = 403
-//       return { 
-//         success: false, 
-//         error: 'Access denied to this resource' 
+//       return {
+//         success: false,
+//         error: 'Access denied to this resource'
 //       }
 //     }
 

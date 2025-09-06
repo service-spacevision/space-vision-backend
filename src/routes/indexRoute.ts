@@ -10,6 +10,7 @@ import starlinkUsageRoute from './starlinkUsageRoute/starlinkUsageRoute'
 import bluetideUsageRoute from './bluetideUsageRoute/bluetideUsageRoute'
 import mikrotikVesselRoute from './mikrotikVesselRoute/mikrotikVesselRoute'
 import telephonyDidRoute from './telephonyDidRoute/telephonyDidRoute'
+import pinManagementRoute from './pinManagementRoute/pinManagementRoute'
 
 export {
   authRoute as authRoutes,
@@ -22,5 +23,6 @@ export {
   starlinkUsageRoute as starlinkUsageRoutes,
   bluetideUsageRoute as bluetideUsageRoutes,
   mikrotikVesselRoute as mikrotikVesselRoutes,
-  telephonyDidRoute as telephonyDidRoutes
+  telephonyDidRoute as telephonyDidRoutes,
+  pinManagementRoute as pinManagementRoutes
 }

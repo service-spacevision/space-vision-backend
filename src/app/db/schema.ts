@@ -10,6 +10,7 @@ import { starlinkUsage } from '../models/StarlinkUsage'
 import { bluetideUsage } from '../models/BluetideUsage'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { telephonyDids } from '../models/TelephonyDid'
+import { pins } from '../models/Pin'
 
 // Define relations here to avoid circular imports
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -69,6 +70,19 @@ export const mikrotikVesselsRelations = relations(mikrotikVessels, ({ one }) => 
   })
 }))
 
+// No direct relation defined for telephonyDids as it doesn't have a vesselId field
+
+export const pinsRelations = relations(pins, ({ one }) => ({
+  vessel: one(vessels, {
+    fields: [pins.vessel_id],
+    references: [vessels.id]
+  }),
+  generatedBy: one(users, {
+    fields: [pins.generated_by],
+    references: [users.id]
+  })
+}))
+
 // Export all tables
 export { 
   users, 
@@ -80,5 +94,6 @@ export {
   starlinkUsage, 
   bluetideUsage, 
   mikrotikVessels, 
-  telephonyDids 
+  telephonyDids, 
+  pins 
 }

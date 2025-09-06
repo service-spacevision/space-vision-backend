@@ -5,6 +5,7 @@ import { updateStarlinkUsage_func } from './functions/updateStarlinkUsage'
 import { deleteStarlinkUsage_func } from './functions/deleteStarlinkUsage'
 import { syncStarlinkUsage_func } from './functions/syncStarlinkUsage'
 import { getStarlinkUsageByDateRange_func } from './functions/getStarlinkUsageByDateRange'
+import { getStarlinkUsageKitData_func } from './functions/getStarlinkUsageKitData'
 
 export class StarlinkUsageController {
   static async getStarlinkUsage(ctx: CustomContext) {
@@ -141,4 +142,46 @@ export class StarlinkUsageController {
       }
     }
   }
+
+  static async getStarlinkUsageKitData(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      if (!query.startDate || !query.endDate) {
+        ctx.set.status = 400
+        return {
+          success: false,
+          message: 'startDate and endDate query parameters are required'
+        }
+      }
+
+      const pagination = {
+        currentPage: Number(query?.currentPage) || 1,
+        pageSize: Number(query?.pageSize) || 10,
+        all: query?.all || "false"
+      }
+
+      const result = await getStarlinkUsageKitData_func({
+        reqObject: { user },
+        query: {
+          startDate: query.startDate as string,
+          endDate: query.endDate as string,
+          kitNumber: query.kitNumber as string | undefined
+        },
+        pagination
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching starlink usage kit data',
+        error: err.message
+      }
+    }
+  }
+  
 }

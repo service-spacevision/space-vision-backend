@@ -10,7 +10,8 @@ const permission = {
   "PUT_/api/starlink-usage": "update_starlink_usage",
   "DELETE_/api/starlink-usage": "delete_starlink_usage",
   "POST_/api/starlink-usage/sync": "sync_starlink_usage",
-  "GET_/api/starlink-usage/date-range": "read_starlink_usage"
+  "GET_/api/starlink-usage/date-range": "read_starlink_usage",
+  "GET_/api/starlink-usage/kit-data": "read_starlink_usage"
 }
 
 const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
@@ -129,6 +130,42 @@ const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
       summary: 'Get starlink usage data by date range',
       description: 'Retrieve starlink usage data within a specified date range with populated vessel and vessel group information. Returns detailed usage statistics and vessel details.',
       operationId: 'getStarlinkUsageByDateRange',
+    }
+  })
+
+  .get('/kit-data', StarlinkUsageController.getStarlinkUsageKitData, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/kit-data"])],
+    query: t.Object({
+      startDate: t.String({
+        description: 'Start date for the range (format: YYYYMMDD)',
+        example: '20250801'
+      }),
+      endDate: t.String({
+        description: 'End date for the range (format: YYYYMMDD)',
+        example: '20250831'
+      }),
+      kitNumber: t.Optional(t.String({
+        description: 'Optional kit number to filter by',
+        example: 'KITP00118430'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Page number for pagination (default: 1)',
+        example: '1'
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page (default: 10)',
+        example: '10'
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all records without pagination (true/false)',
+        example: 'false'
+      }))
+    }),
+    tags: ['Starlink Usage'],
+    detail: {
+      summary: 'Get starlink kit usage data',
+      description: 'Retrieve starlink usage data formatted for kit visualization, including mobile priority and standard GB usage over time.',
+      operationId: 'getStarlinkUsageKitData',
     }
   })
 
