@@ -6,6 +6,12 @@ import { deleteStarlinkUsage_func } from './functions/deleteStarlinkUsage'
 import { syncStarlinkUsage_func } from './functions/syncStarlinkUsage'
 import { getStarlinkUsageByDateRange_func } from './functions/getStarlinkUsageByDateRange'
 import { getStarlinkUsageKitData_func } from './functions/getStarlinkUsageKitData'
+import { 
+  getStarlinkUsageStats_func, 
+  getStarlinkSystemSummary_func, 
+  getTopUsageKits_func, 
+  getUsageTrends_func 
+} from './functions/getStarlinkUsageStats'
 
 export class StarlinkUsageController {
   static async getStarlinkUsage(ctx: CustomContext) {
@@ -180,6 +186,87 @@ export class StarlinkUsageController {
         success: false,
         message: 'Internal server error while fetching starlink usage kit data',
         error: err.message
+      }
+    }
+  }
+
+  static async getStarlinkUsageStats(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      const result = await getStarlinkUsageStats_func({
+        reqObject: { user },
+        kitNumber: query?.kitNumber as string
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching starlink usage statistics'
+      }
+    }
+  }
+
+  static async getStarlinkSystemSummary(ctx: CustomContext) {
+    try {
+      const user = ctx.user!
+
+      const result = await getStarlinkSystemSummary_func({
+        reqObject: { user }
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching starlink system summary'
+      }
+    }
+  }
+
+  static async getTopUsageKits(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+
+      const result = await getTopUsageKits_func({
+        reqObject: { user },
+        limit: Number(query?.limit) || 10,
+        period: (query?.period as '7' | '30' | '60' | 'lifetime') || '60'
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching top usage kits'
+      }
+    }
+  }
+
+  static async getUsageTrends(ctx: CustomContext) {
+    try {
+      const user = ctx.user!
+
+      const result = await getUsageTrends_func({
+        reqObject: { user }
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching usage trends'
       }
     }
   }

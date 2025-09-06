@@ -5,6 +5,7 @@ import { APP_CONFIG } from "./app/constants/constants";
 import { connectDatabase } from "./app/db/connection";
 import { initializeSystem } from "./app/db/initializeSystem";
 import { smartMigrate } from "./app/db/syncMigrations";
+import { initializeMaterializedViews } from "./app/db/initializeMaterializedViews";
 import { corsMiddleware } from "./app/middlewares/cors";
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
@@ -153,6 +154,11 @@ async function startServer() {
 
     // Initialize system (seed roles and admin)
     await initializeSystem();
+
+    // Initialize materialized views for analytics
+    await initializeMaterializedViews();
+    
+    console.log("✅ Server initialization completed successfully");
   } catch (error) {
     console.error("Failed to initialize server:", error);
     process.exit(1);

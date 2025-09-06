@@ -11,7 +11,11 @@ const permission = {
   "DELETE_/api/starlink-usage": "delete_starlink_usage",
   "POST_/api/starlink-usage/sync": "sync_starlink_usage",
   "GET_/api/starlink-usage/date-range": "read_starlink_usage",
-  "GET_/api/starlink-usage/kit-data": "read_starlink_usage"
+  "GET_/api/starlink-usage/kit-data": "read_starlink_usage",
+  "GET_/api/starlink-usage/stats": "read_starlink_usage",
+  "GET_/api/starlink-usage/system-summary": "read_starlink_usage",
+  "GET_/api/starlink-usage/top-usage": "read_starlink_usage",
+  "GET_/api/starlink-usage/trends": "read_starlink_usage"
 }
 
 const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
@@ -166,6 +170,67 @@ const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
       summary: 'Get starlink kit usage data',
       description: 'Retrieve starlink usage data formatted for kit visualization, including mobile priority and standard GB usage over time.',
       operationId: 'getStarlinkUsageKitData',
+    }
+  })
+
+  .get('/stats', StarlinkUsageController.getStarlinkUsageStats, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/stats"])],
+    query: t.Object({
+      kitNumber: t.Optional(t.String({
+        description: 'Optional kit number to get stats for specific kit',
+        example: 'KITP00118430'
+      }))
+    }),
+    tags: ['Starlink Usage Statistics'],
+    detail: {
+      summary: 'Get comprehensive starlink usage statistics',
+      description: 'Retrieve detailed usage statistics including 7/30/60 day usage, lifetime usage, averages, and breakdown data from materialized view.',
+      operationId: 'getStarlinkUsageStats',
+    }
+  })
+
+  .get('/system-summary', StarlinkUsageController.getStarlinkSystemSummary, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/system-summary"])],
+    tags: ['Starlink Usage Statistics'],
+    detail: {
+      summary: 'Get system-wide starlink usage summary',
+      description: 'Retrieve overall system statistics including total vessels, vessel groups, lifetime usage, and system averages.',
+      operationId: 'getStarlinkSystemSummary',
+    }
+  })
+
+  .get('/top-usage', StarlinkUsageController.getTopUsageKits, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/top-usage"])],
+    query: t.Object({
+      limit: t.Optional(t.String({
+        description: 'Number of top kits to return (default: 10)',
+        example: '10'
+      })),
+      period: t.Optional(t.Union([
+        t.Literal('7'),
+        t.Literal('30'),
+        t.Literal('60'),
+        t.Literal('lifetime')
+      ], {
+        description: 'Time period for ranking (default: 60)',
+        example: '60'
+      }))
+    }),
+    tags: ['Starlink Usage Statistics'],
+    detail: {
+      summary: 'Get top usage kits',
+      description: 'Retrieve the highest usage kits for a specified time period (7, 30, 60 days, or lifetime).',
+      operationId: 'getTopUsageKits',
+    }
+  })
+
+  .get('/trends', StarlinkUsageController.getUsageTrends, {
+    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/trends"])],
+    tags: ['Starlink Usage Statistics'],
+    detail: {
+      summary: 'Get usage trends',
+      description: 'Retrieve daily usage trends for the last 60 days across all kits, including usage changes and active kit counts.',
+      operationId: 'getUsageTrends',
     }
   })
 

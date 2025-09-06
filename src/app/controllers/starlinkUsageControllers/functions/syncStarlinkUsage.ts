@@ -3,6 +3,7 @@ import { starlinkUsage } from '../../../models/StarlinkUsage'
 import { eq, and } from 'drizzle-orm'
 import axios from 'axios'
 import { AuthUser } from '../../../utils/types'
+import { refreshStarlinkUsageViews } from '../../../utils/refreshMaterializedViews'
 
 interface StarlinkApiResponse {
   customerId: string
@@ -120,6 +121,15 @@ export async function syncStarlinkUsage_func({ reqObject, datekey }: SyncStarlin
         console.error(`Error processing record for kit ${record.kitSerialNumber}:`, recordError)
         // Continue processing other records
       }
+    }
+
+    // Refresh materialized views after successful sync
+    try {
+      await refreshStarlinkUsageViews()
+      console.log('Materialized views refreshed successfully after sync')
+    } catch (viewError) {
+      console.error('Error refreshing materialized views after sync:', viewError)
+      // Don't fail the sync operation if view refresh fails
     }
 
     return {
