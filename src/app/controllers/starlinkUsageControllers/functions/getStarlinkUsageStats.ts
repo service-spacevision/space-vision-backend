@@ -1,31 +1,75 @@
 import { db } from '../../../db/connection'
 import { sql } from 'drizzle-orm'
-import { AuthUser } from '../../../utils/types'
+import { AuthUser, IPagination } from '../../../utils/types'
 
 interface GetStarlinkUsageStatsParams {
   reqObject: {
     user: AuthUser
   }
   kitNumber?: string
+  pagination?: IPagination
 }
 
-export async function getStarlinkUsageStats_func({ reqObject, kitNumber }: GetStarlinkUsageStatsParams) {
+export async function getStarlinkUsageStats_func({ reqObject, kitNumber, pagination }: GetStarlinkUsageStatsParams) {
   try {
     const { user } = reqObject
     console.log("requestedBy", user)
 
-    let query = sql`SELECT * FROM starlink_usage_stats_mv`
-    
-    if (kitNumber) {
-      query = sql`SELECT * FROM starlink_usage_stats_mv WHERE kit_number = ${kitNumber}`
+    const whereSql = kitNumber ? sql`WHERE kit_number = ${kitNumber}` : sql``
+
+    // If pagination.all is set, return all records without pagination
+    if (pagination?.all === 'true' || pagination?.all === '1') {
+      const statsAll = await db.execute(sql`
+        SELECT *
+        FROM starlink_usage_stats_mv
+        ${whereSql}
+        ORDER BY last_updated DESC
+      `)
+
+      return {
+        success: true,
+        message: 'Starlink usage statistics retrieved successfully',
+        data: statsAll,
+        pagination: {
+          total: statsAll.length,
+          page: 1,
+          pageSize: statsAll.length
+        }
+      }
     }
 
-    const stats = await db.execute(query)
+    // Default pagination values
+    const page = pagination?.currentPage || 1
+    const pageSize = pagination?.pageSize || 10
+    const offset = (page - 1) * pageSize
+
+    // Get total count
+    const countRows = await db.execute(sql`
+      SELECT COUNT(*)::int as count
+      FROM starlink_usage_stats_mv
+      ${whereSql}
+    `)
+    const total = Number((countRows as any)[0]?.count ?? 0)
+
+    // Get paginated data
+    const stats = await db.execute(sql`
+      SELECT *
+      FROM starlink_usage_stats_mv
+      ${whereSql}
+      ORDER BY last_updated DESC
+      LIMIT ${pageSize}
+      OFFSET ${offset}
+    `)
 
     return {
       success: true,
       message: 'Starlink usage statistics retrieved successfully',
-      data: stats
+      data: stats,
+      pagination: {
+        total,
+        page,
+        pageSize
+      }
     }
 
   } catch (error: any) {

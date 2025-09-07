@@ -179,6 +179,18 @@ const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
       kitNumber: t.Optional(t.String({
         description: 'Optional kit number to get stats for specific kit',
         example: 'KITP00118430'
+      })),
+      currentPage: t.Optional(t.String({
+        description: 'Current Page number',
+        default: "1"
+      })),
+      pageSize: t.Optional(t.String({
+        description: 'Number of items per page',
+        default: "10"
+      })),
+      all: t.Optional(t.String({
+        description: 'Retrieve all starlink usage (true/false)',
+        default: "false"
       }))
     }),
     tags: ['Starlink Usage Statistics'],

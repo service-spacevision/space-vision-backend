@@ -79,6 +79,10 @@ const app = new Elysia()
                 ? "Production server"
                 : "Development server",
           },
+          {
+            url: "http://localhost:3000",
+            description: "Local development server",
+          }
         ],
       },
     })
