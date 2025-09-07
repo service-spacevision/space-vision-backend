@@ -7,6 +7,7 @@ import { CreateVesselSchema, UpdateVesselSchema } from '../../app/models/Vessel'
 const permission = {
   "GET_/api/vessels": "read_vessels",
   "GET_/api/vessels/grouped": "read_vessels",
+  "GET_/api/vessels/group": "read_vessels",
   "POST_/api/vessels": "create_vessel",
   "PUT_/api/vessels": "update_vessel",
   "DELETE_/api/vessels": "delete_vessel"
@@ -24,6 +25,21 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
     },
   })
 
+  .get('/group', VesselController.getVesselsByGroupId, {
+    beforeHandle: [checkUser(permission["GET_/api/vessels/group"])],
+    query: t.Object({
+      groupId: t.String({
+        description: 'Group ID to filter vessels by'
+      })
+    }),
+    tags: ['Vessels'],
+    detail: {
+      summary: 'Get vessels by group ID',
+      description: 'Fetches all vessels belonging to a specific group',
+      operationId: 'getVesselsByGroupId',
+    },
+  })
+  
   .get('/', VesselController.getVessels, {
     beforeHandle: [checkUser(permission["GET_/api/vessels"])],
     query: t.Object({

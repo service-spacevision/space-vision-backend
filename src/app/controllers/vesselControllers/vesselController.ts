@@ -4,6 +4,7 @@ import { getVessels_func } from './functions/getVessels'
 import { createVessel_func } from './functions/createVessel'
 import { updateVessel_func } from './functions/updateVessel'
 import { deleteVessel_func } from './functions/deleteVessel'
+import { getVesselsByGroupId_func } from './functions/getVesselsByGroupId'
 
 export class VesselController {
   static async getAllVesselsGrouped(ctx: CustomContext) {
@@ -115,6 +116,45 @@ export class VesselController {
       return {
         success: false,
         message: 'Internal server error while deleting vessel'
+      }
+    }
+  }
+
+  static async getVesselsByGroupId(ctx: CustomContext) {
+    try {
+      const { query } = ctx
+      const user = ctx.user!
+      const { groupId } = query
+
+      if (!groupId) {
+        ctx.set.status = 400
+        return {
+          success: false,
+          message: 'Group ID is required as a query parameter'
+        }
+      }
+
+      const groupIdNum = Number(groupId)
+      if (isNaN(groupIdNum)) {
+        ctx.set.status = 400
+        return {
+          success: false,
+          message: 'Group ID must be a valid number'
+        }
+      }
+
+      const result = await getVesselsByGroupId_func({
+        groupId: groupIdNum,
+        user
+      })
+
+      ctx.set.status = result?.success ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching vessels by group ID'
       }
     }
   }

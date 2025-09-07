@@ -56,6 +56,10 @@ const app = new Elysia()
             description: "Bluetide usage tracking endpoints",
           },
           {
+            name: "Bluetide Telemetry",
+            description: "Bluetide telemetry data endpoints",
+          },
+          {
             name: "Mikrotik Vessels",
             description: "Mikrotik vessel management endpoints",
           },
@@ -97,6 +101,7 @@ const app = new Elysia()
       groupAccess: "/api/group-access",
       starlinkUsage: "/api/starlink-usage",
       bluetideUsage: "/api/bluetide-usage",
+      bluetideTelemetry: "/api/bluetide-telemetry",
       mikrotikVessels: "/api/mikrotik-vessels",
       telephonyDids: "/api/telephony-dids",
     },
@@ -157,7 +162,7 @@ async function startServer() {
 
     // Initialize materialized views for analytics
     await initializeMaterializedViews();
-    
+
     console.log("✅ Server initialization completed successfully");
   } catch (error) {
     console.error("Failed to initialize server:", error);

@@ -8,6 +8,7 @@ import { vesselGroups } from '../models/VesselGroup'
 import { groupAccess } from '../models/GroupAccess'
 import { starlinkUsage } from '../models/StarlinkUsage'
 import { bluetideUsage } from '../models/BluetideUsage'
+import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
@@ -92,7 +93,8 @@ export {
   vesselGroups, 
   groupAccess, 
   starlinkUsage, 
-  bluetideUsage, 
+  bluetideUsage,
+  bluetideTelemetry, 
   mikrotikVessels, 
   telephonyDids, 
   pins 

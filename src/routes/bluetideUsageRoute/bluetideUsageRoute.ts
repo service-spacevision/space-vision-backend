@@ -8,7 +8,8 @@ const permission = {
   "GET_/api/bluetide-usage": "read_bluetide_usage",
   "POST_/api/bluetide-usage": "create_bluetide_usage",
   "PUT_/api/bluetide-usage": "update_bluetide_usage",
-  "DELETE_/api/bluetide-usage": "delete_bluetide_usage"
+  "DELETE_/api/bluetide-usage": "delete_bluetide_usage",
+  "GET_/api/bluetide-usage/sync-telemetry": "sync_bluetide_telemetry"
 }
 
 const bluetideUsageRoute = new Elysia({ prefix: '/api/bluetide-usage' })
@@ -91,6 +92,16 @@ const bluetideUsageRoute = new Elysia({ prefix: '/api/bluetide-usage' })
       summary: 'Delete bluetide usage',
       description: 'Delete an existing bluetide usage record',
       operationId: 'deleteBluetideUsage',
+    }
+  })
+
+  .get('/sync-telemetry', BluetideUsageController.syncBluetideTelemetry, {
+    beforeHandle: [checkUser(permission["GET_/api/bluetide-usage/sync-telemetry"])],
+    tags: ['Bluetide Usage'],
+    detail: {
+      summary: 'Sync bluetide telemetry',
+      description: 'Sync bluetide telemetry data',
+      operationId: 'syncBluetideTelemetry',
     }
   })
 
