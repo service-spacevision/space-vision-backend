@@ -1,8 +1,11 @@
-import { Elysia, t } from 'elysia'
-import { cookie } from '@elysiajs/cookie'
-import { StarlinkUsageController } from '../../app/controllers/starlinkUsageControllers/starlinkUsageController'
-import { checkUser } from '../../app/middlewares/permissions'
-import { CreateStarlinkUsageSchema, UpdateStarlinkUsageSchema } from '../../app/models/StarlinkUsage'
+import { Elysia, t } from "elysia";
+import { cookie } from "@elysiajs/cookie";
+import { StarlinkUsageController } from "../../app/controllers/starlinkUsageControllers/starlinkUsageController";
+import { checkUser } from "../../app/middlewares/permissions";
+import {
+  CreateStarlinkUsageSchema,
+  UpdateStarlinkUsageSchema,
+} from "../../app/models/StarlinkUsage";
 
 const permission = {
   "GET_/api/starlink-usage": "read_starlink_usage",
@@ -15,235 +18,292 @@ const permission = {
   "GET_/api/starlink-usage/stats": "read_starlink_usage",
   "GET_/api/starlink-usage/system-summary": "read_starlink_usage",
   "GET_/api/starlink-usage/top-usage": "read_starlink_usage",
-  "GET_/api/starlink-usage/trends": "read_starlink_usage"
-}
+  "GET_/api/starlink-usage/trends": "read_starlink_usage",
+};
 
-const starlinkUsageRoute = new Elysia({ prefix: '/api/starlink-usage' })
+const starlinkUsageRoute = new Elysia({ prefix: "/api/starlink-usage" })
   .use(cookie())
-  .get('/', StarlinkUsageController.getStarlinkUsage, {
+  .get("/", StarlinkUsageController.getStarlinkUsage, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage"])],
     query: t.Object({
-      dateKey: t.Optional(t.String({
-        description: 'Filter by date key'
-      })),
-      kitNumber: t.Optional(t.String({
-        description: 'Filter by kit number'
-      })),
-      vesselName: t.Optional(t.String({
-        description: 'Filter by vessel name'
-      })),
-      currentPage: t.Optional(t.String({
-        description: 'Current Page number',
-        default: "1"
-      })),
-      pageSize: t.Optional(t.String({
-        description: 'Number of items per page',
-        default: "10"
-      })),
-      all: t.Optional(t.String({
-        description: 'Retrieve all starlink usage (true/false)',
-        default: "false"
-      }))
+      dateKey: t.Optional(
+        t.String({
+          description: "Filter by date key",
+        })
+      ),
+      startDate: t.Optional(
+        t.String({
+          description: "Filter by start date",
+        })
+      ),
+      endDate: t.Optional(
+        t.String({
+          description: "Filter by end date",
+        })
+      ),
+      kitNumber: t.Optional(
+        t.String({
+          description: "Filter by kit number",
+        })
+      ),
+      vesselName: t.Optional(
+        t.String({
+          description: "Filter by vessel name",
+        })
+      ),
+      currentPage: t.Optional(
+        t.String({
+          description: "Current Page number",
+          default: "1",
+        })
+      ),
+      pageSize: t.Optional(
+        t.String({
+          description: "Number of items per page",
+          default: "10",
+        })
+      ),
+      all: t.Optional(
+        t.String({
+          description: "Retrieve all starlink usage (true/false)",
+          default: "false",
+        })
+      ),
     }),
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Get starlink usage',
-      description: 'Retrieve starlink usage with optional filtering',
-      operationId: 'getStarlinkUsage',
+      summary: "Get starlink usage",
+      description: "Retrieve starlink usage with optional filtering",
+      operationId: "getStarlinkUsage",
     },
   })
 
-  .post('/', StarlinkUsageController.createStarlinkUsage, {
+  .post("/", StarlinkUsageController.createStarlinkUsage, {
     beforeHandle: [checkUser(permission["POST_/api/starlink-usage"])],
     body: CreateStarlinkUsageSchema,
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Create starlink usage',
-      description: 'Create a new starlink usage record',
-      operationId: 'createStarlinkUsage',
-    }
+      summary: "Create starlink usage",
+      description: "Create a new starlink usage record",
+      operationId: "createStarlinkUsage",
+    },
   })
 
-  .put('/', StarlinkUsageController.updateStarlinkUsage, {
+  .put("/", StarlinkUsageController.updateStarlinkUsage, {
     beforeHandle: [checkUser(permission["PUT_/api/starlink-usage"])],
     query: t.Object({
       dateKey: t.String({
-        description: 'Date key to update'
+        description: "Date key to update",
       }),
       kitNumber: t.String({
-        description: 'Kit number to update'
-      })
+        description: "Kit number to update",
+      }),
     }),
     body: UpdateStarlinkUsageSchema,
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Update starlink usage',
-      description: 'Update an existing starlink usage record',
-      operationId: 'updateStarlinkUsage',
-    }
+      summary: "Update starlink usage",
+      description: "Update an existing starlink usage record",
+      operationId: "updateStarlinkUsage",
+    },
   })
 
-  .delete('/', StarlinkUsageController.deleteStarlinkUsage, {
+  .delete("/", StarlinkUsageController.deleteStarlinkUsage, {
     beforeHandle: [checkUser(permission["DELETE_/api/starlink-usage"])],
     query: t.Object({
       dateKey: t.String({
-        description: 'Date key to delete'
+        description: "Date key to delete",
       }),
       kitNumber: t.String({
-        description: 'Kit number to delete'
-      })
+        description: "Kit number to delete",
+      }),
     }),
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Delete starlink usage',
-      description: 'Delete an existing starlink usage record',
-      operationId: 'deleteStarlinkUsage',
-    }
+      summary: "Delete starlink usage",
+      description: "Delete an existing starlink usage record",
+      operationId: "deleteStarlinkUsage",
+    },
   })
 
-  .post('/sync', StarlinkUsageController.syncStarlinkUsage, {
+  .post("/sync", StarlinkUsageController.syncStarlinkUsage, {
     beforeHandle: [checkUser(permission["POST_/api/starlink-usage/sync"])],
     query: t.Object({
-      datekey: t.Optional(t.String({
-        description: 'Optional date key to sync specific date (format: YYYYMMDD)',
-        example: '20250810'
-      }))
+      datekey: t.Optional(
+        t.String({
+          description:
+            "Optional date key to sync specific date (format: YYYYMMDD)",
+          example: "20250810",
+        })
+      ),
     }),
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Sync starlink usage data',
-      description: 'Fetch and synchronize starlink usage data from external API. If datekey is provided, syncs data for that specific date, otherwise syncs latest data.',
-      operationId: 'syncStarlinkUsage',
-    }
+      summary: "Sync starlink usage data",
+      description:
+        "Fetch and synchronize starlink usage data from external API. If datekey is provided, syncs data for that specific date, otherwise syncs latest data.",
+      operationId: "syncStarlinkUsage",
+    },
   })
 
-  .get('/date-range', StarlinkUsageController.getStarlinkUsageByDateRange, {
+  .get("/date-range", StarlinkUsageController.getStarlinkUsageByDateRange, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage/date-range"])],
     query: t.Object({
       startDate: t.String({
-        description: 'Start date for the range (format: YYYYMMDD)',
-        example: '20250801'
+        description: "Start date for the range (format: YYYYMMDD)",
+        example: "20250801",
       }),
       endDate: t.String({
-        description: 'End date for the range (format: YYYYMMDD)',
-        example: '20250831'
-      })
+        description: "End date for the range (format: YYYYMMDD)",
+        example: "20250831",
+      }),
     }),
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Get starlink usage data by date range',
-      description: 'Retrieve starlink usage data within a specified date range with populated vessel and vessel group information. Returns detailed usage statistics and vessel details.',
-      operationId: 'getStarlinkUsageByDateRange',
-    }
+      summary: "Get starlink usage data by date range",
+      description:
+        "Retrieve starlink usage data within a specified date range with populated vessel and vessel group information. Returns detailed usage statistics and vessel details.",
+      operationId: "getStarlinkUsageByDateRange",
+    },
   })
 
-  .get('/kit-data', StarlinkUsageController.getStarlinkUsageKitData, {
+  .get("/kit-data", StarlinkUsageController.getStarlinkUsageKitData, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage/kit-data"])],
     query: t.Object({
       startDate: t.String({
-        description: 'Start date for the range (format: YYYYMMDD)',
-        example: '20250801'
+        description: "Start date for the range (format: YYYYMMDD)",
+        example: "20250801",
       }),
       endDate: t.String({
-        description: 'End date for the range (format: YYYYMMDD)',
-        example: '20250831'
+        description: "End date for the range (format: YYYYMMDD)",
+        example: "20250831",
       }),
-      kitNumber: t.Optional(t.String({
-        description: 'Optional kit number to filter by',
-        example: 'KITP00118430'
-      })),
-      currentPage: t.Optional(t.String({
-        description: 'Page number for pagination (default: 1)',
-        example: '1'
-      })),
-      pageSize: t.Optional(t.String({
-        description: 'Number of items per page (default: 10)',
-        example: '10'
-      })),
-      all: t.Optional(t.String({
-        description: 'Retrieve all records without pagination (true/false)',
-        example: 'false'
-      }))
+      kitNumber: t.Optional(
+        t.String({
+          description: "Optional kit number to filter by",
+          example: "KITP00118430",
+        })
+      ),
+      currentPage: t.Optional(
+        t.String({
+          description: "Page number for pagination (default: 1)",
+          example: "1",
+        })
+      ),
+      pageSize: t.Optional(
+        t.String({
+          description: "Number of items per page (default: 10)",
+          example: "10",
+        })
+      ),
+      all: t.Optional(
+        t.String({
+          description: "Retrieve all records without pagination (true/false)",
+          example: "false",
+        })
+      ),
     }),
-    tags: ['Starlink Usage'],
+    tags: ["Starlink Usage"],
     detail: {
-      summary: 'Get starlink kit usage data',
-      description: 'Retrieve starlink usage data formatted for kit visualization, including mobile priority and standard GB usage over time.',
-      operationId: 'getStarlinkUsageKitData',
-    }
+      summary: "Get starlink kit usage data",
+      description:
+        "Retrieve starlink usage data formatted for kit visualization, including mobile priority and standard GB usage over time.",
+      operationId: "getStarlinkUsageKitData",
+    },
   })
 
-  .get('/stats', StarlinkUsageController.getStarlinkUsageStats, {
+  .get("/stats", StarlinkUsageController.getStarlinkUsageStats, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage/stats"])],
     query: t.Object({
-      kitNumber: t.Optional(t.String({
-        description: 'Optional kit number to get stats for specific kit',
-        example: 'KITP00118430'
-      })),
-      currentPage: t.Optional(t.String({
-        description: 'Current Page number',
-        default: "1"
-      })),
-      pageSize: t.Optional(t.String({
-        description: 'Number of items per page',
-        default: "10"
-      })),
-      all: t.Optional(t.String({
-        description: 'Retrieve all starlink usage (true/false)',
-        default: "false"
-      }))
+      kitNumber: t.Optional(
+        t.String({
+          description: "Optional kit number to get stats for specific kit",
+          example: "KITP00118430",
+        })
+      ),
+      currentPage: t.Optional(
+        t.String({
+          description: "Current Page number",
+          default: "1",
+        })
+      ),
+      pageSize: t.Optional(
+        t.String({
+          description: "Number of items per page",
+          default: "10",
+        })
+      ),
+      all: t.Optional(
+        t.String({
+          description: "Retrieve all starlink usage (true/false)",
+          default: "false",
+        })
+      ),
     }),
-    tags: ['Starlink Usage Statistics'],
+    tags: ["Starlink Usage Statistics"],
     detail: {
-      summary: 'Get comprehensive starlink usage statistics',
-      description: 'Retrieve detailed usage statistics including 7/30/60 day usage, lifetime usage, averages, and breakdown data from materialized view.',
-      operationId: 'getStarlinkUsageStats',
-    }
+      summary: "Get comprehensive starlink usage statistics",
+      description:
+        "Retrieve detailed usage statistics including 7/30/60 day usage, lifetime usage, averages, and breakdown data from materialized view.",
+      operationId: "getStarlinkUsageStats",
+    },
   })
 
-  .get('/system-summary', StarlinkUsageController.getStarlinkSystemSummary, {
-    beforeHandle: [checkUser(permission["GET_/api/starlink-usage/system-summary"])],
-    tags: ['Starlink Usage Statistics'],
+  .get("/system-summary", StarlinkUsageController.getStarlinkSystemSummary, {
+    beforeHandle: [
+      checkUser(permission["GET_/api/starlink-usage/system-summary"]),
+    ],
+    tags: ["Starlink Usage Statistics"],
     detail: {
-      summary: 'Get system-wide starlink usage summary',
-      description: 'Retrieve overall system statistics including total vessels, vessel groups, lifetime usage, and system averages.',
-      operationId: 'getStarlinkSystemSummary',
-    }
+      summary: "Get system-wide starlink usage summary",
+      description:
+        "Retrieve overall system statistics including total vessels, vessel groups, lifetime usage, and system averages.",
+      operationId: "getStarlinkSystemSummary",
+    },
   })
 
-  .get('/top-usage', StarlinkUsageController.getTopUsageKits, {
+  .get("/top-usage", StarlinkUsageController.getTopUsageKits, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage/top-usage"])],
     query: t.Object({
-      limit: t.Optional(t.String({
-        description: 'Number of top kits to return (default: 10)',
-        example: '10'
-      })),
-      period: t.Optional(t.Union([
-        t.Literal('7'),
-        t.Literal('30'),
-        t.Literal('60'),
-        t.Literal('lifetime')
-      ], {
-        description: 'Time period for ranking (default: 60)',
-        example: '60'
-      }))
+      limit: t.Optional(
+        t.String({
+          description: "Number of top kits to return (default: 10)",
+          example: "10",
+        })
+      ),
+      period: t.Optional(
+        t.Union(
+          [
+            t.Literal("7"),
+            t.Literal("30"),
+            t.Literal("60"),
+            t.Literal("lifetime"),
+          ],
+          {
+            description: "Time period for ranking (default: 60)",
+            example: "60",
+          }
+        )
+      ),
     }),
-    tags: ['Starlink Usage Statistics'],
+    tags: ["Starlink Usage Statistics"],
     detail: {
-      summary: 'Get top usage kits',
-      description: 'Retrieve the highest usage kits for a specified time period (7, 30, 60 days, or lifetime).',
-      operationId: 'getTopUsageKits',
-    }
+      summary: "Get top usage kits",
+      description:
+        "Retrieve the highest usage kits for a specified time period (7, 30, 60 days, or lifetime).",
+      operationId: "getTopUsageKits",
+    },
   })
 
-  .get('/trends', StarlinkUsageController.getUsageTrends, {
+  .get("/trends", StarlinkUsageController.getUsageTrends, {
     beforeHandle: [checkUser(permission["GET_/api/starlink-usage/trends"])],
-    tags: ['Starlink Usage Statistics'],
+    tags: ["Starlink Usage Statistics"],
     detail: {
-      summary: 'Get usage trends',
-      description: 'Retrieve daily usage trends for the last 60 days across all kits, including usage changes and active kit counts.',
-      operationId: 'getUsageTrends',
-    }
-  })
+      summary: "Get usage trends",
+      description:
+        "Retrieve daily usage trends for the last 60 days across all kits, including usage changes and active kit counts.",
+      operationId: "getUsageTrends",
+    },
+  });
 
-export default starlinkUsageRoute
+export default starlinkUsageRoute;
