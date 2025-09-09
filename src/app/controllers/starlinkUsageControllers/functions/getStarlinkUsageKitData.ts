@@ -1,7 +1,7 @@
 import { db } from "../../../db/connection";
 import { starlinkUsage } from "../../../models/StarlinkUsage";
 import { vessels } from "../../../models/Vessel";
-import { and, gte, lte, sql, eq, count } from "drizzle-orm";
+import { and, gte, lte, sql, eq, count, inArray } from "drizzle-orm";
 import { format } from "date-fns";
 import { IPagination } from "../../../utils/types";
 
@@ -93,15 +93,27 @@ export async function getStarlinkUsageKitData_func({
     const offset = (page - 1) * pageSize;
 
     // First, get the paginated kit numbers
-    const kitSubQuery = db
+    const kitNumbers = await db
       .selectDistinct({
         kitNumber: starlinkUsage.kitNumber,
       })
       .from(starlinkUsage)
       .where(and(...conditions))
       .limit(pageSize)
-      .offset(offset)
-      .as('kits');
+      .offset(offset);
+
+    if (kitNumbers.length === 0) {
+      return {
+        success: true,
+        message: "No data found for the specified criteria",
+        data: [],
+        pagination: {
+          total: 0,
+          page,
+          pageSize,
+        },
+      };
+    }
 
     // Then get all data for these kits within the date range
     const usageData = await db
@@ -114,10 +126,18 @@ export async function getStarlinkUsageKitData_func({
         standardGb: starlinkUsage.standardGb,
       })
       .from(starlinkUsage)
-      .innerJoin(kitSubQuery, eq(starlinkUsage.kitNumber, sql.identifier('kits.kitNumber')))
       .leftJoin(vessels, eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber))
-      .where(and(...conditions))
-      .orderBy(starlinkUsage.dateKey);
+      .where(
+        and(
+          gte(starlinkUsage.dateKey, startDate),
+          lte(starlinkUsage.dateKey, endDate),
+          inArray(
+            starlinkUsage.kitNumber,
+            kitNumbers.map(k => k.kitNumber)
+          )
+        )
+      )
+      .orderBy(starlinkUsage.kitNumber, starlinkUsage.dateKey);
 
     // Get total count of unique kits for pagination
     const [totalResult] = await db
