@@ -1,7 +1,7 @@
 import { db } from "../../../db/connection";
 import { starlinkUsage } from "../../../models/StarlinkUsage";
 import { vessels } from "../../../models/Vessel";
-import { and, gte, lte, sql, eq, count, inArray } from "drizzle-orm";
+import { and, gte, lte, sql, eq, count, inArray, desc } from "drizzle-orm";
 import { format } from "date-fns";
 import { IPagination } from "../../../utils/types";
 
@@ -116,6 +116,7 @@ export async function getStarlinkUsageKitData_func({
     }
 
     // Then get all data for these kits within the date range
+    const kitNumberList = kitNumbers.map(k => k.kitNumber);
     const usageData = await db
       .select({
         id: starlinkUsage.id,
@@ -124,20 +125,17 @@ export async function getStarlinkUsageKitData_func({
         vesselName: vessels.name,
         mobilePriorityGb: starlinkUsage.mobilePriorityGb,
         standardGb: starlinkUsage.standardGb,
+        createdAt: starlinkUsage.createdAt,
       })
       .from(starlinkUsage)
       .leftJoin(vessels, eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber))
       .where(
         and(
-          gte(starlinkUsage.dateKey, startDate),
-          lte(starlinkUsage.dateKey, endDate),
-          inArray(
-            starlinkUsage.kitNumber,
-            kitNumbers.map(k => k.kitNumber)
-          )
+          ...conditions,
+          inArray(starlinkUsage.kitNumber, kitNumberList)
         )
       )
-      .orderBy(starlinkUsage.kitNumber, starlinkUsage.dateKey);
+      .orderBy(desc(starlinkUsage.createdAt));
 
     // Get total count of unique kits for pagination
     const [totalResult] = await db
@@ -183,18 +181,18 @@ function getDatesInRange(startDate: string, endDate: string): string[] {
     parseInt(endDate.substring(4, 6)) - 1,
     parseInt(endDate.substring(6, 8))
   );
-  
+
   const dateArray: string[] = [];
   let currentDate = new Date(start);
-  
+
   while (currentDate <= end) {
     const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
     dateArray.push(`${year}${month}${day}`);
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return dateArray;
 }
 
@@ -206,14 +204,16 @@ function processKitData(usageData: any[], startDate: string, endDate: string) {
 
   // Get all dates in the range
   const allDates = getDatesInRange(startDate, endDate);
-  
+
   // Create a map of kitNumber to its data for quick lookup
   const kitDataMap = new Map<string, any>();
-  
+  const kitOrder: string[] = [];
+
   // First pass: group data by kit number and date
-  usageData.forEach(item => {
+  usageData.forEach((item) => {
     const kitNumber = item.kitNumber;
     if (!kitDataMap.has(kitNumber)) {
+      kitOrder.push(kitNumber);
       kitDataMap.set(kitNumber, {
         id: item.id,
         vessel_name: item.vesselName || "Unknown Vessel",
@@ -223,10 +223,13 @@ function processKitData(usageData: any[], startDate: string, endDate: string) {
         totalPriorityGB: 0,
         totalStandardGB: 0,
         series: [
-          { name: "mobile_priority_gb", data: new Array(allDates.length).fill(0) },
+          {
+            name: "mobile_priority_gb",
+            data: new Array(allDates.length).fill(0),
+          },
           { name: "standard_gb", data: new Array(allDates.length).fill(0) },
         ],
-        range: allDates.map(date => {
+        range: allDates.map((date) => {
           const d = new Date(
             parseInt(date.substring(0, 4)),
             parseInt(date.substring(4, 6)) - 1,
@@ -236,18 +239,18 @@ function processKitData(usageData: any[], startDate: string, endDate: string) {
         }),
       });
     }
-    
+
     // Find the index of this date in the allDates array
     const dateIndex = allDates.indexOf(item.dateKey);
     if (dateIndex !== -1) {
       const kitData = kitDataMap.get(kitNumber)!;
       const priorityGB = Number(item.mobilePriorityGb) || 0;
       const standardGB = Number(item.standardGb) || 0;
-      
+
       // Set the values at the correct date index
       kitData.series[0].data[dateIndex] = priorityGB;
       kitData.series[1].data[dateIndex] = standardGB;
-      
+
       // Update totals
       kitData.totalPriorityGB = parseFloat(
         (kitData.totalPriorityGB + priorityGB).toFixed(2)

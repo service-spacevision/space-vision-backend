@@ -19,6 +19,7 @@ import {
   starlinkUsageRoutes,
   bluetideUsageRoutes,
   mikrotikVesselRoutes,
+  mikrotikUsageRoutes,
   telephonyDidRoutes,
   pinManagementRoutes,
 } from "./routes/indexRoute";
@@ -62,6 +63,10 @@ const app = new Elysia()
           {
             name: "Mikrotik Vessels",
             description: "Mikrotik vessel management endpoints",
+          },
+          {
+            name: "Mikrotik Usage",
+            description: "Mikrotik hotspot usage tracking endpoints",
           },
           {
             name: "Telephony DIDs",
@@ -120,6 +125,7 @@ const app = new Elysia()
   .use(starlinkUsageRoutes)
   .use(bluetideUsageRoutes)
   .use(mikrotikVesselRoutes)
+  .use(mikrotikUsageRoutes)
   .use(telephonyDidRoutes)
   .use(pinManagementRoutes)
   .onError(({ error, code, set }) => {

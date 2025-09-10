@@ -9,6 +9,7 @@ import groupAccessRoute from "./groupAccessRoute/groupAccessRoute";
 import starlinkUsageRoute from "./starlinkUsageRoute/starlinkUsageRoute";
 import bluetideUsageRoute from "./bluetideUsageRoute/bluetideUsageRoute";
 import mikrotikVesselRoute from "./mikrotikVesselRoute/mikrotikVesselRoute";
+import mikrotikUsageRoute from "./mikrotikUsageRoute/mikrotikUsageRoute";
 import telephonyDidRoute from "./telephonyDidRoute/telephonyDidRoute";
 import pinManagementRoute from "./pinManagementRoute/pinManagementRoute";
 
@@ -23,6 +24,7 @@ export {
   starlinkUsageRoute as starlinkUsageRoutes,
   bluetideUsageRoute as bluetideUsageRoutes,
   mikrotikVesselRoute as mikrotikVesselRoutes,
+  mikrotikUsageRoute as mikrotikUsageRoutes,
   telephonyDidRoute as telephonyDidRoutes,
   pinManagementRoute as pinManagementRoutes,
 };

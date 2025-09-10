@@ -10,6 +10,7 @@ import { starlinkUsage } from '../models/StarlinkUsage'
 import { bluetideUsage } from '../models/BluetideUsage'
 import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
+import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
 
@@ -96,6 +97,7 @@ export {
   bluetideUsage,
   bluetideTelemetry, 
   mikrotikVessels, 
+  mikrotikUsageSession,
   telephonyDids, 
   pins 
 }

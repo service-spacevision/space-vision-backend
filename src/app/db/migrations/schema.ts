@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, real, integer, doublePrecision, unique, varchar, jsonb, boolean, foreignKey, primaryKey, pgMaterializedView, date, bigint } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, timestamp, real, integer, doublePrecision, unique, varchar, jsonb, boolean, foreignKey, primaryKey, pgMaterializedView, date, bigint, decimal, index } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -208,6 +208,26 @@ export const starlinkUsageStatsMv = pgMaterializedView("starlink_usage_stats_mv"
 	systemTotalActiveKits: bigint("system_total_active_kits", { mode: "number" }),
 	lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }),
 }).as(sql`WITH last_60_days AS ( SELECT starlink_usage.kit_number, starlink_usage.vessel_name, to_date(starlink_usage.date_key, 'YYYYMMDD'::text) AS usage_date, starlink_usage.mobile_priority_gb, starlink_usage.standard_gb, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb, starlink_usage.usage_limit_gb, starlink_usage.public_ip_enabled, starlink_usage.chargebee_subscription_id FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '60 days'::interval) ORDER BY starlink_usage.date_key ), last_30_days AS ( SELECT starlink_usage.kit_number, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '30 days'::interval) ), last_7_days AS ( SELECT starlink_usage.kit_number, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '7 days'::interval) ), lifetime_usage AS ( SELECT starlink_usage.kit_number, sum(COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real)) AS lifetime_usage_gb, min(to_date(starlink_usage.date_key, 'YYYYMMDD'::text)) AS first_usage_date, max(to_date(starlink_usage.date_key, 'YYYYMMDD'::text)) AS last_usage_date, count(DISTINCT starlink_usage.date_key) AS total_days_with_usage FROM starlink_usage GROUP BY starlink_usage.kit_number ), system_stats AS ( SELECT count(DISTINCT v.vesselskit_number) AS total_vessels, count(DISTINCT vg.id) AS total_vessel_groups, sum(COALESCE(su.mobile_priority_gb, 0::real) + COALESCE(su.standard_gb, 0::real)) AS total_lifetime_usage_gb, count(DISTINCT su.kit_number) AS total_active_kits FROM starlink_usage su LEFT JOIN vessels v ON v.vesselskit_number = su.kit_number LEFT JOIN vessel_groups vg ON vg.id = v.group_id ) SELECT COALESCE(l60.kit_number, lt.kit_number) AS kit_number, max(l60.vessel_name) AS vessel_name, COALESCE(sum(l60.total_gb), 0::real) AS last_60_days_usage_gb, COALESCE(sum(l30.total_gb), 0::real) AS last_30_days_usage_gb, COALESCE(sum(l7.total_gb), 0::real) AS last_7_days_usage_gb, COALESCE(max(lt.lifetime_usage_gb), 0::real) AS lifetime_usage_gb, max(lt.first_usage_date) AS first_usage_date, max(lt.last_usage_date) AS last_usage_date, max(lt.total_days_with_usage) AS total_days_with_usage, jsonb_agg( CASE WHEN l60.usage_date IS NOT NULL THEN jsonb_build_object('date', l60.usage_date, 'mobilePriorityGb', COALESCE(l60.mobile_priority_gb, 0::real), 'standardGb', COALESCE(l60.standard_gb, 0::real), 'totalGb', l60.total_gb, 'usageLimitGB', l60.usage_limit_gb, 'publicIP_Enabled', l60.public_ip_enabled, 'chargebeeSubscriptionId', l60.chargebee_subscription_id) ELSE NULL::jsonb END ORDER BY l60.usage_date) FILTER (WHERE l60.usage_date IS NOT NULL) AS last_60_days_breakdown, CASE WHEN count(l60.usage_date) > 0 THEN COALESCE(sum(l60.total_gb), 0::real) / count(l60.usage_date)::double precision ELSE 0::double precision END AS avg_daily_usage_last_60_days, CASE WHEN count(l30.total_gb) > 0 THEN COALESCE(sum(l30.total_gb), 0::real) / count(l30.total_gb)::double precision ELSE 0::double precision END AS avg_daily_usage_last_30_days, max(l60.usage_limit_gb) AS current_usage_limit, bool_or(l60.public_ip_enabled) AS current_public_ip_enabled, max(l60.chargebee_subscription_id) AS current_subscription_id, max(ss.total_vessels) AS system_total_vessels, max(ss.total_vessel_groups) AS system_total_vessel_groups, max(ss.total_lifetime_usage_gb) AS system_total_lifetime_usage_gb, max(ss.total_active_kits) AS system_total_active_kits, now() AS last_updated FROM ( SELECT NULL::text AS "?column?") dummy LEFT JOIN last_60_days l60 ON true LEFT JOIN last_30_days l30 ON l30.kit_number = l60.kit_number LEFT JOIN last_7_days l7 ON l7.kit_number = l60.kit_number LEFT JOIN lifetime_usage lt ON lt.kit_number = l60.kit_number CROSS JOIN system_stats ss GROUP BY (COALESCE(l60.kit_number, lt.kit_number)) HAVING COALESCE(l60.kit_number, lt.kit_number) IS NOT NULL`);
+
+export const mikrotikUsageSession = pgTable("mikrotik_usage_session", {
+  id: serial("id").primaryKey(),
+  vesselName: text("vessel_name").notNull(),
+  username: text("username").notNull(),
+  ip: text("ip"),
+  mac: text("mac"),
+  uptime: text("uptime"),
+  rxMb: integer("rx_mb").notNull().default(0),
+  txMb: integer("tx_mb").notNull().default(0),
+  totalAllowedMb: integer("total_allowed_mb").notNull().default(5000),
+  percentageUsed: decimal("percentage_used", { precision: 5, scale: 1 }).notNull().default("0.0"),
+  lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }).defaultNow(),
+}, (table) => {
+  return {
+    vesselNameIdx: index("idx_mikrotik_usage_session_vessel").on(table.vesselName),
+    usernameIdx: index("idx_mikrotik_usage_session_username").on(table.username),
+    lastUpdatedIdx: index("idx_mikrotik_usage_session_last_updated").on(table.lastUpdated),
+  };
+});
 
 export const starlinkSystemSummaryMv = pgMaterializedView("starlink_system_summary_mv", {	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	totalVessels: bigint("total_vessels", { mode: "number" }),
