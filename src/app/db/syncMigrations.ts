@@ -4,6 +4,10 @@ import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 
+// Controls for dev-only recovery behaviors
+const allowBootstrap = process.env.ALLOW_SCHEMA_BOOTSTRAP === 'true' && process.env.NODE_ENV !== 'production'
+const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC !== 'false'
+
 export async function smartMigrate() {
     try {
         console.log('🔄 Smart migration system starting...')
@@ -20,7 +24,11 @@ export async function smartMigrate() {
             // Check if it's a "table already exists" error
             if (migrationError.message?.includes('already exists')) {
                 console.log('🔧 Detected existing tables, syncing migration state...')
-                await syncMigrationState()
+                if (allowStateSync) {
+                    await syncMigrationState()
+                } else {
+                    console.log('⚠️  Migration state sync is disabled by env (ALLOW_MIGRATION_STATE_SYNC=false)')
+                }
 
                 // Try migration again after sync
                 try {
@@ -28,7 +36,7 @@ export async function smartMigrate() {
                     console.log('✅ Migration completed after state sync')
                     return
                 } catch (retryError: any) {
-                    console.log('⚠️  Migration still failing, ensuring basic tables exist...')
+                    console.log('⚠️  Migration still failing, checking schema mismatch handling...')
                     await handleSchemaMismatch()
 
                     // Final attempt - if this fails, let it fail with proper error
@@ -119,8 +127,15 @@ async function handleSchemaMismatch() {
         console.log('   - Run `bun run db:generate` to create migrations for new schema changes')
         console.log('   - The system will then apply them automatically')
 
-        // For now, just ensure basic tables exist with minimal columns
-        await ensureBasicTablesExist()
+        // Only for development/bootstrap when explicitly allowed
+        if (allowBootstrap) {
+            console.log('🧪 Dev bootstrap enabled: Ensuring basic tables exist')
+            await ensureBasicTablesExist()
+        } else {
+            console.log('🚫 Skipping runtime schema bootstrap (safe default).')
+            console.log('   - Generate migrations: bun run db:generate')
+            console.log('   - Apply migrations: bun run db:migrate')
+        }
 
     } catch (error) {
         console.error('Error handling schema mismatch:', error)

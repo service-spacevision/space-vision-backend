@@ -2,11 +2,15 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { cookie } from "@elysiajs/cookie";
 import { APP_CONFIG } from "./app/constants/constants";
-import { connectDatabase } from "./app/db/connection";
+import { connectDatabase, db } from "./app/db/connection";
 import { initializeSystem } from "./app/db/initializeSystem";
 import { smartMigrate } from "./app/db/syncMigrations";
+import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { initializeMaterializedViews } from "./app/db/initializeMaterializedViews";
 import { corsMiddleware } from "./app/middlewares/cors";
+import { startCrons } from "./app/cron/index.cron";
+import { ensureSyncState } from "./app/db/ensureSyncState";
+import { ensureBluetideTelemetry } from "./app/db/ensureBluetideTelemetry";
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
   authRoutes,
@@ -164,8 +168,16 @@ async function startServer() {
   try {
     await connectDatabase();
 
-    // Use smart migration system
-    await smartMigrate();
+    // Run migrations (strict in prod, smart in dev)
+    const strictMigrations = process.env.NODE_ENV === 'production' || process.env.DB_STRICT_MIGRATIONS === 'true'
+    if (strictMigrations) {
+      console.log('Running strict migrations...')
+      await migrate(db, { migrationsFolder: './src/app/db/migrations' })
+      console.log('✅ Strict migrations completed successfully')
+    } else {
+      // Use smart migration system for local/dev convenience
+      await smartMigrate();
+    }
 
     // Initialize system (seed roles and admin)
     await initializeSystem();
@@ -173,7 +185,14 @@ async function startServer() {
     // Initialize materialized views for analytics
     await initializeMaterializedViews();
 
+    // Ensure required tables (dev/backfill safety)
+    await ensureSyncState();
+    await ensureBluetideTelemetry();
+
     console.log("✅ Server initialization completed successfully");
+
+    // Start background crons after successful initialization
+    startCrons();
   } catch (error) {
     console.error("Failed to initialize server:", error);
     process.exit(1);

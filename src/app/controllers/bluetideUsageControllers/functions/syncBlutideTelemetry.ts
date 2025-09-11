@@ -3,6 +3,7 @@ import { bluetideTelemetry } from "../../../../app/models/BluetideTelemetry";
 import { eq, and } from "drizzle-orm";
 import axios from "axios";
 import { AuthUser } from "../../../../app/utils/types";
+import { getSyncCursor, upsertSyncCursor } from "../../../../app/utils/syncState";
 
 interface BluetideTelemetryResponse {
   data: Array<{
@@ -33,6 +34,7 @@ interface SyncBluetideTelemetryParams {
     user: AuthUser;
   };
   deviceId?: string;
+  maxPagesPerRun?: number;
 }
 
 const API_BASE_URL = process.env.BLUETIDE_API_URL;
@@ -41,62 +43,70 @@ const DELAY_BETWEEN_REQUESTS = 600; // ms to avoid rate limiting
 console.log("API_BASE_URL", API_BASE_URL);
 
 async function fetchPage(pageIndex: number, deviceId?: string) {
-  try {
-    const url = new URL(API_BASE_URL || "");
-    url.searchParams.append("pageIndex", pageIndex.toString());
-    url.searchParams.append("pageSize", PAGE_SIZE.toString());
+  const url = new URL(API_BASE_URL || "");
+  url.searchParams.append("pageIndex", pageIndex.toString());
+  url.searchParams.append("pageSize", PAGE_SIZE.toString());
 
-    if (deviceId) {
-      url.searchParams.append("deviceId", deviceId);
-    }
+  if (deviceId) {
+    url.searchParams.append("deviceId", deviceId);
+  }
 
-    console.log(`Fetching page ${pageIndex} from:`, url.toString());
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "x-api-key": process.env.BLUETIDE_API_KEY?.replace(/^"|"$/g, ""),
+  } as const;
 
-    const response = await axios.get<BluetideTelemetryResponse>(
-      url.toString(),
-      {
+  const maxRetries = 3;
+  const baseDelay = 800; // ms
+
+  let attempt = 0;
+  while (true) {
+    try {
+      console.log(`Fetching page ${pageIndex} (attempt ${attempt + 1}) from:`, url.toString());
+      const response = await axios.get<BluetideTelemetryResponse>(url.toString(), {
         timeout: 30000,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "x-api-key": process.env.BLUETIDE_API_KEY?.replace(/^"|"$/g, ""),
-        },
-        validateStatus: (status) => status < 500, // Don't throw for 4xx errors
+        headers,
+        validateStatus: (status) => status < 500 || status === 502 || status === 503 || status === 504,
+      });
+
+      if (response.status === 200) {
+        return response.data;
       }
-    );
 
-    console.log(`Response status for page ${pageIndex}:`, response.status);
-    console.log(`Response data for page ${pageIndex}:`, response.data);
+      if ([429, 502, 503, 504].includes(response.status)) {
+        attempt++;
+        if (attempt > maxRetries) {
+          throw new Error(`API request failed after retries with status ${response.status}`);
+        }
+        const backoff = baseDelay * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+        console.warn(`Transient API status ${response.status}. Retrying in ${backoff}ms...`);
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
 
-    if (response.status !== 200) {
       console.error("API Error:", {
         status: response.status,
         statusText: response.statusText,
         data: response.data,
       });
-      throw new Error(
-        `API request failed with status ${response.status}: ${response.statusText}`
-      );
+      throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        attempt++;
+        if (attempt > maxRetries) {
+          console.error("Axios Error (final):", { message: error.message, code: error.code });
+          throw error;
+        }
+        const backoff = baseDelay * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+        console.warn(`Axios error ${error.code || error.message}. Retrying in ${backoff}ms...`);
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      } else {
+        console.error("Unexpected error in fetchPage:", error);
+        throw error;
+      }
     }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Axios Error:", {
-        message: error.message,
-        code: error.code,
-        response: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          params: error.config?.params,
-        },
-      });
-    } else {
-      console.error("Unexpected error in fetchPage:", error);
-    }
-    throw error;
   }
 }
 
@@ -104,6 +114,7 @@ async function processRecords(records: any[]) {
   let insertedCount = 0;
   let updatedCount = 0;
   let skippedCount = 0;
+  let maxTimestamp: Date | null = null;
 
   for (const record of records) {
     try {
@@ -140,6 +151,13 @@ async function processRecords(records: any[]) {
           set: newData,
         });
 
+      // Track max timestamp seen
+      if (!maxTimestamp || newData.timestamp > maxTimestamp) {
+        maxTimestamp = newData.timestamp as Date;
+      }
+
+      // We cannot reliably distinguish insert vs update here without RETURNING
+      // Keep conservative count in insertedCount
       insertedCount++;
     } catch (error) {
       console.error("Error processing record:", error);
@@ -147,12 +165,13 @@ async function processRecords(records: any[]) {
     }
   }
 
-  return { insertedCount, updatedCount, skippedCount };
+  return { insertedCount, updatedCount, skippedCount, maxTimestamp };
 }
 
 export async function syncBluetideTelemetry_func({
   reqObject,
   deviceId,
+  maxPagesPerRun = 100,
 }: SyncBluetideTelemetryParams) {
   const { user } = reqObject;
   console.log("Starting Bluetide telemetry sync");
@@ -165,6 +184,27 @@ export async function syncBluetideTelemetry_func({
   console.log("Requested by:", user.email);
 
   try {
+    // Load last sync cursor (timestamp) for this source/partition
+    const source = "bluetide_telemetry";
+    const partitionKey = deviceId || "all";
+    const cursor = await getSyncCursor({ source, partitionKey });
+    const lastCursorTimestamp = cursor?.cursor_value
+      ? new Date(cursor.cursor_value)
+      : null;
+    console.log("Sync cursor:", {
+      source,
+      partitionKey,
+      lastCursor: lastCursorTimestamp?.toISOString() || null,
+    });
+
+    // Guard: ensure API configuration is present
+    if (!API_BASE_URL || !process.env.BLUETIDE_API_KEY) {
+      return {
+        success: false,
+        message: "Bluetide API config missing (BLUETIDE_API_URL or BLUETIDE_API_KEY)",
+      };
+    }
+
     console.log("Fetching first page...");
     const firstPage = await fetchPage(0, deviceId);
 
@@ -187,11 +227,37 @@ export async function syncBluetideTelemetry_func({
 
     // Process first page
     console.log("Processing first page...");
-    const firstPageResult = await processRecords(firstPage.data || []);
+    const firstPageData = firstPage.data || [];
+    const firstPageResult = await processRecords(firstPageData);
     let totalInserted = firstPageResult.insertedCount;
     let totalSkipped = firstPageResult.skippedCount;
+    let maxTimestampSeen: Date | null = firstPageResult.maxTimestamp || null;
+    let pagesProcessed = 1;
+
+    // If we have a cursor and the entire first page is older/equal than cursor, we can early exit
+    if (
+      lastCursorTimestamp &&
+      firstPageData.length > 0 &&
+      firstPageData.every((r) => new Date(r.timestamp) <= lastCursorTimestamp)
+    ) {
+      console.log(
+        "All records on first page are older or equal to last cursor. Early exit."
+      );
+      return {
+        success: true,
+        message: `No new data to sync since ${lastCursorTimestamp.toISOString()}`,
+        data: {
+          totalRecords: firstPage.totalCount,
+          pagesProcessed: 1,
+          inserted: totalInserted,
+          skipped: totalSkipped,
+          lastCursor: lastCursorTimestamp.toISOString(),
+        },
+      };
+    }
 
     // Process remaining pages
+    const maxPages = typeof maxPagesPerRun === 'number' && maxPagesPerRun > 0 ? maxPagesPerRun : Number.POSITIVE_INFINITY;
     for (let pageIndex = 1; pageIndex < totalPages; pageIndex++) {
       try {
         // Add delay between requests to avoid rate limiting
@@ -201,14 +267,51 @@ export async function syncBluetideTelemetry_func({
 
         console.log(`Processing page ${pageIndex + 1} of ${totalPages}...`);
         const pageData = await fetchPage(pageIndex, deviceId);
-        const pageResult = await processRecords(pageData.data);
+        const records = pageData.data || [];
+
+        // If we have a cursor and this page is entirely older/equal, we can stop
+        if (
+          lastCursorTimestamp &&
+          records.length > 0 &&
+          records.every((r) => new Date(r.timestamp) <= lastCursorTimestamp)
+        ) {
+          console.log(
+            `Page ${pageIndex + 1} contains only records <= last cursor. Stopping pagination early.`
+          );
+          break;
+        }
+
+        const pageResult = await processRecords(records);
 
         totalInserted += pageResult.insertedCount;
         totalSkipped += pageResult.skippedCount;
-      } catch (error) {
-        console.error(`Error processing page ${pageIndex + 1}:`, error);
+        pagesProcessed++;
+
+        if (pageResult.maxTimestamp) {
+          if (!maxTimestampSeen || pageResult.maxTimestamp > maxTimestampSeen) {
+            maxTimestampSeen = pageResult.maxTimestamp;
+          }
+        }
+        // Respect max pages per run (includes first page already processed)
+        if (pagesProcessed >= maxPages) {
+          console.log(`Reached maxPagesPerRun=${maxPages}. Stopping this run.`);
+          break;
+        }
+      } catch (error: any) {
+        console.error(`Error processing page ${pageIndex + 1}:`, error.message);
         // Continue with next page even if one fails
       }
+    }
+
+    // Update sync cursor if we saw newer data
+    if (maxTimestampSeen) {
+      await upsertSyncCursor({
+        source,
+        partitionKey,
+        cursorType: "timestamp",
+        cursorValue: maxTimestampSeen.toISOString(),
+        lastSyncedAt: new Date(),
+      });
     }
 
     return {
@@ -216,9 +319,10 @@ export async function syncBluetideTelemetry_func({
       message: `Successfully synced ${totalInserted} records (${totalSkipped} skipped)`,
       data: {
         totalRecords: firstPage.totalCount,
-        pagesProcessed: totalPages,
+        pagesProcessed,
         inserted: totalInserted,
         skipped: totalSkipped,
+        newCursor: maxTimestampSeen?.toISOString() || null,
       },
     };
   } catch (error) {

@@ -13,6 +13,7 @@ import { mikrotikVessels } from '../models/MikrotikVessel'
 import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
+import { syncState } from '../models/SyncState'
 
 // Define relations here to avoid circular imports
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -99,5 +100,6 @@ export {
   mikrotikVessels, 
   mikrotikUsageSession,
   telephonyDids, 
-  pins 
+  pins,
+  syncState
 }
