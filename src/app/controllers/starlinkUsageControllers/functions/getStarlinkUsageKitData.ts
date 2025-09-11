@@ -116,7 +116,7 @@ export async function getStarlinkUsageKitData_func({
     }
 
     // Then get all data for these kits within the date range
-    const kitNumberList = kitNumbers.map(k => k.kitNumber);
+    const kitNumberList = kitNumbers.map((k) => k.kitNumber);
     const usageData = await db
       .select({
         id: starlinkUsage.id,
@@ -130,10 +130,7 @@ export async function getStarlinkUsageKitData_func({
       .from(starlinkUsage)
       .leftJoin(vessels, eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber))
       .where(
-        and(
-          ...conditions,
-          inArray(starlinkUsage.kitNumber, kitNumberList)
-        )
+        and(...conditions, inArray(starlinkUsage.kitNumber, kitNumberList))
       )
       .orderBy(desc(starlinkUsage.createdAt));
 
@@ -222,6 +219,7 @@ function processKitData(usageData: any[], startDate: string, endDate: string) {
         endDate: parseInt(endDate),
         totalPriorityGB: 0,
         totalStandardGB: 0,
+        combinedGB: 0,
         series: [
           {
             name: "mobile_priority_gb",
@@ -257,6 +255,9 @@ function processKitData(usageData: any[], startDate: string, endDate: string) {
       );
       kitData.totalStandardGB = parseFloat(
         (kitData.totalStandardGB + standardGB).toFixed(2)
+      );
+      kitData.combinedGB = parseFloat(
+        (kitData.combinedGB + priorityGB + standardGB).toFixed(2)
       );
     }
   });
