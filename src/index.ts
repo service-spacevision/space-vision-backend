@@ -26,6 +26,9 @@ import {
   mikrotikUsageRoutes,
   telephonyDidRoutes,
   pinManagementRoutes,
+  permissionRoutes,
+  rolesPermissionRoutes,
+  organizationRoutes,
 } from "./routes/indexRoute";
 
 const app = new Elysia()
@@ -76,6 +79,9 @@ const app = new Elysia()
             name: "Telephony DIDs",
             description: "Telephony DID management endpoints",
           },
+          { name: "Organization", description: "Organization management endpoints" },
+          { name: "Permissions", description: "Permission management endpoints" },
+          { name: "RolesPermission", description: "Flattened role permissions endpoints" },
         ],
         servers: [
           {
@@ -117,6 +123,9 @@ const app = new Elysia()
       bluetideTelemetry: "/api/bluetide-telemetry",
       mikrotikVessels: "/api/mikrotik-vessels",
       telephonyDids: "/api/telephony-dids",
+      organizations: "/api/organizations",
+      permissions: "/api/permissions",
+      rolesPermissions: "/api/roles-permissions",
     },
   }))
   .use(authRoutes)
@@ -132,6 +141,9 @@ const app = new Elysia()
   .use(mikrotikUsageRoutes)
   .use(telephonyDidRoutes)
   .use(pinManagementRoutes)
+  .use(permissionRoutes)
+  .use(rolesPermissionRoutes)
+  .use(organizationRoutes)
   .onError(({ error, code, set }) => {
     console.error("Application error:", error);
 

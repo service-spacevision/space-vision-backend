@@ -1,6 +1,7 @@
 import { db } from "../../../db/connection";
 import { starlinkUsage } from "../../../models/StarlinkUsage";
 import { vessels } from "../../../models/Vessel";
+import { vesselGroups } from "../../../models/VesselGroup";
 import { and, gte, lte, sql, eq, count, inArray, desc } from "drizzle-orm";
 import { format } from "date-fns";
 import { IPagination } from "../../../utils/types";
@@ -13,6 +14,7 @@ interface GetStarlinkUsageKitDataParams {
     startDate: string;
     endDate: string;
     kitNumber?: string;
+    groupName?: string;
   };
   pagination?: IPagination;
 }
@@ -23,7 +25,7 @@ export async function getStarlinkUsageKitData_func({
   pagination,
 }: GetStarlinkUsageKitDataParams) {
   try {
-    const { startDate, endDate, kitNumber } = query;
+    const { startDate, endDate, kitNumber, groupName } = query;
 
     // Validate date format (YYYYMMDD)
     const dateRegex = /^\d{8}$/;
@@ -52,6 +54,50 @@ export async function getStarlinkUsageKitData_func({
 
     if (kitNumber) {
       conditions.push(eq(starlinkUsage.kitNumber, kitNumber));
+    }
+
+    if (groupName) {
+      // group by name -> get group id
+      const [group] = await db
+        .select({ id: vesselGroups.id })
+        .from(vesselGroups)
+        .where(eq(vesselGroups.groupName, groupName));
+
+      if (!group) {
+        return {
+          success: true,
+          message: "No data found for the specified criteria",
+          data: [],
+          pagination: {
+            total: 0,
+            page: pagination?.currentPage || 1,
+            pageSize: pagination?.pageSize || 10,
+          },
+        };
+      }
+
+      // Get all kit numbers under this group
+      const kitsInGroup = await db
+        .select({ kit: vessels.vesselsKitNumber })
+        .from(vessels)
+        .where(eq(vessels.groupId, group.id));
+
+      const groupKitNumbers = kitsInGroup.map((k) => k.kit).filter(Boolean) as string[];
+
+      if (groupKitNumbers.length === 0) {
+        return {
+          success: true,
+          message: "No data found for the specified criteria",
+          data: [],
+          pagination: {
+            total: 0,
+            page: pagination?.currentPage || 1,
+            pageSize: pagination?.pageSize || 10,
+          },
+        };
+      }
+
+      conditions.push(inArray(starlinkUsage.kitNumber, groupKitNumbers));
     }
 
     // If pagination.all is set, return all records without pagination
@@ -87,12 +133,12 @@ export async function getStarlinkUsageKitData_func({
       };
     }
 
-    // Default pagination values
+    // pagination values
     const page = pagination?.currentPage || 1;
     const pageSize = pagination?.pageSize || 10;
     const offset = (page - 1) * pageSize;
 
-    // First, get the paginated kit numbers
+    // get the paginated kit numbers
     const kitNumbers = await db
       .selectDistinct({
         kitNumber: starlinkUsage.kitNumber,

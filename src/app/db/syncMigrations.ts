@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import migrationHelpers from './migrationUtils'
 
 // Controls for dev-only recovery behaviors
 const allowBootstrap = process.env.ALLOW_SCHEMA_BOOTSTRAP === 'true' && process.env.NODE_ENV !== 'production'
@@ -11,6 +12,9 @@ const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC !== 'false'
 export async function smartMigrate() {
     try {
         console.log('🔄 Smart migration system starting...')
+
+        // Preflight: apply idempotent ensures for known schema bits
+        await preflightEnsureSchema()
 
         // First, try normal migration
         try {
@@ -21,38 +25,38 @@ export async function smartMigrate() {
         } catch (migrationError: any) {
             console.log('⚠️  Standard migration failed, analyzing issue...')
 
-            // Check if it's a "table already exists" error
-            if (migrationError.message?.includes('already exists')) {
-                console.log('🔧 Detected existing tables, syncing migration state...')
-                if (allowStateSync) {
-                    await syncMigrationState()
-                } else {
-                    console.log('⚠️  Migration state sync is disabled by env (ALLOW_MIGRATION_STATE_SYNC=false)')
-                }
+            const msg = (migrationError?.message || '') + ' ' + (migrationError?.cause?.message || '')
+            const looksLikeExists = /already exists|42P07|relation .* already exists/i.test(msg)
 
-                // Try migration again after sync
+            // Sync migration state if allowed (helps when DB was initialized outside Drizzle)
+            if (allowStateSync) {
+                console.log('🔧 Syncing migration state to existing database...')
+                await syncMigrationState()
+            } else if (looksLikeExists) {
+                console.log('⚠️  Migration state sync disabled but detected existing relations; consider enabling ALLOW_MIGRATION_STATE_SYNC')
+            }
+
+            // Try migration again after state sync
+            try {
+                await migrate(db, { migrationsFolder: './src/app/db/migrations' })
+                console.log('✅ Migration completed after state sync')
+                return
+            } catch (retryError: any) {
+                console.log('⚠️  Migration still failing, attempting schema mismatch handling...')
+                await handleSchemaMismatch()
+
+                // Final attempt - if this fails, let it fail with proper error
                 try {
                     await migrate(db, { migrationsFolder: './src/app/db/migrations' })
-                    console.log('✅ Migration completed after state sync')
+                    console.log('✅ Migration completed after basic table setup')
                     return
-                } catch (retryError: any) {
-                    console.log('⚠️  Migration still failing, checking schema mismatch handling...')
-                    await handleSchemaMismatch()
-
-                    // Final attempt - if this fails, let it fail with proper error
-                    try {
-                        await migrate(db, { migrationsFolder: './src/app/db/migrations' })
-                        console.log('✅ Migration completed after basic table setup')
-                    } catch (finalError: any) {
-                        console.log('💡 Migration still failing - this usually means you need to:')
-                        console.log('   1. Run `bun run db:generate` to create new migrations')
-                        console.log('   2. Then run `bun run db:migrate` to apply them')
-                        console.log('   3. Or restart the server to auto-apply')
-                        throw finalError
-                    }
+                } catch (finalError: any) {
+                    console.log('💡 Migration still failing - this usually means you need to:')
+                    console.log('   1. Run `bun run db:generate` to create new migrations')
+                    console.log('   2. Then run `bun run db:migrate` to apply them')
+                    console.log('   3. Or restart the server to auto-apply')
+                    throw finalError
                 }
-            } else {
-                throw migrationError
             }
         }
 
@@ -153,9 +157,15 @@ async function ensureBasicTablesExist() {
                 name: 'users',
                 createSql: `
           CREATE TABLE IF NOT EXISTS users (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            id serial PRIMARY KEY,
             email varchar(255) NOT NULL UNIQUE,
             password varchar(255),
+            full_name varchar(200),
+            username varchar(100) UNIQUE,
+            role_id integer,
+            organization_name varchar(100),
+            is_active boolean DEFAULT true,
+            is_email_verified boolean DEFAULT false,
             created_at timestamp DEFAULT now(),
             updated_at timestamp DEFAULT now()
           )
@@ -165,8 +175,14 @@ async function ensureBasicTablesExist() {
                 name: 'user_roles',
                 createSql: `
           CREATE TABLE IF NOT EXISTS user_roles (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            id serial PRIMARY KEY,
             name varchar(100) NOT NULL UNIQUE,
+            display_name varchar(200),
+            description text,
+            created_by varchar(100),
+            organization_name varchar(100),
+            is_active boolean DEFAULT true,
+            is_system boolean DEFAULT false,
             created_at timestamp DEFAULT now(),
             updated_at timestamp DEFAULT now()
           )
@@ -185,6 +201,45 @@ async function ensureBasicTablesExist() {
 
     } catch (error) {
         console.error('Error ensuring basic tables:', error)
+    }
+}
+
+// Apply idempotent fixes using migrationHelpers to avoid common mismatch errors
+async function preflightEnsureSchema() {
+    // Organizations table (basic) and org-related columns on users and user_roles
+    try {
+        // Create organizations table if missing
+        await db.execute(sql`CREATE TABLE IF NOT EXISTS organizations (
+            id serial PRIMARY KEY,
+            name text NOT NULL UNIQUE,
+            description text,
+            logo text,
+            subscription_id text,
+            parent_org_name text,
+            created_at timestamp DEFAULT now(),
+            updated_at timestamp DEFAULT now()
+        )`)
+
+        // Add self FK on organizations.parent_org_name -> organizations.name
+        const addParentFk = migrationHelpers.addConstraintIfNotExists(
+            'organizations',
+            'organizations_parent_org_name_fkey',
+            'FOREIGN KEY (parent_org_name) REFERENCES organizations(name) ON UPDATE CASCADE ON DELETE SET NULL'
+        )
+        await db.execute(sql.raw(addParentFk))
+
+        // Ensure users.organization_name
+        const addUserOrg = migrationHelpers.addColumnIfNotExists('users', 'organization_name', 'varchar(100)')
+        await db.execute(sql.raw(addUserOrg))
+
+        // Ensure user_roles.created_by and organization_name
+        const addRoleCreatedBy = migrationHelpers.addColumnIfNotExists('user_roles', 'created_by', 'varchar(100)')
+        const addRoleOrg = migrationHelpers.addColumnIfNotExists('user_roles', 'organization_name', 'varchar(100)')
+        await db.execute(sql.raw(addRoleCreatedBy))
+        await db.execute(sql.raw(addRoleOrg))
+    } catch (e) {
+        // Preflight is best-effort; log and continue
+        console.log('ℹ️ Preflight ensure skipped or partially applied:', (e as any)?.message || e)
     }
 }
 

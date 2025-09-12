@@ -22,6 +22,7 @@ export const users = pgTable('users', {
   profilePicture: varchar('profile_picture', { length: 500 }),
   bio: text('bio'),
   preferences: jsonb('preferences'),
+  organizationName: varchar('organization_name', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 })

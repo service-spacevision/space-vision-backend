@@ -32,7 +32,6 @@ export const getUserProfile_func = async ({
           id: userRoles.id,
           name: userRoles.name,
           displayName: userRoles.displayName,
-          permissions: userRoles.permissions
         }
       })
       .from(users)
