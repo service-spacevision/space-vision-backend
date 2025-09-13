@@ -12,7 +12,8 @@ export async function createUserRole_func({ data }: CreateUserRoleParams) {
       name: data.name,
       displayName: data.displayName,
       description: data.description,
-      permissions: data.permissions || []
+      created_by: (data as any).createdBy?.toString?.() ?? (data as any).created_by,
+      organizationName: (data as any).organizationName,
     }).returning()
 
     return {

@@ -184,6 +184,12 @@ const starlinkUsageRoute = new Elysia({ prefix: "/api/starlink-usage" })
           example: "KITP00118430",
         })
       ),
+      groupName: t.Optional(
+        t.String({
+          description: "Optional group name to filter by",
+          example: "GROUP1",
+        })
+      ),
       currentPage: t.Optional(
         t.String({
           description: "Page number for pagination (default: 1)",

@@ -97,10 +97,14 @@ const bluetideUsageRoute = new Elysia({ prefix: '/api/bluetide-usage' })
 
   .get('/sync-telemetry', BluetideUsageController.syncBluetideTelemetry, {
     beforeHandle: [checkUser(permission["GET_/api/bluetide-usage/sync-telemetry"])],
+    query: t.Object({
+      deviceId: t.Optional(t.String({ description: 'Optional deviceId to sync only a single device' })),
+      maxPages: t.Optional(t.String({ description: 'Optional limit of pages to process this run' })),
+    }),
     tags: ['Bluetide Usage'],
     detail: {
       summary: 'Sync bluetide telemetry',
-      description: 'Sync bluetide telemetry data',
+      description: 'Sync bluetide telemetry data. Optionally scope by deviceId.',
       operationId: 'syncBluetideTelemetry',
     }
   })

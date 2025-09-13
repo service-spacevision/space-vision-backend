@@ -104,6 +104,8 @@ export class BluetideUsageController {
 
       const result = await syncBluetideTelemetry_func({
         reqObject: { user },
+        deviceId: (query as any)?.deviceId,
+        maxPagesPerRun: (query as any)?.maxPages ? Number((query as any).maxPages) : undefined,
       });
 
       ctx.set.status = result?.success === true ? 200 : 400;

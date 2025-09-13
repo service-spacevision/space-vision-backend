@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm'
 import { users } from '../models/User'
 import { sessions } from '../models/Session'
 import { userRoles } from '../models/UserRole'
+import { organizations } from '../models/Organization'
 import { vessels } from '../models/Vessel'
 import { vesselGroups } from '../models/VesselGroup'
 import { groupAccess } from '../models/GroupAccess'
@@ -11,8 +12,11 @@ import { bluetideUsage } from '../models/BluetideUsage'
 import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
+import { permissions } from '../models/Permission'
+import { rolesPermission } from '../models/RolePermission'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
+import { syncState } from '../models/SyncState'
 
 // Define relations here to avoid circular imports
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -20,6 +24,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   role: one(userRoles, {
     fields: [users.roleId],
     references: [userRoles.id]
+  }),
+  organization: one(organizations, {
+    fields: [users.organizationName as any],
+    references: [organizations.name]
   })
 }))
 
@@ -30,8 +38,26 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   })
 }))
 
-export const userRolesRelations = relations(userRoles, ({ many }) => ({
-  users: many(users)
+export const userRolesRelations = relations(userRoles, ({ many, one }) => ({
+  users: many(users),
+  organization: one(organizations, {
+    fields: [userRoles.organizationName as any],
+    references: [organizations.name]
+  })
+}))
+
+export const organizationsRelations = relations(organizations, ({ one }) => ({
+  parent: one(organizations, {
+    fields: [organizations.parent_org_name as any],
+    references: [organizations.name]
+  })
+}))
+
+export const rolesPermissionRelations = relations(rolesPermission, ({ one }) => ({
+  role: one(userRoles, {
+    fields: [rolesPermission.roleId],
+    references: [userRoles.id]
+  })
 }))
 
 export const vesselGroupsRelations = relations(vesselGroups, ({ many }) => ({
@@ -90,6 +116,9 @@ export {
   users, 
   sessions, 
   userRoles, 
+  organizations,
+  permissions,
+  rolesPermission,
   vessels, 
   vesselGroups, 
   groupAccess, 
@@ -99,5 +128,6 @@ export {
   mikrotikVessels, 
   mikrotikUsageSession,
   telephonyDids, 
-  pins 
+  pins,
+  syncState
 }

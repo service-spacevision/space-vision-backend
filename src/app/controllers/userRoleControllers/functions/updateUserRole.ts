@@ -32,7 +32,10 @@ export async function updateUserRole_func({ roleId, data }: UpdateUserRoleParams
 
     const [updatedRole] = await db.update(userRoles)
       .set({
-        ...data,
+        displayName: data.displayName,
+        description: data.description,
+        isActive: (data as any).isActive,
+        organizationName: (data as any).organizationName,
         updatedAt: new Date()
       })
       .where(eq(userRoles.id, roleId))

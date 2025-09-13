@@ -25,17 +25,19 @@ This guide outlines best practices for handling database migrations in our Drizz
 ## Best Practices
 
 ### 1. Use Migration Utilities
-Import and use the migration utilities from `src/app/db/migrationUtils.ts`:
+Use the utility patterns from `src/app/db/migrationUtils.ts` when writing SQL. Note: Drizzle migrations are plain `.sql` files, so you cannot import the TS helper directly — copy the SQL patterns it generates.
 
-```typescript
-import { migrationHelpers } from '../migrationUtils';
-
-// Example usage in migration files
-const addColumnSafely = migrationHelpers.addColumnIfNotExists(
-  'users', 
-  'new_column', 
-  'VARCHAR(255)'
-);
+```sql
+-- Example: add a column safely (pattern from migrationHelpers.addColumnIfNotExists)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'new_column'
+    ) THEN
+        ALTER TABLE users ADD COLUMN new_column VARCHAR(255);
+    END IF;
+END $$;
 ```
 
 ### 2. Make Migrations Idempotent
@@ -127,6 +129,14 @@ export const users = pgTable("users", {
 4. **Edit if Needed**: Make migrations idempotent using the utilities
 5. **Test Locally**: Run migration on local database
 6. **Apply to Production**: Run migration on production database
+
+## Runtime Behavior and Env Flags
+
+- `DB_STRICT_MIGRATIONS=true` or `NODE_ENV=production`: server runs strict Drizzle migrations at startup and fails fast on errors. No runtime state sync or bootstrap.
+- `ALLOW_MIGRATION_STATE_SYNC=false`: disables the dev-only behavior that marks existing files as applied in `drizzle.__drizzle_migrations`.
+- `ALLOW_SCHEMA_BOOTSTRAP=true` (non-production only): allows the dev-only fallback that creates minimal “critical” tables to unblock local setups.
+
+In production, prefer strict migrations and idempotent SQL. The “smart” migrator is for development/bootstrap only.
 
 ## Troubleshooting
 

@@ -33,7 +33,6 @@ export const updateUserProfile_func = async (
       .select({
         role: {
           name: userRoles.name,
-          permissions: userRoles.permissions
         }
       })
       .from(users)
