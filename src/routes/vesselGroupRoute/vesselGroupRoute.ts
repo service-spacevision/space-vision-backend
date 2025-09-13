@@ -54,8 +54,8 @@ const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
   .put('/', VesselGroupController.updateVesselGroup, {
     beforeHandle: [checkUser(permission["PUT_/api/vessel-groups"])],
     query: t.Object({
-      groupName: t.String({
-        description: 'Group name to update'
+      id: t.String({
+        description: 'Group ID to update'
       })
     }),
     body: UpdateVesselGroupSchema,
