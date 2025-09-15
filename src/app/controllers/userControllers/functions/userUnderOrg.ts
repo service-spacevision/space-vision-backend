@@ -11,6 +11,7 @@ export const getAllUsersUnderOrg_func = async ({
   pagination?: IPagination
 }) => {
   try {
+    console.log("reqObject", reqObject.user);
     if (pagination?.all === 'true' || pagination?.all === '1') {
       const result = await db.select().from(users).where(eq(users.organizationId, Number(reqObject.user.organizationId)))
       return {

@@ -11,6 +11,7 @@ import { corsMiddleware } from "./app/middlewares/cors";
 import { startCrons } from "./app/cron/index.cron";
 import { ensureSyncState } from "./app/db/ensureSyncState";
 import { ensureBluetideTelemetry } from "./app/db/ensureBluetideTelemetry";
+import { ensurePermissions } from "./app/db/ensurePermissions";
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
   authRoutes,
@@ -200,6 +201,7 @@ async function startServer() {
     // Ensure required tables (dev/backfill safety)
     await ensureSyncState();
     await ensureBluetideTelemetry();
+    await ensurePermissions();
 
     console.log("✅ Server initialization completed successfully");
 

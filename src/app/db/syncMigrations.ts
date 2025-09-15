@@ -6,8 +6,10 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import migrationHelpers from './migrationUtils'
 
 // Controls for dev-only recovery behaviors
+// Opt-in controls for dev-only recovery behaviors
 const allowBootstrap = process.env.ALLOW_SCHEMA_BOOTSTRAP === 'true' && process.env.NODE_ENV !== 'production'
-const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC !== 'false'
+// Default to FALSE to avoid masking drift; enable explicitly when needed
+const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC === 'true'
 
 export async function smartMigrate() {
     try {
@@ -33,7 +35,7 @@ export async function smartMigrate() {
                 console.log('🔧 Syncing migration state to existing database...')
                 await syncMigrationState()
             } else if (looksLikeExists) {
-                console.log('⚠️  Migration state sync disabled but detected existing relations; consider enabling ALLOW_MIGRATION_STATE_SYNC')
+                console.log('⚠️  Migration state sync disabled (safe default). If the DB was pre-initialized, enable ALLOW_MIGRATION_STATE_SYNC=true temporarily to align state.')
             }
 
             // Try migration again after state sync
@@ -51,10 +53,10 @@ export async function smartMigrate() {
                     console.log('✅ Migration completed after basic table setup')
                     return
                 } catch (finalError: any) {
-                    console.log('💡 Migration still failing - this usually means you need to:')
-                    console.log('   1. Run `bun run db:generate` to create new migrations')
+                    console.log('💡 Migration still failing - recommended steps:')
+                    console.log('   1. Run `bun run db:generate` to create new migrations for schema differences')
                     console.log('   2. Then run `bun run db:migrate` to apply them')
-                    console.log('   3. Or restart the server to auto-apply')
+                    console.log('   3. If DB existed before Drizzle, set ALLOW_MIGRATION_STATE_SYNC=true and rerun smart migrate')
                     throw finalError
                 }
             }
@@ -103,7 +105,7 @@ async function syncMigrationState() {
       `)
             const appliedMigrations = existingMigrations.map((row: any) => row.hash)
 
-            // Mark missing migrations as applied
+            // Mark missing migrations as applied (opt-in). This does not validate every object; use with care.
             for (const file of migrationFiles) {
                 const migrationName = file.replace('.sql', '')
                 if (!appliedMigrations.includes(migrationName)) {
