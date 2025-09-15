@@ -12,14 +12,27 @@ const permission = {
 const pinManagementRoute = new Elysia({ prefix: "/api/pin-management" })
   .use(cookie())
   // Generate Pins
-  // Get all pins
+  // Get all pins with pagination
   .get("/pins", PinManagementController.getPins, {
     beforeHandle: [checkUser(permission["GET_/api/pin-management/pins"])],
+    query: t.Object({
+      page: t.Optional(
+        t.String({
+          description: "Current page number",
+          default: "1",
+        })
+      ),
+      pageSize: t.Optional(
+        t.String({
+          description: "Number of items per page",
+          default: "10",
+        })
+      ),
+    }),
     tags: ["Pin Management"],
     detail: {
-      summary: "Get all pins",
-      description:
-        "Retrieves all pins with their associated vessel and generator information",
+      summary: "Get all pins with pagination",
+      description: "Retrieves paginated list of pins with their associated vessel and generator information",
       operationId: "getAllPins",
     },
   })

@@ -56,7 +56,28 @@ export class PinManagementController {
 
   static async getPins(ctx: CustomContext) {
     try {
-      const result = await getPins_func();
+      // Get pagination parameters from query string with defaults
+      const page = ctx.query.page ? parseInt(String(ctx.query.page), 10) : 1;
+      const pageSize = ctx.query.pageSize ? parseInt(String(ctx.query.pageSize), 10) : 10;
+
+      // Validate pagination parameters
+      if (isNaN(page) || page < 1) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: "Invalid page number. Page must be a positive integer",
+        };
+      }
+
+      if (isNaN(pageSize) || pageSize < 1 || pageSize > 100) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: "Invalid page size. Page size must be a positive integer between 1 and 100",
+        };
+      }
+
+      const result = await getPins_func(page, pageSize);
       ctx.set.status = result.success ? 200 : 400;
       return result;
     } catch (error) {
