@@ -174,7 +174,8 @@ export class StarlinkUsageController {
           startDate: query.startDate as string,
           endDate: query.endDate as string,
           kitNumber: query.kitNumber as string | undefined,
-          groupName: query.groupName as string | undefined
+          groupName: query.groupName as string | undefined,
+          vesselName: query.vesselName as string | undefined
         },
         pagination
       })

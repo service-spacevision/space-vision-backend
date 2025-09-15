@@ -1,21 +1,25 @@
 import { db } from '../../../db/connection'
-import { groupAccess, NewGroupAccess } from '../../../models/GroupAccess'
+import { userRoles } from '../../../models/UserRole'
 
 interface CreateGroupAccessParams {
   reqObject: {
     user: any
   }
-  data: NewGroupAccess
+  data: {
+    role: number;
+    groupIds: number[];
+  }
 }
 
 export async function createGroupAccess_func({ reqObject, data }: CreateGroupAccessParams) {
   try {
-    const result = await db.insert(groupAccess).values(data).returning()
-
+    // In the new structure, we don't need to create a new record
+    // as we're just updating the forbidden_vessel_groups array in the user_roles table
+    // This function is kept for backward compatibility but will just return success
+    
     return {
       success: true,
-      data: result[0],
-      message: 'Group access created successfully'
+      message: 'Group access is now managed through role permissions. Use updateGroupAccess to modify forbidden vessel groups.'
     }
   } catch (error: any) {
     console.error('Error creating group access:', error)
