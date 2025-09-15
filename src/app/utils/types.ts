@@ -16,6 +16,7 @@ export interface AuthUser {
   role?: string
   fullName?: string
   username?: string
+  organizationId?: number
 }
 
 export interface ApiResponse<T = any> {

@@ -11,7 +11,7 @@ export const userRoles = pgTable('user_roles', {
   isActive: boolean('is_active').default(true),
   isSystem: boolean('is_system').default(false), // System roles cannot be deleted
   created_by: varchar('created_by', { length: 100 }),
-  organizationName: varchar('organization_name', { length: 100 }),
+  organizationId: varchar('organization_id', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 })
@@ -65,6 +65,7 @@ export const UserRoleResponseSchema = t.Object({
   name: t.String(),
   displayName: t.Optional(t.String()),
   description: t.Optional(t.String()),
+  organizationId: t.Optional(t.String()),
   isActive: t.Boolean(),
   isSystem: t.Boolean(),
   createdAt: t.Date(),

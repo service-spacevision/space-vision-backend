@@ -26,8 +26,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     references: [userRoles.id]
   }),
   organization: one(organizations, {
-    fields: [users.organizationName as any],
-    references: [organizations.name]
+    fields: [users.organizationId],
+    references: [organizations.id]
   })
 }))
 
@@ -41,14 +41,14 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 export const userRolesRelations = relations(userRoles, ({ many, one }) => ({
   users: many(users),
   organization: one(organizations, {
-    fields: [userRoles.organizationName as any],
-    references: [organizations.name]
+    fields: [userRoles.organizationId],
+    references: [organizations.id]
   })
 }))
 
 export const organizationsRelations = relations(organizations, ({ one }) => ({
   parent: one(organizations, {
-    fields: [organizations.parent_org_name as any],
+    fields: [organizations.parent_org_name],
     references: [organizations.name]
   })
 }))

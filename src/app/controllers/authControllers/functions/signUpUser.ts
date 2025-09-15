@@ -3,7 +3,6 @@ import { users } from '../../../models/User'
 import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { ReqObjectType } from '../../../utils/types'
 import { CreateUserData } from '../../../models/User'
 
 export const signUpUser_func = async (
@@ -30,7 +29,7 @@ export const signUpUser_func = async (
         message: 'User with this email already exists'
       }
     }
-
+    // 
     // Get default user role
     const [defaultRole] = await db
       .select()
@@ -61,8 +60,9 @@ export const signUpUser_func = async (
         fullName,
         username,
         isActive: true,
+        ...(data.organizationId && { organizationId: data.organizationId }),
         isEmailVerified: false,
-        roleId: defaultRole.id
+        roleId: data.roleId || defaultRole.id
       })
       .returning({
         id: users.id,
@@ -74,6 +74,7 @@ export const signUpUser_func = async (
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
         profilePicture: users.profilePicture,
+        organizationId: users.organizationId || null,
         bio: users.bio,
         preferences: users.preferences,
         createdAt: users.createdAt,

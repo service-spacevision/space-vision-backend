@@ -1,7 +1,10 @@
-import { CustomContext } from '../../utils/types'
+import { CustomContext, IPagination } from '../../utils/types'
 import { getUserProfile_func } from './functions/getUserProfile'
 import { updateUserProfile_func } from './functions/updateUserProfile'
 import { changePassword_func } from './functions/changePassword'
+import { updateUserProfileById_func } from './functions/userUpdateById'
+import { getAllUsers_func } from './functions/getAllUser'
+import { getAllUsersUnderOrg_func } from './functions/userUnderOrg'
 
 export class UserController {
   static async getProfile(ctx: CustomContext) {
@@ -103,6 +106,71 @@ export class UserController {
       return {
         success: false,
         message: 'Internal server error while deleting account'
+      }
+    }
+  }
+  // update user profile by id
+  static async updateUserProfileById(ctx: CustomContext) {
+    try {
+      const { body } = ctx
+      const userId = ctx.params?.id
+      const user = ctx.user!
+
+      const result = await updateUserProfileById_func(
+        {
+          reqObject: { user },
+          data: body as any,
+          userId
+        }
+      )
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while updating profile'
+      }
+    }
+  }
+  // Get full user list super admin
+  static async getAllUsers(ctx: CustomContext) {
+    try {
+      const result = await getAllUsers_func(
+        {
+          reqObject: { user: ctx.user! },
+          pagination: ctx.query.pagination as any
+        }
+      )
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching users'
+      }
+    }
+  }
+  // Get all user under org
+  static async getAllUsersUnderOrg(ctx: CustomContext) {
+    try {
+      const result = await getAllUsersUnderOrg_func(
+        {
+          reqObject: { user: ctx.user! },
+          pagination: ctx.query.pagination as any
+        }
+      )
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching users'
       }
     }
   }

@@ -32,6 +32,7 @@ export const signInUser_func = async (
         mfaEnabled: users.mfaEnabled,
         lastLoginAt: users.lastLoginAt,
         profilePicture: users.profilePicture,
+        organizationId: users.organizationId,
         bio: users.bio,
         preferences: users.preferences,
         createdAt: users.createdAt,
@@ -104,7 +105,8 @@ export const signInUser_func = async (
       email: user.email,
       // role: user.role,
       fullName: user.fullName,
-      username: user.username
+      username: user.username,
+      organizationId: user.organizationId
     }
 
     const token = jwt.sign(
