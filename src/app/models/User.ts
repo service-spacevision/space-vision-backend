@@ -22,7 +22,9 @@ export const users = pgTable('users', {
   profilePicture: varchar('profile_picture', { length: 500 }),
   bio: text('bio'),
   preferences: jsonb('preferences'),
-  organizationName: varchar('organization_name', { length: 100 }),
+  organizationId: integer('organization_id'),
+  createdBy: varchar('created_by', { length: 100 }),
+  updatedBy: varchar('updated_by', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 })
@@ -35,15 +37,15 @@ export type UserWithoutPassword = Omit<User, 'password' | 'mfaSecret' | 'emailVe
 export type UserProfile = Pick<User,
   'id' | 'email' | 'fullName' | 'username' | 'roleId' | 'isActive' |
   'isEmailVerified' | 'mfaEnabled' | 'lastLoginAt' | 'profilePicture' |
-  'bio' | 'preferences' | 'createdAt' | 'updatedAt'
+  'bio' | 'preferences' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'
 >
 
 export type CreateUserData = Pick<NewUser,
-  'email' | 'password' | 'fullName' | 'username'
+  'email' | 'password' | 'fullName' | 'username' | 'roleId' | 'organizationId' | 'createdBy' | 'updatedBy'
 >
 
 export type UpdateUserData = Partial<Pick<User,
-  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences'
+  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences' | 'createdBy' | 'organizationId' | 'updatedBy'
 >>
 
 // Elysia schemas for request/response validation
@@ -63,7 +65,13 @@ export const SignUpSchema = t.Object({
   username: t.Optional(t.String({
     maxLength: 100,
     description: 'Unique username'
-  }))
+  })),
+  roleId: t.Optional(t.Number({
+    description: 'User role ID'
+  })),
+  organizationId: t.Optional(t.Number({
+    description: 'User organization ID'
+  })),
 })
 
 export const SignInSchema = t.Object({
@@ -102,7 +110,7 @@ export const UpdateProfileSchema = t.Object({
   })),
   roleId: t.Optional(t.Number({
     description: 'User role ID (admin only)'
-  }))
+  })),
 })
 
 export const ChangePasswordSchema = t.Object({
@@ -134,8 +142,11 @@ export const UserResponseSchema = t.Object({
   profilePicture: t.Optional(t.String()),
   bio: t.Optional(t.String()),
   preferences: t.Optional(t.Object({})),
+  organizationId: t.Optional(t.Number()),
+  createdBy: t.Optional(t.Any()),
+  updatedBy: t.Optional(t.Any()),
   createdAt: t.Date(),
-  updatedAt: t.Date()
+  updatedAt: t.Date(),
 })
 
 // User relations are defined in schema.ts to avoid circular imports

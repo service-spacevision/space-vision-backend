@@ -4,7 +4,7 @@ import { JWT_CONFIG } from '../constants/constants'
 import { getSession } from './session'
 import { AuthUser } from '../utils/types'
 
-export const authMiddleware = async (cookieToken) => {
+export const authMiddleware = async (cookieToken: string) => {
   try {
     // Try to get token from cookie first, then Authorization header
     console.log("ctx", cookieToken);
@@ -62,7 +62,8 @@ export const authMiddleware = async (cookieToken) => {
       email: decoded.email,
       role: decoded.role,
       fullName: decoded.fullName,
-      username: decoded.username
+      username: decoded.username,
+      organizationId: decoded.organizationId
     }
 
     return { success: true, message: "User found", data: user }

@@ -36,7 +36,7 @@ export const getUserProfile_func = async ({
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
-      .where(eq(users.id, reqObject.user.id))
+      .where(eq(users.id, Number(reqObject.user.id)))
       .limit(1)
 
     if (result.length === 0) {

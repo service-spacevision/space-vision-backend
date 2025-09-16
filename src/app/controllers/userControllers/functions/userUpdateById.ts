@@ -1,0 +1,99 @@
+import { db } from '../../../db/connection'
+import { users } from '../../../models/User'
+import { userRoles } from '../../../models/UserRole'
+import { eq } from 'drizzle-orm'
+import { ReqObjectType } from '../../../utils/types'
+import { UpdateUserData } from '../../../models/User'
+
+export const updateUserProfileById_func = async (
+  {
+    reqObject,
+    data,
+    userId
+  }: {
+    reqObject: ReqObjectType
+    data: UpdateUserData
+    userId: string
+  }
+) => {
+  try {
+    const { fullName, username, profilePicture, bio, preferences } = data
+
+    // Only allow updating certain fields
+    const updateData: Partial<UpdateUserData> = {}
+    
+    if (fullName !== undefined) updateData.fullName = fullName
+    if (username !== undefined) updateData.username = username
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture
+    if (bio !== undefined) updateData.bio = bio
+    if (preferences !== undefined) updateData.preferences = preferences
+    updateData.createdBy = reqObject.user.id
+    // Get user's role to check permissions
+    const [userWithRole] = await db
+      .select({
+        role: {
+          name: userRoles.name,
+        }
+      })
+      .from(users)
+      .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+      .where(eq(users.id, Number(userId)))
+      .limit(1)
+
+    // Admin users can update additional fields
+    if (userWithRole?.role?.name === 'admin') {
+      if (data.isActive !== undefined) updateData.isActive = data.isActive
+      if (data.roleId !== undefined) updateData.roleId = data.roleId
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return {
+        success: false,
+        message: 'No valid fields to update'
+      }
+    }
+
+    // Update user
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...updateData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, Number(userId)))
+      .returning({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        username: users.username,
+        roleId: users.roleId,
+        isActive: users.isActive,
+        isEmailVerified: users.isEmailVerified,
+        mfaEnabled: users.mfaEnabled,
+        profilePicture: users.profilePicture,
+        bio: users.bio,
+        preferences: users.preferences,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt
+      })
+
+    if (!updatedUser) {
+      return {
+        success: false,
+        message: 'User not found or update failed'
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser
+    }
+  } catch (error: any) {
+    console.error('Update user profile error:', error)
+    return {
+      success: false,
+      message: error.message || 'Failed to update user profile'
+    }
+  }
+}

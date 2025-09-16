@@ -99,6 +99,7 @@ export const UserRoleResponseSchema = t.Object({
   name: t.String(),
   displayName: t.Optional(t.String()),
   description: t.Optional(t.String()),
+  organizationId: t.Optional(t.String()),
   isActive: t.Boolean(),
   isSystem: t.Boolean(),
   forbiddenVesselGroups: t.Optional(t.Array(t.Number())),

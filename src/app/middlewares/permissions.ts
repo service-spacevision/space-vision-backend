@@ -10,7 +10,7 @@ export const checkUser = (permission: string) => {
     if (!contextToken) {
       contextToken = ctx.headers.authorization?.split(" ")[1];
     }
-    const authResult = await authMiddleware(contextToken);
+    const authResult = await authMiddleware(contextToken!);
 
     if (!authResult || !authResult.success) {
       ctx.set.status = 401;
@@ -32,8 +32,7 @@ export const checkUser = (permission: string) => {
     //     message: "Access denied"
     //   }
     // }
-    (ctx as any).user = authResult.data;
-    console.log("ctx->user", ctx);
+    (ctx as any).user = authResult.data;   
     return;
   };
 };
