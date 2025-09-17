@@ -4,7 +4,7 @@ import { PermissionController } from '../../app/controllers/permissionController
 import { checkUser } from '../../app/middlewares/permissions'
 import { CreatePermissionSchema, UpdatePermissionSchema, PermissionResponseSchema } from '../../app/models/Permission'
 
-const permissionMap = {
+const permission = {
   "POST_/api/permissions": "create_permission",
   "GET_/api/permissions": "read_permissions",
   "GET_/api/permissions/by-id": "read_permission",
@@ -15,7 +15,7 @@ const permissionMap = {
 const permissionRoute = new Elysia({ prefix: '/api/permissions' })
   .use(cookie())
   .post('/', PermissionController.create, {
-    beforeHandle: [checkUser(permissionMap['POST_/api/permissions'])],
+    beforeHandle: [checkUser(permission['POST_/api/permissions'])],
     body: CreatePermissionSchema,
     tags: ['Permissions'],
     detail: {
@@ -25,7 +25,7 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
     }
   })
   .get('/', PermissionController.list, {
-    beforeHandle: [checkUser(permissionMap['GET_/api/permissions'])],
+    beforeHandle: [checkUser(permission['GET_/api/permissions'])],
     query: t.Object({
       currentPage: t.Optional(t.String({ default: '1' })),
       pageSize: t.Optional(t.String({ default: '10' })),
@@ -39,7 +39,7 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
     }
   })
   .get('/by-id', PermissionController.getById, {
-    beforeHandle: [checkUser(permissionMap['GET_/api/permissions/by-id'])],
+    beforeHandle: [checkUser(permission['GET_/api/permissions/by-id'])],
     query: t.Object({ id: t.String() }),
     response: { 200: PermissionResponseSchema },
     tags: ['Permissions'],
@@ -50,7 +50,7 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
     }
   })
   .put('/update', PermissionController.update, {
-    beforeHandle: [checkUser(permissionMap['PUT_/api/permissions/update'])],
+    beforeHandle: [checkUser(permission['PUT_/api/permissions/update'])],
     query: t.Object({ id: t.String() }),
     body: UpdatePermissionSchema,
     tags: ['Permissions'],
@@ -61,7 +61,7 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
     }
   })
   .delete('/delete', PermissionController.delete, {
-    beforeHandle: [checkUser(permissionMap['DELETE_/api/permissions/delete'])],
+    beforeHandle: [checkUser(permission['DELETE_/api/permissions/delete'])],
     query: t.Object({ id: t.String() }),
     tags: ['Permissions'],
     detail: {
@@ -71,5 +71,6 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
     }
   })
 
+export { permission }
 export default permissionRoute
 

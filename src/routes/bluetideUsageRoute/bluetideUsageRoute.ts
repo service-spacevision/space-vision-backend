@@ -109,4 +109,5 @@ const bluetideUsageRoute = new Elysia({ prefix: '/api/bluetide-usage' })
     }
   })
 
+export { permission }
 export default bluetideUsageRoute

@@ -5,7 +5,7 @@ import { t } from 'elysia'
 // Enum definitions
 export const permissionScopeEnum = pgEnum('permission_scope', ['own', 'organization', 'all'])
 export const permissionCategoryEnum = pgEnum('permission_category', ['navigation', 'component', 'api'])
-
+export const permissionSectionEnum = pgEnum('permission_section', ['admin', 'organization'])
 // permissions table
 export const permissions = pgTable('permissions', {
   id: serial('id').primaryKey(),
@@ -13,6 +13,7 @@ export const permissions = pgTable('permissions', {
   resource: varchar('resource', { length: 255 }).notNull(),
   action: varchar('action', { length: 100 }).notNull(),
   scope: permissionScopeEnum('scope').default('own'),
+  section: permissionSectionEnum('section').default('organization'),
   category: permissionCategoryEnum('category').notNull(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -23,16 +24,16 @@ export type Permission = InferSelectModel<typeof permissions>
 export type NewPermission = InferInsertModel<typeof permissions>
 
 export type CreatePermissionData = Pick<NewPermission,
-  'name' | 'resource' | 'action' | 'category' | 'scope' | 'description'
+  'name' | 'resource' | 'action' | 'category' | 'scope' | 'description' | 'section'
 >
 
 export type UpdatePermissionData = Partial<Pick<Permission,
-  'resource' | 'action' | 'category' | 'scope' | 'description'
+  'resource' | 'action' | 'category' | 'scope' | 'description' | 'section'
 >>
 
 // Elysia validation schemas
 export const CreatePermissionSchema = t.Object({
-  name: t.String({ minLength: 1, maxLength: 255 }),
+  name: t.String({ minLength: 1, maxLength: 255, description: "api_user_add | comp_vessels_dash" }),
   resource: t.String({ minLength: 1, maxLength: 255 }),
   action: t.String({ minLength: 1, maxLength: 100 }),
   scope: t.Optional(t.Union([
@@ -45,6 +46,10 @@ export const CreatePermissionSchema = t.Object({
     t.Literal('component'),
     t.Literal('api')
   ]),
+  section: t.Optional(t.Union([
+    t.Literal('admin'),
+    t.Literal('organization')
+  ])),
   description: t.Optional(t.String())
 })
 
@@ -61,6 +66,10 @@ export const UpdatePermissionSchema = t.Object({
     t.Literal('component'),
     t.Literal('api')
   ])),
+  section: t.Optional(t.Union([
+    t.Literal('admin'),
+    t.Literal('organization')
+  ])),
   description: t.Optional(t.String())
 })
 
@@ -70,6 +79,7 @@ export const PermissionResponseSchema = t.Object({
   resource: t.String(),
   action: t.String(),
   scope: t.String(),
+  section: t.String(),
   category: t.String(),
   description: t.Optional(t.String()),
   createdAt: t.Date(),

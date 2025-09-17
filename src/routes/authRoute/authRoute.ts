@@ -57,4 +57,5 @@ const authRoute = new Elysia({ prefix: '/api/auth' })
   //   description: 'Refresh user authentication token'
   // })
 
+export { permission }
 export default authRoute

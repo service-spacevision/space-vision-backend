@@ -3,6 +3,7 @@ import { createOrganization_func } from './functions/createOrganization'
 import { getOrganizations_func } from './functions/getOrganizations'
 import { getOrganizationByName_func } from './functions/getOrganizationByName'
 import { updateOrganization_func } from './functions/updateOrganization'
+import { updateOrganizationByAdmin_func } from './functions/updateOrganizationByAdmin'
 import { deleteOrganization_func } from './functions/deleteOrganization'
 
 export class OrganizationController {
@@ -49,12 +50,34 @@ export class OrganizationController {
   static async update(ctx: CustomContext) {
     try {
       const name = (ctx.query as any)?.name as string
-      const result = await updateOrganization_func({ name, data: ctx.body as any })
+      const user = ctx.user
+      const result = await updateOrganization_func({ 
+        name, 
+        data: ctx.body as any, 
+        userId: user?.id 
+      })
       ctx.set.status = result?.success ? 200 : 404
       return result
     } catch (err) {
       ctx.set.status = 500
       return { success: false, message: 'Internal server error while updating organization' }
+    }
+  }
+
+  static async updateByAdmin(ctx: CustomContext) {
+    try {
+      const organizationId = (ctx.params as any)?.id as string
+      const user = ctx.user
+      const result = await updateOrganizationByAdmin_func({ 
+        organizationId, 
+        data: ctx.body as any, 
+        userId: user?.id 
+      })
+      ctx.set.status = result?.success ? 200 : 404
+      return result
+    } catch (err) {
+      ctx.set.status = 500
+      return { success: false, message: 'Internal server error while updating organization by admin' }
     }
   }
 

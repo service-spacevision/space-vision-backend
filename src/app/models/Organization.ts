@@ -1,5 +1,5 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
 import { t } from 'elysia'
 
 export const organizations = pgTable("organizations", {
@@ -9,6 +9,7 @@ export const organizations = pgTable("organizations", {
   logo: text("logo"),
   subscription_id: text("subscription_id"),
   parent_org_name: text("parent_org_name"),
+  permittedVesselGroups: integer("permitted_vessel_groups").array(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 })
@@ -22,6 +23,7 @@ export const CreateOrganizationSchema = t.Object({
   logo: t.Optional(t.String()),
   subscription_id: t.Optional(t.String()),
   parent_org_name: t.Optional(t.String({ description: 'Parent organization name' })),
+  permittedVesselGroups: t.Optional(t.Array(t.Number(), { description: 'Array of vessel group IDs that this organization can access' })),
 })
 
 export const UpdateOrganizationSchema = t.Object({
@@ -29,6 +31,7 @@ export const UpdateOrganizationSchema = t.Object({
   logo: t.Optional(t.String()),
   subscription_id: t.Optional(t.String()),
   parent_org_name: t.Optional(t.String({ description: 'Parent organization name' })),
+  permittedVesselGroups: t.Optional(t.Array(t.Number(), { description: 'Array of vessel group IDs that this organization can access' })),
 })
 
 export const OrganizationResponseSchema = t.Object({
@@ -38,6 +41,7 @@ export const OrganizationResponseSchema = t.Object({
   logo: t.Optional(t.String()),
   subscription_id: t.Optional(t.String()),
   parent_org_name: t.Optional(t.String()),
+  permittedVesselGroups: t.Optional(t.Array(t.Number())),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 })

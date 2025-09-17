@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "permitted_vessel_groups" integer[];

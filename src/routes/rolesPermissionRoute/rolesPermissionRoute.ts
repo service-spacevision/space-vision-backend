@@ -70,5 +70,6 @@ const rolesPermissionRoute = new Elysia({ prefix: '/api/roles-permissions' })
     }
   })
 
+export { permission }
 export default rolesPermissionRoute
 

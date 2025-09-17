@@ -115,4 +115,5 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
     }
   })
 
+export { permission }
 export default vesselRoute

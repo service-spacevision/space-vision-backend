@@ -65,4 +65,5 @@ const pinManagementRoute = new Elysia({ prefix: "/api/pin-management" })
     },
   });
 
+export { permission }
 export default pinManagementRoute;

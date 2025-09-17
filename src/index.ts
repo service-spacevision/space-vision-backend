@@ -12,6 +12,7 @@ import { startCrons } from "./app/cron/index.cron";
 import { ensureSyncState } from "./app/db/ensureSyncState";
 import { ensureBluetideTelemetry } from "./app/db/ensureBluetideTelemetry";
 import { ensurePermissions } from "./app/db/ensurePermissions";
+import { syncApiPermissions } from "./app/controllers/permissionControllers/functions/syncApiPermissions";
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
   authRoutes,
@@ -202,6 +203,9 @@ async function startServer() {
     await ensureSyncState();
     await ensureBluetideTelemetry();
     await ensurePermissions();
+
+    // Sync API permissions from route files to database
+    await syncApiPermissions();
 
     console.log("✅ Server initialization completed successfully");
 

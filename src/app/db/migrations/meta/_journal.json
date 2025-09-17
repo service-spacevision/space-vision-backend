@@ -64,6 +64,27 @@
       "when": 1757946838060,
       "tag": "0008_nifty_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1758132552566,
+      "tag": "0009_striped_blob",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1758132857696,
+      "tag": "0010_strong_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1758140565173,
+      "tag": "0011_icy_energizer",
+      "breakpoints": true
     }
   ]
 }

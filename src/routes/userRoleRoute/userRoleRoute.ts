@@ -9,7 +9,10 @@ const permission = {
   "GET_/api/user-roles": "read_user_roles",
   "GET_/api/user-roles/:id": "read_user_role",
   "PUT_/api/user-roles/:id": "update_user_role",
-  "DELETE_/api/user-roles/:id": "delete_user_role"
+  "DELETE_/api/user-roles/:id": "delete_user_role",
+  "GET_/api/user-roles/by-id": "read_user_role_by_id",
+  "PUT_/api/user-roles/update": "update_user_role",
+  "DELETE_/api/user-roles/delete": "delete_user_role"
 }
 
 const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
@@ -98,4 +101,5 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     }
   })
 
+export { permission }
 export default userRoleRoute

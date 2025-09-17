@@ -12,7 +12,7 @@ import { bluetideUsage } from '../models/BluetideUsage'
 import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
-import { permissions } from '../models/Permission'
+import { permissions, permissionScopeEnum, permissionCategoryEnum, permissionSectionEnum } from '../models/Permission'
 import { rolesPermission } from '../models/RolePermission'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
@@ -111,13 +111,16 @@ export const pinsRelations = relations(pins, ({ one }) => ({
   })
 }))
 
-// Export all tables
+// Export all tables and enums
 export { 
   users, 
   sessions, 
   userRoles, 
   organizations,
   permissions,
+  permissionScopeEnum,
+  permissionCategoryEnum,
+  permissionSectionEnum,
   rolesPermission,
   vessels, 
   vesselGroups, 

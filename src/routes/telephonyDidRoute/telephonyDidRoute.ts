@@ -19,11 +19,11 @@ const telephonyDidRoute = new Elysia({ prefix: '/api/telephony-dids' })
       number: t.Optional(t.String({
         description: 'Filter by phone number'
       })),
-      blocked: t.Optional(t.Boolean({
-        description: 'Filter by blocked status'
+      blocked: t.Optional(t.String({
+        description: 'Filter by blocked status (true/false)'
       })),
-      terminated: t.Optional(t.Boolean({
-        description: 'Filter by terminated status'
+      terminated: t.Optional(t.String({
+        description: 'Filter by terminated status (true/false)'
       })),
       currentPage: t.Optional(t.String({
         description: 'Current Page number',
@@ -88,4 +88,5 @@ const telephonyDidRoute = new Elysia({ prefix: '/api/telephony-dids' })
     }
   })
 
+export { permission }
 export default telephonyDidRoute
