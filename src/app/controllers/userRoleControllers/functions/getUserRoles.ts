@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { userRoles } from '../../../models/UserRole'
+import { rolesPermission } from '../../../models/RolePermission'
 import { eq, desc, count } from 'drizzle-orm'
 import { IPagination } from '../../../utils/types'
 
@@ -17,8 +18,25 @@ export async function getUserRoles_func({
 
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === 'true' || pagination?.all === '1') {
-      const roles = await db.select()
+      const roles = await db.select({
+        id: userRoles.id,
+        name: userRoles.name,
+        displayName: userRoles.displayName,
+        description: userRoles.description,
+        isActive: userRoles.isActive,
+        isSystem: userRoles.isSystem,
+        created_by: userRoles.created_by,
+        organizationId: userRoles.organizationId,
+        createdAt: userRoles.createdAt,
+        updatedAt: userRoles.updatedAt,
+        permissions: {
+          api_permissions: rolesPermission.api_permissions,
+          component_permissions: rolesPermission.component_permissions,
+          navigation_permissions: rolesPermission.navigation_permissions
+        }
+      })
         .from(userRoles)
+        .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
         .where(whereCondition)
         .orderBy(desc(userRoles.createdAt))
 
@@ -48,8 +66,25 @@ export async function getUserRoles_func({
     const total = totalResult.count
 
     // Get paginated data
-    const roles = await db.select()
+    const roles = await db.select({
+      id: userRoles.id,
+      name: userRoles.name,
+      displayName: userRoles.displayName,
+      description: userRoles.description,
+      isActive: userRoles.isActive,
+      isSystem: userRoles.isSystem,
+      created_by: userRoles.created_by,
+      organizationId: userRoles.organizationId,
+      createdAt: userRoles.createdAt,
+      updatedAt: userRoles.updatedAt,
+      permissions: {
+        api_permissions: rolesPermission.api_permissions,
+        component_permissions: rolesPermission.component_permissions,
+        navigation_permissions: rolesPermission.navigation_permissions
+      }
+    })
       .from(userRoles)
+      .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
       .where(whereCondition)
       .orderBy(desc(userRoles.createdAt))
       .limit(pageSize)

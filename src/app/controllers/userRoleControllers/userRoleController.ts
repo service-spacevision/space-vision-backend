@@ -2,6 +2,7 @@ import { CustomContext } from '../../utils/types'
 import { createUserRole_func } from './functions/createUserRole'
 import { getUserRoles_func } from './functions/getUserRoles'
 import { getUserRoleById_func } from './functions/getUserRoleById'
+import { getLoggedUserRole_func } from './functions/getLoggedUserRole'
 import { updateUserRole_func } from './functions/updateUserRole'
 import { deleteUserRole_func } from './functions/deleteUserRole'
 
@@ -103,6 +104,25 @@ export class UserRoleController {
       return {
         success: false,
         message: 'Internal server error while updating role'
+      }
+    }
+  }
+
+  static async getLoggedUserRole(ctx: CustomContext) {
+    try {
+      const reqObject = {
+        user: (ctx as any).user
+      }
+
+      const result = await getLoggedUserRole_func({ reqObject })
+
+      ctx.set.status = result?.success === true ? 200 : 404
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching logged user role'
       }
     }
   }

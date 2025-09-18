@@ -4,6 +4,8 @@ import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import { ReqObjectType } from '../../../utils/types'
 import { UpdateUserData } from '../../../models/User'
+import { hasSystemRole } from '../../../utils/roleHelpers'
+import bcrypt from 'bcryptjs'
 
 export const updateUserProfileById_func = async (
   {
@@ -17,17 +19,21 @@ export const updateUserProfileById_func = async (
   }
 ) => {
   try {
-    const { fullName, username, profilePicture, bio, preferences } = data
+    const { fullName, username, profilePicture, bio, preferences, password } = data
 
     // Only allow updating certain fields
     const updateData: Partial<UpdateUserData> = {}
-    
+
     if (fullName !== undefined) updateData.fullName = fullName
     if (username !== undefined) updateData.username = username
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture
     if (bio !== undefined) updateData.bio = bio
     if (preferences !== undefined) updateData.preferences = preferences
     updateData.createdBy = reqObject.user.id
+
+    // Check if the requesting user has system role
+    const isSystemUser = await hasSystemRole(reqObject.user.id)
+
     // Get user's role to check permissions
     const [userWithRole] = await db
       .select({
@@ -40,10 +46,38 @@ export const updateUserProfileById_func = async (
       .where(eq(users.id, Number(userId)))
       .limit(1)
 
-    // Admin users can update additional fields
-    if (userWithRole?.role?.name === 'admin') {
+    // System users can update additional fields including password
+    if (isSystemUser) {
       if (data.isActive !== undefined) updateData.isActive = data.isActive
       if (data.roleId !== undefined) updateData.roleId = data.roleId
+
+      // Handle password update for system users only
+      if (password !== undefined && password !== null) {
+        if (password.length < 8) {
+          return {
+            success: false,
+            message: 'Password must be at least 8 characters long'
+          }
+        }
+        // Hash the new password
+        const saltRounds = 12
+        const hashedPassword = await bcrypt.hash(password, saltRounds)
+        updateData.password = hashedPassword
+      }
+    } else {
+      // Non-system users cannot update password
+      if (password !== undefined) {
+        return {
+          success: false,
+          message: 'Only users with system roles can update passwords'
+        }
+      }
+
+      // Legacy admin check for backward compatibility
+      if (userWithRole?.role?.name === 'admin') {
+        if (data.isActive !== undefined) updateData.isActive = data.isActive
+        if (data.roleId !== undefined) updateData.roleId = data.roleId
+      }
     }
 
     if (Object.keys(updateData).length === 0) {

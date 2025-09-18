@@ -45,7 +45,7 @@ export type CreateUserData = Pick<NewUser,
 >
 
 export type UpdateUserData = Partial<Pick<User,
-  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences' | 'createdBy' | 'organizationId' | 'updatedBy'
+  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences' | 'createdBy' | 'organizationId' | 'updatedBy' | 'password'
 >>
 
 // Elysia schemas for request/response validation
@@ -110,6 +110,10 @@ export const UpdateProfileSchema = t.Object({
   })),
   roleId: t.Optional(t.Number({
     description: 'User role ID (admin only)'
+  })),
+  password: t.Optional(t.String({
+    minLength: 8,
+    description: 'New password (system users only, minimum 8 characters)'
   })),
 })
 

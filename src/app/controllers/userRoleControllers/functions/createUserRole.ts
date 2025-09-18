@@ -1,20 +1,62 @@
 import { db } from '../../../db/connection'
 import { userRoles } from '../../../models/UserRole'
+import { permissions } from '../../../models/Permission'
+import { rolesPermission } from '../../../models/RolePermission'
 import { CreateUserRoleData } from '../../../models/UserRole'
+import { inArray } from 'drizzle-orm'
 
 interface CreateUserRoleParams {
-  data: CreateUserRoleData
+  data: CreateUserRoleData & {
+    permissions?: number[] // Array of permission IDs
+  }
 }
 
 export async function createUserRole_func({ data }: CreateUserRoleParams) {
   try {
+    // First, create the user role
     const [newRole] = await db.insert(userRoles).values({
-      name: data.name,
+      name: `api_${data.name}`,
       displayName: data.displayName,
       description: data.description,
       created_by: (data as any).createdBy?.toString?.() ?? (data as any).created_by,
-      organizationName: (data as any).organizationName,
+      organizationId: (data as any).organizationId,
     }).returning()
+
+    // If permissions array is provided, handle role-permission associations
+    if (data.permissions && data.permissions.length > 0) {
+      // Fetch all permissions by IDs
+      const fetchedPermissions = await db
+        .select()
+        .from(permissions)
+        .where(inArray(permissions.id, data.permissions))
+
+      // Group permissions by category
+      const apiPermissions: string[] = []
+      const componentPermissions: string[] = []
+      const navigationPermissions: string[] = []
+
+      fetchedPermissions.forEach(permission => {
+        switch (permission.category) {
+          case 'api':
+            apiPermissions.push(permission.name)
+            break
+          case 'component':
+            componentPermissions.push(permission.name)
+            break
+          case 'navigation':
+            navigationPermissions.push(permission.name)
+            break
+        }
+      })
+
+      // Create role-permission association
+      await db.insert(rolesPermission).values({
+        roleId: newRole.id,
+        api_permissions: apiPermissions.length > 0 ? JSON.stringify(apiPermissions) : null,
+        component_permissions: componentPermissions.length > 0 ? JSON.stringify(componentPermissions) : null,
+        navigation_permissions: navigationPermissions.length > 0 ? JSON.stringify(navigationPermissions) : null,
+      })
+    }
 
     return {
       success: true,
@@ -23,7 +65,7 @@ export async function createUserRole_func({ data }: CreateUserRoleParams) {
     }
   } catch (error: any) {
     console.error('Error creating user role:', error)
-    
+
     if (error.code === '23505') { // Unique constraint violation
       return {
         success: false,
