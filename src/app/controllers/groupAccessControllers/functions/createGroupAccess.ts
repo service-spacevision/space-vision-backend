@@ -14,7 +14,7 @@ interface CreateGroupAccessParams {
 export async function createGroupAccess_func({ reqObject, data }: CreateGroupAccessParams) {
   try {
     // In the new structure, we don't need to create a new record
-    // as we're just updating the forbidden_vessel_groups array in the user_roles table
+    // as we're just updating the permitted_vessel_groups array in the user_roles table
     // This function is kept for backward compatibility but will just return success
     
     return {

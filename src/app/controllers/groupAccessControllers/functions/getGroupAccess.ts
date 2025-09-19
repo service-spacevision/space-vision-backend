@@ -57,8 +57,12 @@ export async function getGroupAccess_func({
       columns: {
         id: true,
         name: true,
-        allowedGroups: true
-      }
+        permittedVesselGroups: true,
+        displayName: true,
+        description: true,
+        isActive: true,
+        isSystem: true,
+      },
     });
 
     if (!role) {
@@ -68,8 +72,8 @@ export async function getGroupAccess_func({
       };
     }
 
-    // Create a set of allowed group IDs for this role
-    const allowedGroupIds = new Set<number>(role.allowedGroups || []);
+    // Create a set of allowed group IDs for this role from permittedVesselGroups
+    const allowedGroupIds = new Set<number>(role.permittedVesselGroups || []);
 
     // Prepare response with isAllowed flag for all groups
     const allGroupsWithAccess = allVesselGroups.map((group) => ({
