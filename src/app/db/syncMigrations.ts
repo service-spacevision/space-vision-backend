@@ -10,6 +10,8 @@ import migrationHelpers from './migrationUtils'
 const allowBootstrap = process.env.ALLOW_SCHEMA_BOOTSTRAP === 'true' && process.env.NODE_ENV !== 'production'
 // Default to FALSE to avoid masking drift; enable explicitly when needed
 const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC === 'true'
+// Fix missing critical tables (helps with Drizzle's migration hallucinations)
+const allowCriticalTableFix = process.env.ALLOW_CRITICAL_TABLE_FIX === 'true' || process.env.NODE_ENV !== 'production'
 
 export async function smartMigrate() {
     try {
@@ -17,6 +19,11 @@ export async function smartMigrate() {
 
         // Preflight: apply idempotent ensures for known schema bits
         await preflightEnsureSchema()
+        
+        // Check for missing critical tables that should exist based on schema
+        if (allowCriticalTableFix) {
+            await ensureCriticalTablesExist()
+        }
 
         // First, try normal migration
         try {
@@ -245,7 +252,78 @@ async function preflightEnsureSchema() {
     }
 }
 
-// Removed redundant functions - let Drizzle handle schema changes properly
+// Function to ensure critical tables exist (fixes Drizzle's "hallucination" problem)
+async function ensureCriticalTablesExist() {
+    try {
+        console.log('🔍 Checking for missing critical tables...')
+        
+        // Get existing tables
+        const existingTables = await db.execute(sql`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        `)
+        const tableNames = existingTables.map((row: any) => row.table_name)
+        
+        // Define critical tables that should exist based on your schema
+        const criticalTables = [
+            {
+                name: 'roles_permission',
+                createSql: `
+                    CREATE TABLE IF NOT EXISTS "roles_permission" (
+                        "id" serial PRIMARY KEY NOT NULL,
+                        "roleId" integer NOT NULL,
+                        "api_permissions" text,
+                        "component_permissions" text,
+                        "navigation_permissions" text,
+                        "updatedAt" timestamp DEFAULT now() NOT NULL,
+                        CONSTRAINT "roles_permission_roleId_unique" UNIQUE("roleId")
+                    )
+                `
+            },
+            {
+                name: 'permissions',
+                createSql: `
+                    CREATE TABLE IF NOT EXISTS "permissions" (
+                        "id" serial PRIMARY KEY NOT NULL,
+                        "name" varchar(255) NOT NULL UNIQUE,
+                        "resource" varchar(255) NOT NULL,
+                        "action" varchar(100) NOT NULL,
+                        "scope" varchar(50) DEFAULT 'own',
+                        "category" varchar(50) NOT NULL,
+                        "description" text,
+                        "created_at" timestamp DEFAULT now(),
+                        "updated_at" timestamp DEFAULT now()
+                    )
+                `
+            }
+        ]
+        
+        let missingCount = 0
+        for (const table of criticalTables) {
+            if (!tableNames.includes(table.name)) {
+                console.log(`⚠️  Missing critical table: ${table.name}`)
+                try {
+                    await db.execute(sql.raw(table.createSql))
+                    console.log(`✅ Created missing table: ${table.name}`)
+                    missingCount++
+                } catch (error: any) {
+                    console.log(`❌ Failed to create ${table.name}:`, error.message)
+                }
+            }
+        }
+        
+        if (missingCount > 0) {
+            console.log(`✅ Fixed ${missingCount} missing critical tables`)
+        } else {
+            console.log('✅ All critical tables exist')
+        }
+        
+    } catch (error) {
+        console.error('Error checking critical tables:', error)
+        // Don't throw - this is best effort
+    }
+}
 
 // Run if called directly
 if (require.main === module) {
