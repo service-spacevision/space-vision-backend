@@ -44,7 +44,7 @@ export const CreateUserRoleSchema = t.Object({
     maxLength: 1000,
     description: 'Role description'
   })),
-  permissions: t.Optional(t.Array(t.String({
+  permissions: t.Optional(t.Array(t.Number({
     description: 'Permission name'
   }))),
   organizationId: t.Optional(t.String({
@@ -64,7 +64,7 @@ export const UpdateUserRoleSchema = t.Object({
   isActive: t.Optional(t.Boolean({
     description: 'Role active status'
   })),
-  permissions: t.Optional(t.Array(t.String({
+  permissions: t.Optional(t.Array(t.Number({
     description: 'Permission name'
   })))
 })
