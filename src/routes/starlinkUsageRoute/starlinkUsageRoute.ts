@@ -318,4 +318,5 @@ const starlinkUsageRoute = new Elysia({ prefix: "/api/starlink-usage" })
     },
   });
 
+export { permission }
 export default starlinkUsageRoute;

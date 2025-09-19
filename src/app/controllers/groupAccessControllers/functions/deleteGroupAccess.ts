@@ -47,18 +47,18 @@ export async function deleteGroupAccess_func({ reqObject, query }: DeleteGroupAc
       }
     }
 
-    // Clear the forbidden_vessel_groups array for this role
+    // Clear the allowed_groups array for this role
     await db
       .update(userRoles)
       .set({ 
-        forbiddenVesselGroups: [],
+        allowedGroups: [],
         updatedAt: new Date() 
       })
       .where(eq(userRoles.id, roleId));
 
     return {
       success: true,
-      message: `Successfully cleared forbidden vessel groups for role ${roleId}`
+      message: `Successfully cleared allowed groups for role ${roleId}`
     }
   } catch (error: any) {
     console.error('Error deleting group access:', error)

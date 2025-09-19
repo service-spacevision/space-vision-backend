@@ -2,6 +2,10 @@ import { Elysia, t } from 'elysia'
 import { APP_CONFIG } from '../../app/constants/constants'
 import { db } from '../../app/db/connection'
 
+const permission = {
+  // System routes are mostly public, but we can add permissions if needed
+}
+
 const systemRoute = new Elysia({ prefix: '/api/system' })
   .get('/health', async () => {
     try {
@@ -100,4 +104,5 @@ const systemRoute = new Elysia({ prefix: '/api/system' })
     }
   })
 
+export { permission }
 export default systemRoute

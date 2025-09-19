@@ -42,7 +42,7 @@ export async function getGroupAccess_func({
     // Get all vessel groups
     const allVesselGroups = await db.select().from(vesselGroups);
 
-    // Get role with forbidden vessel groups
+    // Get role with allowed groups
     const roleId = query?.role ? parseInt(query.role) : undefined;
 
     if (!roleId) {
@@ -57,7 +57,7 @@ export async function getGroupAccess_func({
       columns: {
         id: true,
         name: true,
-        forbiddenVesselGroups: true
+        allowedGroups: true
       }
     });
 
@@ -68,13 +68,13 @@ export async function getGroupAccess_func({
       };
     }
 
-    // Create a set of forbidden group IDs for this role
-    const forbiddenGroupIds = new Set<number>(role.forbiddenVesselGroups || []);
+    // Create a set of allowed group IDs for this role
+    const allowedGroupIds = new Set<number>(role.allowedGroups || []);
 
-    // Prepare response with isForbidden flag for all groups
+    // Prepare response with isAllowed flag for all groups
     const allGroupsWithAccess = allVesselGroups.map((group) => ({
       ...group,
-      isForbidden: forbiddenGroupIds.has(group.id) ? 1 : 0,
+      isAllowed: allowedGroupIds.has(group.id) ? 1 : 0,
     }));
 
     // If pagination.all is set, return all records without pagination

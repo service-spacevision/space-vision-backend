@@ -9,7 +9,11 @@ const permission = {
   "GET_/api/user-roles": "read_user_roles",
   "GET_/api/user-roles/:id": "read_user_role",
   "PUT_/api/user-roles/:id": "update_user_role",
-  "DELETE_/api/user-roles/:id": "delete_user_role"
+  "DELETE_/api/user-roles/:id": "delete_user_role",
+  "GET_/api/user-roles/by-id": "read_user_role_by_id",
+  "GET_/api/user-roles/get-logged-user-role": "read_logged_user_role",
+  "PUT_/api/user-roles/update": "update_user_role",
+  "DELETE_/api/user-roles/delete": "delete_user_role"
 }
 
 const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
@@ -67,6 +71,16 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     },
   })
 
+  .get('/get-logged-user-role', UserRoleController.getLoggedUserRole, {
+    beforeHandle: [checkUser(permission["GET_/api/user-roles/get-logged-user-role"])],
+    tags: ['UserRole'],
+    detail: {
+      summary: 'Get logged user role',
+      description: 'Retrieve the logged-in user\'s role with permissions',
+      operationId: 'getLoggedUserRole',
+    },
+  })
+
   .put('/update', UserRoleController.updateRole, {
     beforeHandle: [checkUser(permission["PUT_/api/user-roles/update"])],
     query: t.Object({
@@ -98,4 +112,5 @@ const userRoleRoute = new Elysia({ prefix: '/api/user-roles' })
     }
   })
 
+export { permission }
 export default userRoleRoute

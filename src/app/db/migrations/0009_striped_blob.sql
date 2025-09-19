@@ -1,0 +1,1 @@
+ALTER TABLE "permissions" ADD COLUMN "section" "permission_section" DEFAULT 'organization';

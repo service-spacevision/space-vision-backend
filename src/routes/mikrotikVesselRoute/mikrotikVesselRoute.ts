@@ -85,4 +85,5 @@ const mikrotikVesselRoute = new Elysia({ prefix: '/api/mikrotik-vessels' })
     }
   })
 
+export { permission }
 export default mikrotikVesselRoute

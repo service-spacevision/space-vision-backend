@@ -52,11 +52,11 @@ export async function updateGroupAccess_func({ reqObject, query, data }: UpdateG
       };
     }
 
-    // Update the forbidden_vessel_groups array for the role
+    // Update the allowed_groups array for the role
     await db
       .update(userRoles)
       .set({ 
-        forbiddenVesselGroups: groupIds,
+        allowedGroups: groupIds,
         updatedAt: new Date() 
       })
       .where(eq(userRoles.id, roleId));

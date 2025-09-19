@@ -1,5 +1,6 @@
 import { db } from '../../../db/connection'
 import { userRoles } from '../../../models/UserRole'
+import { rolesPermission } from '../../../models/RolePermission'
 import { eq } from 'drizzle-orm'
 
 interface GetUserRoleByIdParams {
@@ -18,8 +19,25 @@ export async function getUserRoleById_func({ roleId }: GetUserRoleByIdParams) {
       }
     }
 
-    const [role] = await db.select()
+    const [role] = await db.select({
+      id: userRoles.id,
+      name: userRoles.name,
+      displayName: userRoles.displayName,
+      description: userRoles.description,
+      isActive: userRoles.isActive,
+      isSystem: userRoles.isSystem,
+      created_by: userRoles.created_by,
+      organizationId: userRoles.organizationId,
+      createdAt: userRoles.createdAt,
+      updatedAt: userRoles.updatedAt,
+      permissions: {
+        api_permissions: rolesPermission.api_permissions,
+        component_permissions: rolesPermission.component_permissions,
+        navigation_permissions: rolesPermission.navigation_permissions
+      }
+    })
       .from(userRoles)
+      .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
       .where(eq(userRoles.id, idNum))
       .limit(1)
 

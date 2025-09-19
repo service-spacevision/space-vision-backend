@@ -50,49 +50,38 @@ export const CreateUserRoleSchema = t.Object({
     maxLength: 100,
     description: "Role name (unique identifier)",
   }),
-  displayName: t.Optional(
-    t.String({
-      maxLength: 200,
-      description: "Human-readable role name",
-    })
-  ),
-  description: t.Optional(
-    t.String({
-      maxLength: 1000,
-      description: "Role description",
-    })
-  ),
-  forbiddenVesselGroups: t.Optional(
-    t.Array(t.Number(), {
-      description: "Array of vessel group IDs that this role cannot access",
-    })
-  ),
-});
+  displayName: t.Optional(t.String({
+    maxLength: 200,
+    description: 'Human-readable role name'
+  })),
+  description: t.Optional(t.String({
+    maxLength: 1000,
+    description: 'Role description'
+  })),
+  permissions: t.Optional(t.Array(t.String({
+    description: 'Permission name'
+  }))),
+  organizationId: t.Optional(t.String({
+    description: 'Organization ID'
+  }))
+})
 
 export const UpdateUserRoleSchema = t.Object({
-  displayName: t.Optional(
-    t.String({
-      maxLength: 200,
-      description: "Human-readable role name",
-    })
-  ),
-  description: t.Optional(
-    t.String({
-      maxLength: 1000,
-      description: "Role description",
-    })
-  ),
-  isActive: t.Optional(
-    t.Boolean({
-      description: "Role active status",
-    })
-  ),
-  forbiddenVesselGroups: t.Optional(
-    t.Array(t.Number(), {
-      description: "Array of vessel group IDs that this role cannot access",
-    })
-  ),
-});
+  displayName: t.Optional(t.String({
+    maxLength: 200,
+    description: 'Human-readable role name'
+  })),
+  description: t.Optional(t.String({
+    maxLength: 1000,
+    description: 'Role description'
+  })),
+  isActive: t.Optional(t.Boolean({
+    description: 'Role active status'
+  })),
+  permissions: t.Optional(t.Array(t.String({
+    description: 'Permission name'
+  })))
+})
 
 export const UserRoleResponseSchema = t.Object({
   id: t.Number(),

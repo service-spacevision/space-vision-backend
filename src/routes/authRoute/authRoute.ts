@@ -11,7 +11,7 @@ const permission = {
 const authRoute = new Elysia({ prefix: '/api/auth' })
   .use(cookie())
   .post('/signup', AuthController.signUpUser, {
-    // beforeHandle: [checkUser(permission["POST_/api/auth/signup"])],
+    beforeHandle: [checkUser(permission["POST_/api/auth/signup"])],
     body: SignUpSchema,
     tags: ['Authentication'],
     detail: {
@@ -57,4 +57,5 @@ const authRoute = new Elysia({ prefix: '/api/auth' })
   //   description: 'Refresh user authentication token'
   // })
 
+export { permission }
 export default authRoute

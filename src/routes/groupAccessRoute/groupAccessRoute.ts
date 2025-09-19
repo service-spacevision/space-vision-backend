@@ -92,4 +92,5 @@ const groupAccessRoute = new Elysia({ prefix: '/api/group-access' })
     }
   })
 
+export { permission }
 export default groupAccessRoute

@@ -97,4 +97,5 @@ const userRoute = new Elysia({ prefix: '/api/users' })
     }
   })
 
+export { permission }
 export default userRoute

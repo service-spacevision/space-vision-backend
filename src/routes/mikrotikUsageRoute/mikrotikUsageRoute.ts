@@ -47,4 +47,5 @@ const mikrotikUsageRoute = new Elysia({ prefix: '/api/mikrotik-usage' })
     }
   })
 
+export { permission }
 export default mikrotikUsageRoute

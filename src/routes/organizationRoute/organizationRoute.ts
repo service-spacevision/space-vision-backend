@@ -9,6 +9,7 @@ const permission = {
   "GET_/api/organizations": "read_organizations",
   "GET_/api/organizations/by-name": "read_organization",
   "PUT_/api/organizations/update": "update_organization",
+  "PUT_/api/organizations/admin/:id": "admin_update_organization",
   "DELETE_/api/organizations/delete": "delete_organization",
 }
 
@@ -56,8 +57,19 @@ const organizationRoute = new Elysia({ prefix: '/api/organizations' })
     tags: ['Organization'],
     detail: {
       summary: 'Update organization',
-      description: 'Update an existing organization',
+      description: 'Update an existing organization (restricted access to permittedVesselGroups)',
       operationId: 'updateOrganization',
+    },
+  })
+  .put('/admin/:id', OrganizationController.updateByAdmin, {
+    beforeHandle: [checkUser(permission['PUT_/api/organizations/admin/:id'])],
+    params: t.Object({ id: t.String() }),
+    body: UpdateOrganizationSchema,
+    tags: ['Organization'],
+    detail: {
+      summary: 'Update organization by admin',
+      description: 'Admin route to update any organization by ID (full access to all fields)',
+      operationId: 'updateOrganizationByAdmin',
     },
   })
   .delete('/delete', OrganizationController.delete, {
@@ -71,5 +83,6 @@ const organizationRoute = new Elysia({ prefix: '/api/organizations' })
     },
   })
 
+export { permission }
 export default organizationRoute
 
