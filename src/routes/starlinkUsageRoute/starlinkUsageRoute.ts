@@ -190,6 +190,12 @@ const starlinkUsageRoute = new Elysia({ prefix: "/api/starlink-usage" })
           example: "GROUP1",
         })
       ),
+      vesselName: t.Optional(
+        t.String({
+          description: "Optional vessel name to filter by",
+          example: "VESSEL1",
+        })
+      ),
       currentPage: t.Optional(
         t.String({
           description: "Page number for pagination (default: 1)",

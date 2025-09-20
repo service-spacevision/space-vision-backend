@@ -49,16 +49,22 @@ export async function getLoggedUserRole_func({ reqObject }: GetLoggedUserRolePar
       }
     }
 
-    // Parse JSON permissions if they exist
+    // Parse JSON permissions if they exist, with proper type safety
+    const permissions = userWithRole.permissions || {
+      api_permissions: '[]',
+      component_permissions: '[]',
+      navigation_permissions: '[]'
+    };
+    
     const parsedPermissions = {
-      api_permissions: userWithRole.permissions.api_permissions 
-        ? JSON.parse(userWithRole.permissions.api_permissions) 
+      api_permissions: permissions.api_permissions 
+        ? JSON.parse(permissions.api_permissions) 
         : [],
-      component_permissions: userWithRole.permissions.component_permissions 
-        ? JSON.parse(userWithRole.permissions.component_permissions) 
+      component_permissions: permissions.component_permissions 
+        ? JSON.parse(permissions.component_permissions) 
         : [],
-      navigation_permissions: userWithRole.permissions.navigation_permissions 
-        ? JSON.parse(userWithRole.permissions.navigation_permissions) 
+      navigation_permissions: permissions.navigation_permissions 
+        ? JSON.parse(permissions.navigation_permissions) 
         : []
     }
 

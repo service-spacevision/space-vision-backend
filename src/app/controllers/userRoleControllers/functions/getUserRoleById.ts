@@ -26,7 +26,7 @@ export async function getUserRoleById_func({ roleId }: GetUserRoleByIdParams) {
       description: userRoles.description,
       isActive: userRoles.isActive,
       isSystem: userRoles.isSystem,
-      created_by: userRoles.created_by,
+      created_by: userRoles.createdBy,
       organizationId: userRoles.organizationId,
       createdAt: userRoles.createdAt,
       updatedAt: userRoles.updatedAt,

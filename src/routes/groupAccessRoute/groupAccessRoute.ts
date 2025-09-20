@@ -56,31 +56,32 @@ const groupAccessRoute = new Elysia({ prefix: '/api/group-access' })
 
   .put('/', GroupAccessController.updateGroupAccess, {
     beforeHandle: [checkUser(permission["PUT_/api/group-access"])],
-    query: t.Object({
-      role: t.String({
-        description: 'Role to update'
-      }),
-      groupId: t.String({
-        description: 'Group ID to update'
+    body: t.Object({
+      groupIds: t.Array(t.Number(), {
+        description: 'Array of group IDs to grant access to',
+        examples: [[1, 2, 3]]
       })
     }),
-    body: UpdateGroupAccessSchema,
+    query: t.Object({
+      role: t.String({
+        description: 'Role ID to update access for',
+        examples: ['1']
+      })
+    }),
     tags: ['Group Access'],
     detail: {
-      summary: 'Update group access',
-      description: 'Update an existing group access',
+      summary: 'Update group access for a role',
+      description: 'Updates the list of groups that a role has access to. This will replace any existing group access for the role.',
       operationId: 'updateGroupAccess',
-    }
+    },
   })
 
   .delete('/', GroupAccessController.deleteGroupAccess, {
     beforeHandle: [checkUser(permission["DELETE_/api/group-access"])],
     query: t.Object({
       role: t.String({
-        description: 'Role to delete'
-      }),
-      groupId: t.String({
-        description: 'Group ID to delete'
+        description: 'Role ID for which to delete all group access',
+        examples: ['1']
       })
     }),
     tags: ['Group Access'],

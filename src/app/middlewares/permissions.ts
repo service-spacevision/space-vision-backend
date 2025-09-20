@@ -2,7 +2,7 @@ import { Context } from "elysia";
 import { authMiddleware } from "./auth";
 import { UserRole } from "../utils/types";
 
-export const checkUser = (permission: any) => {
+export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
     // First check authentication
     // console.log("ctx->data", ctx.cookie.jwt_token);

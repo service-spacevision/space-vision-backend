@@ -1,7 +1,59 @@
-import { pgTable, serial, text, timestamp, real, integer, doublePrecision, unique, varchar, jsonb, boolean, foreignKey, primaryKey, pgMaterializedView, date, bigint, decimal, index } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, integer, numeric, timestamp, unique, varchar, boolean, jsonb, uniqueIndex, index, real, doublePrecision, foreignKey, primaryKey, pgMaterializedView, date, bigint, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
+export const permissionCategory = pgEnum("permission_category", ['navigation', 'component', 'api'])
+export const permissionScope = pgEnum("permission_scope", ['own', 'organization', 'all'])
 
+
+export const mikrotikUsageSession = pgTable("mikrotik_usage_session", {
+	id: serial().primaryKey().notNull(),
+	vesselName: text("vessel_name").notNull(),
+	username: text().notNull(),
+	ip: text(),
+	mac: text(),
+	uptime: text(),
+	rxMb: integer("rx_mb").default(0).notNull(),
+	txMb: integer("tx_mb").default(0).notNull(),
+	totalAllowedMb: integer("total_allowed_mb").default(5000).notNull(),
+	percentageUsed: numeric("percentage_used", { precision: 5, scale:  1 }).default('0.0').notNull(),
+	lastUpdated: timestamp("last_updated", { mode: 'string' }).defaultNow(),
+});
+
+export const groupAccess = pgTable("group_access", {
+	id: serial().primaryKey().notNull(),
+	role: integer().notNull(),
+	groupId: integer("group_id").array().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+});
+
+export const users = pgTable("users", {
+	id: serial().primaryKey().notNull(),
+	email: varchar({ length: 255 }).notNull(),
+	password: varchar({ length: 255 }),
+	fullName: varchar("full_name", { length: 200 }),
+	username: varchar({ length: 100 }),
+	roleId: integer("role_id"),
+	isActive: boolean("is_active").default(true),
+	isEmailVerified: boolean("is_email_verified").default(false),
+	emailVerificationToken: varchar("email_verification_token", { length: 255 }),
+	passwordResetToken: varchar("password_reset_token", { length: 255 }),
+	passwordResetExpires: timestamp("password_reset_expires", { mode: 'string' }),
+	mfaEnabled: boolean("mfa_enabled").default(false),
+	mfaSecret: text("mfa_secret"),
+	lastLoginAt: timestamp("last_login_at", { mode: 'string' }),
+	profilePicture: varchar("profile_picture", { length: 500 }),
+	bio: text(),
+	preferences: jsonb(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+	organizationId: integer("organization_id"),
+	createdBy: varchar("created_by", { length: 100 }),
+	updatedBy: varchar("updated_by", { length: 100 }),
+	organizationName: varchar("organization_name", { length: 100 }),
+}, (table) => [
+	unique("users_email_unique").on(table.email),
+	unique("users_username_unique").on(table.username),
+]);
 
 export const bluetideTelemetry = pgTable("bluetide_telemetry", {
 	id: serial().primaryKey().notNull(),
@@ -23,7 +75,14 @@ export const bluetideTelemetry = pgTable("bluetide_telemetry", {
 	activeAlertCount: integer("active_alert_count"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
-});
+}, (table) => [
+	uniqueIndex("bluetide_telemetry_device_timestamp_unique").using("btree", table.deviceId.asc().nullsLast().op("text_ops"), table.timestamp.asc().nullsLast().op("text_ops")),
+	index("idx_bluetide_telemetry_account").using("btree", table.accountNumber.asc().nullsLast().op("text_ops")),
+	index("idx_bluetide_telemetry_device_id").using("btree", table.deviceId.asc().nullsLast().op("text_ops")),
+	index("idx_bluetide_telemetry_device_timestamp").using("btree", table.deviceId.asc().nullsLast().op("text_ops"), table.timestamp.desc().nullsFirst().op("text_ops")),
+	index("idx_bluetide_telemetry_location").using("gist", sql`ll_to_earth(latitude, longitude)`),
+	index("idx_bluetide_telemetry_timestamp").using("btree", table.timestamp.asc().nullsLast().op("timestamptz_ops")),
+]);
 
 export const bluetideUsage = pgTable("bluetide_usage", {
 	id: serial().primaryKey().notNull(),
@@ -43,7 +102,7 @@ export const mikrotikVessels = pgTable("mikrotik_vessels", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
 }, (table) => [
-	unique("mikrotik_vessels_vessel_name_unique").on(table.vesselName),
+	unique("mikrotik_vessels_name_ip_port_unique").on(table.vesselName, table.routerIp, table.apiPort),
 ]);
 
 export const sessions = pgTable("sessions", {
@@ -87,33 +146,11 @@ export const userRoles = pgTable("user_roles", {
 	isSystem: boolean("is_system").default(false),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+	createdBy: varchar("created_by", { length: 100 }),
+	organizationName: varchar("organization_name", { length: 100 }),
+	permittedVesselGroups: integer("permitted_vessel_groups").array().default(sql`ARRAY[]::integer[]`).notNull(),
 }, (table) => [
 	unique("user_roles_name_unique").on(table.name),
-]);
-
-export const users = pgTable("users", {
-	id: serial().primaryKey().notNull(),
-	email: varchar({ length: 255 }).notNull(),
-	password: varchar({ length: 255 }),
-	fullName: varchar("full_name", { length: 200 }),
-	username: varchar({ length: 100 }),
-	roleId: integer("role_id"),
-	isActive: boolean("is_active").default(true),
-	isEmailVerified: boolean("is_email_verified").default(false),
-	emailVerificationToken: varchar("email_verification_token", { length: 255 }),
-	passwordResetToken: varchar("password_reset_token", { length: 255 }),
-	passwordResetExpires: timestamp("password_reset_expires", { mode: 'string' }),
-	mfaEnabled: boolean("mfa_enabled").default(false),
-	mfaSecret: text("mfa_secret"),
-	lastLoginAt: timestamp("last_login_at", { mode: 'string' }),
-	profilePicture: varchar("profile_picture", { length: 500 }),
-	bio: text(),
-	preferences: jsonb(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
-}, (table) => [
-	unique("users_email_unique").on(table.email),
-	unique("users_username_unique").on(table.username),
 ]);
 
 export const vesselGroups = pgTable("vessel_groups", {
@@ -123,20 +160,6 @@ export const vesselGroups = pgTable("vessel_groups", {
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
 }, (table) => [
 	unique("vessel_groups_group_name_unique").on(table.groupName),
-]);
-
-export const groupAccess = pgTable("group_access", {
-	id: serial().primaryKey().notNull(),
-	role: text().notNull(),
-	groupId: integer("group_id").notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
-}, (table) => [
-	foreignKey({
-			columns: [table.groupId],
-			foreignColumns: [vesselGroups.id],
-			name: "group_access_group_id_vessel_groups_id_fk"
-		}),
 ]);
 
 export const vessels = pgTable("vessels", {
@@ -157,6 +180,38 @@ export const vessels = pgTable("vessels", {
 	unique("vessels_vesselskit_number_unique").on(table.vesselskitNumber),
 ]);
 
+export const organizations = pgTable("organizations", {
+	id: serial().primaryKey().notNull(),
+	name: text().notNull(),
+	description: text(),
+	logo: text(),
+	subscriptionId: text("subscription_id"),
+	parentOrgName: text("parent_org_name"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+			columns: [table.parentOrgName],
+			foreignColumns: [table.name],
+			name: "organizations_parent_org_name_fkey"
+		}).onUpdate("cascade").onDelete("set null"),
+	unique("organizations_name_key").on(table.name),
+]);
+
+export const syncState = pgTable("sync_state", {
+	id: serial().primaryKey().notNull(),
+	source: text().notNull(),
+	partitionKey: text("partition_key").default('default').notNull(),
+	cursorType: text("cursor_type").default('timestamp').notNull(),
+	cursorValue: text("cursor_value"),
+	lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: 'string' }),
+	meta: jsonb(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+}, (table) => [
+	uniqueIndex("sync_state_source_partition_unique").using("btree", table.source.asc().nullsLast().op("text_ops"), table.partitionKey.asc().nullsLast().op("text_ops")),
+]);
+
 export const pins = pgTable("pins", {
 	id: serial().notNull(),
 	vesselId: integer("vessel_id").notNull(),
@@ -167,6 +222,31 @@ export const pins = pgTable("pins", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
 });
+
+export const permissions = pgTable("permissions", {
+	id: serial().primaryKey().notNull(),
+	name: varchar({ length: 255 }).notNull(),
+	resource: varchar({ length: 255 }).notNull(),
+	action: varchar({ length: 100 }).notNull(),
+	scope: permissionScope().default('own'),
+	category: permissionCategory().notNull(),
+	description: text(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	unique("permissions_name_unique").on(table.name),
+]);
+
+export const rolesPermission = pgTable("roles_permission", {
+	id: serial().primaryKey().notNull(),
+	roleId: integer().notNull(),
+	apiPermissions: text("api_permissions"),
+	componentPermissions: text("component_permissions"),
+	navigationPermissions: text("navigation_permissions"),
+	updatedAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	unique("roles_permission_roleId_unique").on(table.roleId),
+]);
 
 export const starlinkUsage = pgTable("starlink_usage", {
 	id: serial().notNull(),
@@ -208,26 +288,6 @@ export const starlinkUsageStatsMv = pgMaterializedView("starlink_usage_stats_mv"
 	systemTotalActiveKits: bigint("system_total_active_kits", { mode: "number" }),
 	lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }),
 }).as(sql`WITH last_60_days AS ( SELECT starlink_usage.kit_number, starlink_usage.vessel_name, to_date(starlink_usage.date_key, 'YYYYMMDD'::text) AS usage_date, starlink_usage.mobile_priority_gb, starlink_usage.standard_gb, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb, starlink_usage.usage_limit_gb, starlink_usage.public_ip_enabled, starlink_usage.chargebee_subscription_id FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '60 days'::interval) ORDER BY starlink_usage.date_key ), last_30_days AS ( SELECT starlink_usage.kit_number, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '30 days'::interval) ), last_7_days AS ( SELECT starlink_usage.kit_number, COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real) AS total_gb FROM starlink_usage WHERE to_date(starlink_usage.date_key, 'YYYYMMDD'::text) >= (CURRENT_DATE - '7 days'::interval) ), lifetime_usage AS ( SELECT starlink_usage.kit_number, sum(COALESCE(starlink_usage.mobile_priority_gb, 0::real) + COALESCE(starlink_usage.standard_gb, 0::real)) AS lifetime_usage_gb, min(to_date(starlink_usage.date_key, 'YYYYMMDD'::text)) AS first_usage_date, max(to_date(starlink_usage.date_key, 'YYYYMMDD'::text)) AS last_usage_date, count(DISTINCT starlink_usage.date_key) AS total_days_with_usage FROM starlink_usage GROUP BY starlink_usage.kit_number ), system_stats AS ( SELECT count(DISTINCT v.vesselskit_number) AS total_vessels, count(DISTINCT vg.id) AS total_vessel_groups, sum(COALESCE(su.mobile_priority_gb, 0::real) + COALESCE(su.standard_gb, 0::real)) AS total_lifetime_usage_gb, count(DISTINCT su.kit_number) AS total_active_kits FROM starlink_usage su LEFT JOIN vessels v ON v.vesselskit_number = su.kit_number LEFT JOIN vessel_groups vg ON vg.id = v.group_id ) SELECT COALESCE(l60.kit_number, lt.kit_number) AS kit_number, max(l60.vessel_name) AS vessel_name, COALESCE(sum(l60.total_gb), 0::real) AS last_60_days_usage_gb, COALESCE(sum(l30.total_gb), 0::real) AS last_30_days_usage_gb, COALESCE(sum(l7.total_gb), 0::real) AS last_7_days_usage_gb, COALESCE(max(lt.lifetime_usage_gb), 0::real) AS lifetime_usage_gb, max(lt.first_usage_date) AS first_usage_date, max(lt.last_usage_date) AS last_usage_date, max(lt.total_days_with_usage) AS total_days_with_usage, jsonb_agg( CASE WHEN l60.usage_date IS NOT NULL THEN jsonb_build_object('date', l60.usage_date, 'mobilePriorityGb', COALESCE(l60.mobile_priority_gb, 0::real), 'standardGb', COALESCE(l60.standard_gb, 0::real), 'totalGb', l60.total_gb, 'usageLimitGB', l60.usage_limit_gb, 'publicIP_Enabled', l60.public_ip_enabled, 'chargebeeSubscriptionId', l60.chargebee_subscription_id) ELSE NULL::jsonb END ORDER BY l60.usage_date) FILTER (WHERE l60.usage_date IS NOT NULL) AS last_60_days_breakdown, CASE WHEN count(l60.usage_date) > 0 THEN COALESCE(sum(l60.total_gb), 0::real) / count(l60.usage_date)::double precision ELSE 0::double precision END AS avg_daily_usage_last_60_days, CASE WHEN count(l30.total_gb) > 0 THEN COALESCE(sum(l30.total_gb), 0::real) / count(l30.total_gb)::double precision ELSE 0::double precision END AS avg_daily_usage_last_30_days, max(l60.usage_limit_gb) AS current_usage_limit, bool_or(l60.public_ip_enabled) AS current_public_ip_enabled, max(l60.chargebee_subscription_id) AS current_subscription_id, max(ss.total_vessels) AS system_total_vessels, max(ss.total_vessel_groups) AS system_total_vessel_groups, max(ss.total_lifetime_usage_gb) AS system_total_lifetime_usage_gb, max(ss.total_active_kits) AS system_total_active_kits, now() AS last_updated FROM ( SELECT NULL::text AS "?column?") dummy LEFT JOIN last_60_days l60 ON true LEFT JOIN last_30_days l30 ON l30.kit_number = l60.kit_number LEFT JOIN last_7_days l7 ON l7.kit_number = l60.kit_number LEFT JOIN lifetime_usage lt ON lt.kit_number = l60.kit_number CROSS JOIN system_stats ss GROUP BY (COALESCE(l60.kit_number, lt.kit_number)) HAVING COALESCE(l60.kit_number, lt.kit_number) IS NOT NULL`);
-
-export const mikrotikUsageSession = pgTable("mikrotik_usage_session", {
-  id: serial("id").primaryKey(),
-  vesselName: text("vessel_name").notNull(),
-  username: text("username").notNull(),
-  ip: text("ip"),
-  mac: text("mac"),
-  uptime: text("uptime"),
-  rxMb: integer("rx_mb").notNull().default(0),
-  txMb: integer("tx_mb").notNull().default(0),
-  totalAllowedMb: integer("total_allowed_mb").notNull().default(5000),
-  percentageUsed: decimal("percentage_used", { precision: 5, scale: 1 }).notNull().default("0.0"),
-  lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }).defaultNow(),
-}, (table) => {
-  return {
-    vesselNameIdx: index("idx_mikrotik_usage_session_vessel").on(table.vesselName),
-    usernameIdx: index("idx_mikrotik_usage_session_username").on(table.username),
-    lastUpdatedIdx: index("idx_mikrotik_usage_session_last_updated").on(table.lastUpdated),
-  };
-});
 
 export const starlinkSystemSummaryMv = pgMaterializedView("starlink_system_summary_mv", {	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	totalVessels: bigint("total_vessels", { mode: "number" }),

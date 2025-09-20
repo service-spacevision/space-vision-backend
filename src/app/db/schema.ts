@@ -12,7 +12,7 @@ import { bluetideUsage } from '../models/BluetideUsage'
 import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
-import { permissions, permissionScopeEnum, permissionCategoryEnum, permissionSectionEnum } from '../models/Permission'
+import { permissions, permissionScopeEnum } from '../models/Permission'
 import { rolesPermission } from '../models/RolePermission'
 import { telephonyDids } from '../models/TelephonyDid'
 import { pins } from '../models/Pin'
@@ -23,11 +23,13 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
   role: one(userRoles, {
     fields: [users.roleId],
-    references: [userRoles.id]
+    references: [userRoles.id],
+    relationName: 'user_role'
   }),
   organization: one(organizations, {
     fields: [users.organizationId],
-    references: [organizations.id]
+    references: [organizations.id],
+    relationName: 'user_organization'
   })
 }))
 
@@ -39,62 +41,78 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 }))
 
 export const userRolesRelations = relations(userRoles, ({ many, one }) => ({
-  users: many(users),
+  users: many(users, {
+    relationName: 'user_role'
+  }),
   organization: one(organizations, {
-    fields: [userRoles.organizationId],
-    references: [organizations.id]
+    fields: [userRoles.organizationName],
+    references: [organizations.name],
+    relationName: 'role_organization'
   })
 }))
 
 export const organizationsRelations = relations(organizations, ({ one }) => ({
   parent: one(organizations, {
     fields: [organizations.parent_org_name],
-    references: [organizations.name]
+    references: [organizations.name],
+    relationName: 'organization_parent'
   })
 }))
 
 export const rolesPermissionRelations = relations(rolesPermission, ({ one }) => ({
   role: one(userRoles, {
     fields: [rolesPermission.roleId],
-    references: [userRoles.id]
+    references: [userRoles.id],
+    relationName: 'role_permission_role'
   })
 }))
 
 export const vesselGroupsRelations = relations(vesselGroups, ({ many }) => ({
-  vessels: many(vessels),
-  groupAccess: many(groupAccess)
+  vessels: many(vessels, {
+    relationName: 'vessel_group_vessel'
+  }),
+  groupAccess: many(groupAccess, {
+    relationName: 'vessel_group_access'
+  })
 }))
 
 export const vesselsRelations = relations(vessels, ({ one, many }) => ({
   group: one(vesselGroups, {
     fields: [vessels.groupId],
-    references: [vesselGroups.id]
+    references: [vesselGroups.id],
+    relationName: 'vessel_group_vessel'
   }),
-  starlinkUsage: many(starlinkUsage),
+  starlinkUsage: many(starlinkUsage, {
+    relationName: 'vessel_starlink_usage'
+  }),
   mikrotikVessel: one(mikrotikVessels, {
     fields: [vessels.name],
-    references: [mikrotikVessels.vesselName]
+    references: [mikrotikVessels.vesselName],
+    relationName: 'vessel_mikrotik'
   })
 }))
 
 export const groupAccessRelations = relations(groupAccess, ({ one }) => ({
   group: one(vesselGroups, {
     fields: [groupAccess.groupId],
-    references: [vesselGroups.id]
+    references: [vesselGroups.id],
+    relationName: 'vessel_group_access'
   })
 }))
 
 export const starlinkUsageRelations = relations(starlinkUsage, ({ one }) => ({
   vessel: one(vessels, {
     fields: [starlinkUsage.kitNumber],
-    references: [vessels.vesselsKitNumber]
+    references: [vessels.vesselsKitNumber],
+    relationName: 'vessel_starlink_usage'
   })
 }))
 
 export const mikrotikVesselsRelations = relations(mikrotikVessels, ({ one }) => ({
   vessel: one(vessels, {
     fields: [mikrotikVessels.vesselName],
-    references: [vessels.name]
+    references: [vessels.name],
+    relationName: 'vessel_mikrotik'
   })
 }))
 
@@ -103,34 +121,38 @@ export const mikrotikVesselsRelations = relations(mikrotikVessels, ({ one }) => 
 export const pinsRelations = relations(pins, ({ one }) => ({
   vessel: one(vessels, {
     fields: [pins.vessel_id],
-    references: [vessels.id]
+    references: [vessels.id],
+    relationName: 'pin_vessel'
   }),
   generatedBy: one(users, {
     fields: [pins.generated_by],
-    references: [users.id]
+    references: [users.id],
+    relationName: 'pin_generated_by'
   })
 }))
 
-// Export all tables and enums
+// Re-export all models
+export { users } from '../models/User'
+export { sessions } from '../models/Session'
+export { userRoles } from '../models/UserRole'
+export { organizations } from '../models/Organization'
+export { vessels } from '../models/Vessel'
+export { vesselGroups } from '../models/VesselGroup'
+export { groupAccess } from '../models/GroupAccess'
+export { starlinkUsage } from '../models/StarlinkUsage'
+export { bluetideUsage } from '../models/BluetideUsage'
+export { bluetideTelemetry } from '../models/BluetideTelemetry'
+export { mikrotikVessels } from '../models/MikrotikVessel'
+export { mikrotikUsageSession } from '../models/MikrotikUsageSession'
+export { rolesPermission } from '../models/RolePermission'
+export { telephonyDids } from '../models/TelephonyDid'
+export { pins } from '../models/Pin'
+export { syncState } from '../models/SyncState'
+
+// Export enum values with type-safe names
 export { 
-  users, 
-  sessions, 
-  userRoles, 
-  organizations,
-  permissions,
   permissionScopeEnum,
-  permissionCategoryEnum,
-  permissionSectionEnum,
-  rolesPermission,
-  vessels, 
-  vesselGroups, 
-  groupAccess, 
-  starlinkUsage, 
-  bluetideUsage,
-  bluetideTelemetry, 
-  mikrotikVessels, 
-  mikrotikUsageSession,
-  telephonyDids, 
-  pins,
-  syncState
-}
+  permissionCategory as permissionCategoryEnum,
+  permissionSection as permissionSectionEnum,
+  permissionScope as permissionScopeValues
+} from '../models/Permission'
