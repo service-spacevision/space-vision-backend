@@ -6,6 +6,7 @@ import { SignUpSchema, SignInSchema, UserResponseSchema } from '../../app/models
 
 const permission = {
   "POST_/api/auth/signup": "sign_up_user",
+  "POST_/api/auth/logout": "api_logout"
 }
 
 const authRoute = new Elysia({ prefix: '/api/auth' })
@@ -32,7 +33,7 @@ const authRoute = new Elysia({ prefix: '/api/auth' })
   })
   
   .post('/logout', AuthController.signOut, {
-    beforeHandle: [checkUser(permission)],
+    beforeHandle: [checkUser(permission["POST_/api/auth/logout"])],
     tags: ['Authentication'],
     detail: {
       summary: 'User logout',

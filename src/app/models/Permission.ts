@@ -65,14 +65,14 @@ export const CreatePermissionSchema = t.Object({
   resource: t.String({ minLength: 1, maxLength: 255 }),
   action: t.String({ minLength: 1, maxLength: 100 }),
   scope: t.Optional(
-    t.Union([t.Literal("own"), t.Literal("organization"), t.Literal("all")])
+    t.String({
+      enum: ["own", "organization", "all"]
+    })
   ),
-  category: t.Union([
-    t.Literal("navigation"),
-    t.Literal("component"),
-    t.Literal("api"),
-  ]),
-  section: t.Optional(t.Union([t.Literal("admin"), t.Literal("organization")])),
+  category: t.String({
+    enum: ["navigation", "component", "api"]
+  }),
+  section: t.String({ enum: ['admin', 'organization'] }),
   description: t.Optional(t.String()),
 });
 
@@ -80,12 +80,14 @@ export const UpdatePermissionSchema = t.Object({
   resource: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
   action: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
   scope: t.Optional(
-    t.Union([t.Literal("own"), t.Literal("organization"), t.Literal("all")])
+    t.String({
+      enum: ["own", "organization", "all"]
+    })
   ),
-  category: t.Optional(
-    t.Union([t.Literal("navigation"), t.Literal("component"), t.Literal("api")])
-  ),
-  section: t.Optional(t.Union([t.Literal("admin"), t.Literal("organization")])),
+  category: t.String({
+    enum: ["navigation", "component", "api"]
+  }),
+  section: t.String({ enum: ['admin', 'organization'] }),
   description: t.Optional(t.String()),
 });
 

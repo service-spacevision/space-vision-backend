@@ -4,6 +4,8 @@ import { readdir } from 'fs/promises'
 import { join } from 'path'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import migrationHelpers from './migrationUtils'
+import * as schema from './schema'
+import { getTableConfig } from 'drizzle-orm/pg-core'
 
 // Controls for dev-only recovery behaviors
 // Opt-in controls for dev-only recovery behaviors
@@ -252,77 +254,129 @@ async function preflightEnsureSchema() {
     }
 }
 
-// Function to ensure critical tables exist (fixes Drizzle's "hallucination" problem)
+// Dynamic function to ensure all schema tables and columns exist
 async function ensureCriticalTablesExist() {
     try {
-        console.log('🔍 Checking for missing critical tables...')
+        console.log('🔍 Checking for missing tables and columns from schema...')
         
-        // Get existing tables
-        const existingTables = await db.execute(sql`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
+        // Get existing tables and their columns
+        const existingTablesResult = await db.execute(sql`
+            SELECT 
+                t.table_name,
+                c.column_name,
+                c.data_type,
+                c.is_nullable,
+                c.column_default
+            FROM information_schema.tables t
+            LEFT JOIN information_schema.columns c ON t.table_name = c.table_name
+            WHERE t.table_schema = 'public' AND c.table_schema = 'public'
+            ORDER BY t.table_name, c.ordinal_position
         `)
-        const tableNames = existingTables.map((row: any) => row.table_name)
         
-        // Define critical tables that should exist based on your schema
-        const criticalTables = [
-            {
-                name: 'roles_permission',
-                createSql: `
-                    CREATE TABLE IF NOT EXISTS "roles_permission" (
-                        "id" serial PRIMARY KEY NOT NULL,
-                        "roleId" integer NOT NULL,
-                        "api_permissions" text,
-                        "component_permissions" text,
-                        "navigation_permissions" text,
-                        "updatedAt" timestamp DEFAULT now() NOT NULL,
-                        CONSTRAINT "roles_permission_roleId_unique" UNIQUE("roleId")
-                    )
-                `
-            },
-            {
-                name: 'permissions',
-                createSql: `
-                    CREATE TABLE IF NOT EXISTS "permissions" (
-                        "id" serial PRIMARY KEY NOT NULL,
-                        "name" varchar(255) NOT NULL UNIQUE,
-                        "resource" varchar(255) NOT NULL,
-                        "action" varchar(100) NOT NULL,
-                        "scope" varchar(50) DEFAULT 'own',
-                        "category" varchar(50) NOT NULL,
-                        "description" text,
-                        "created_at" timestamp DEFAULT now(),
-                        "updated_at" timestamp DEFAULT now()
-                    )
-                `
+        // Group by table name
+        const existingSchema: Record<string, Set<string>> = {}
+        for (const row of existingTablesResult) {
+            const tableName = (row as any).table_name
+            const columnName = (row as any).column_name
+            
+            if (!existingSchema[tableName]) {
+                existingSchema[tableName] = new Set()
             }
-        ]
+            if (columnName) {
+                existingSchema[tableName].add(columnName)
+            }
+        }
         
-        let missingCount = 0
-        for (const table of criticalTables) {
-            if (!tableNames.includes(table.name)) {
-                console.log(`⚠️  Missing critical table: ${table.name}`)
+        // Get all table definitions from schema dynamically
+        const schemaTableConfigs = []
+        for (const [key, value] of Object.entries(schema)) {
+            // Check if this is a table (has getTableConfig method)
+            if (value && typeof value === 'object' && 'getSQL' in value) {
                 try {
-                    await db.execute(sql.raw(table.createSql))
-                    console.log(`✅ Created missing table: ${table.name}`)
-                    missingCount++
-                } catch (error: any) {
-                    console.log(`❌ Failed to create ${table.name}:`, error.message)
+                    const config = getTableConfig(value as any)
+                    schemaTableConfigs.push(config)
+                } catch (e) {
+                    // Skip if not a table
+                    continue
                 }
             }
         }
         
-        if (missingCount > 0) {
-            console.log(`✅ Fixed ${missingCount} missing critical tables`)
+        console.log(`📋 Found ${schemaTableConfigs.length} tables in schema`)
+        
+        let missingTables = 0
+        let missingColumns = 0
+        
+        for (const tableConfig of schemaTableConfigs) {
+            const tableName = tableConfig.name
+            const columns = tableConfig.columns
+            
+            // Check if table exists
+            if (!existingSchema[tableName]) {
+                console.log(`⚠️  Missing table: ${tableName}`)
+                // For missing tables, let Drizzle migrations handle creation
+                // We'll just log it for now
+                missingTables++
+                continue
+            }
+            
+            // Check for missing columns in existing table
+            const existingColumns = existingSchema[tableName]
+            for (const column of columns) {
+                const columnName = column.name
+                
+                if (!existingColumns.has(columnName)) {
+                    console.log(`⚠️  Missing column: ${tableName}.${columnName}`)
+                    
+                    // Try to add the missing column
+                    try {
+                        // Get column type from Drizzle column definition
+                        const columnType = getColumnTypeFromDrizzle(column)
+                        const addColumnSql = migrationHelpers.addColumnIfNotExists(tableName, columnName, columnType)
+                        await db.execute(sql.raw(addColumnSql))
+                        console.log(`✅ Added missing column: ${tableName}.${columnName}`)
+                        missingColumns++
+                    } catch (error: any) {
+                        console.log(`❌ Failed to add column ${tableName}.${columnName}:`, error.message)
+                    }
+                }
+            }
+        }
+        
+        if (missingTables > 0 || missingColumns > 0) {
+            console.log(`✅ Schema check complete: ${missingTables} missing tables, ${missingColumns} missing columns fixed`)
+            if (missingTables > 0) {
+                console.log('💡 Run `bun run db:generate` to create migrations for missing tables')
+            }
         } else {
-            console.log('✅ All critical tables exist')
+            console.log('✅ All schema tables and columns exist')
         }
         
     } catch (error) {
-        console.error('Error checking critical tables:', error)
+        console.error('Error checking schema completeness:', error)
         // Don't throw - this is best effort
     }
+}
+
+// Helper function to convert Drizzle column type to SQL type
+function getColumnTypeFromDrizzle(column: any): string {
+    const columnType = column.columnType
+    
+    // Handle common Drizzle types
+    if (columnType.includes('serial')) return 'serial'
+    if (columnType.includes('varchar')) {
+        const match = columnType.match(/varchar\((\d+)\)/)
+        return match ? `varchar(${match[1]})` : 'varchar(255)'
+    }
+    if (columnType.includes('text')) return 'text'
+    if (columnType.includes('boolean')) return 'boolean'
+    if (columnType.includes('timestamp')) return 'timestamp'
+    if (columnType.includes('integer')) return 'integer'
+    if (columnType.includes('jsonb')) return 'jsonb'
+    if (columnType.includes('integer[]')) return 'integer[]'
+    
+    // Default fallback
+    return 'text'
 }
 
 // Run if called directly

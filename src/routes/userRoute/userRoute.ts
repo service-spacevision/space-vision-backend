@@ -39,6 +39,11 @@ const userRoute = new Elysia({ prefix: '/api/users' })
   .get('/all', UserController.getAllUsers, {
     beforeHandle: [checkUser(permission['GET_/api/users/all'])],
     tags: ['User'],
+    query: t.Object({
+      currentPage: t.Optional(t.String({ default: '1' })),
+      pageSize: t.Optional(t.String({ default: '10' })),
+      all: t.Optional(t.String({ default: 'false' })),
+    }),
     detail: {
       summary: 'Get all users',
       description: 'Retrieve all users',

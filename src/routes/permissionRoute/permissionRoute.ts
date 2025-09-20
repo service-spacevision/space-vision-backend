@@ -41,7 +41,6 @@ const permissionRoute = new Elysia({ prefix: '/api/permissions' })
   .get('/by-id', PermissionController.getById, {
     beforeHandle: [checkUser(permission['GET_/api/permissions/by-id'])],
     query: t.Object({ id: t.String() }),
-    response: { 200: PermissionResponseSchema },
     tags: ['Permissions'],
     detail: {
       summary: 'Get permission by ID',
