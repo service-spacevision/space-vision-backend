@@ -1,15 +1,22 @@
 import { db } from "../../../db/connection";
 import { userRoles } from "../../../models/UserRole";
 import { UpdateUserRoleData } from "../../../models/UserRole";
-import { eq } from "drizzle-orm";
+import { permissions } from '../../../models/Permission'
+import { rolesPermission } from '../../../models/RolePermission'
+import { eq, inArray } from "drizzle-orm";
+import { AuthUser } from "../../../utils/types";
 
 interface UpdateUserRoleParams {
   roleId: string;
-  data: UpdateUserRoleData;
+  userInfo: AuthUser;
+  data: UpdateUserRoleData & {
+    permissions?: number[] // Array of permission IDs
+  };
 }
 
 export async function updateUserRole_func({
   roleId,
+  userInfo,
   data,
 }: UpdateUserRoleParams) {
   try {
@@ -27,7 +34,7 @@ export async function updateUserRole_func({
       };
     }
 
-    if (existingRole.isSystem) {
+    if (existingRole.isSystem && !userInfo.role?.isSystem) {
       return {
         success: false,
         message: "Cannot modify system roles",
@@ -45,6 +52,74 @@ export async function updateUserRole_func({
       })
       .where(eq(userRoles.id, Number(roleId)))
       .returning();
+
+    // If permissions array is provided, update role-permission associations
+    if (data.permissions !== undefined) {
+      if (data.permissions.length > 0) {
+        // Fetch all permissions by IDs
+        const fetchedPermissions = await db
+          .select()
+          .from(permissions)
+          .where(inArray(permissions.id, data.permissions))
+
+        // Group permissions by category
+        const apiPermissions: string[] = []
+        const componentPermissions: string[] = []
+        const navigationPermissions: string[] = []
+
+        fetchedPermissions.forEach(permission => {
+          switch (permission.category) {
+            case 'api':
+              apiPermissions.push(permission.name)
+              break
+            case 'component':
+              componentPermissions.push(permission.name)
+              break
+            case 'navigation':
+              navigationPermissions.push(permission.name)
+              break
+          }
+        })
+
+        // Update or insert role-permission association
+        await db
+          .insert(rolesPermission)
+          .values({
+            roleId: Number(roleId),
+            api_permissions: apiPermissions.length > 0 ? apiPermissions : null,
+            component_permissions: componentPermissions.length > 0 ? componentPermissions : null,
+            navigation_permissions: navigationPermissions.length > 0 ? navigationPermissions : null,
+          })
+          .onConflictDoUpdate({
+            target: rolesPermission.roleId,
+            set: {
+              api_permissions: apiPermissions.length > 0 ? apiPermissions : null,
+              component_permissions: componentPermissions.length > 0 ? componentPermissions : null,
+              navigation_permissions: navigationPermissions.length > 0 ? navigationPermissions : null,
+              updatedAt: new Date(),
+            }
+          })
+      } else {
+        // If empty permissions array, clear all permissions for this role
+        await db
+          .insert(rolesPermission)
+          .values({
+            roleId: Number(roleId),
+            api_permissions: null,
+            component_permissions: null,
+            navigation_permissions: null,
+          })
+          .onConflictDoUpdate({
+            target: rolesPermission.roleId,
+            set: {
+              api_permissions: null,
+              component_permissions: null,
+              navigation_permissions: null,
+              updatedAt: new Date(),
+            }
+          })
+      }
+    }
 
     return {
       success: true,

@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { JWT_CONFIG } from '../../../constants/constants'
 import { createSession } from '../../../middlewares/session'
 import { ReqObjectType } from '../../../utils/types'
+import { rolesPermission } from '../../../models/RolePermission'
 
 export const signInUser_func = async (
   {
@@ -38,13 +39,15 @@ export const signInUser_func = async (
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         role: {
-          id: userRoles.id,
-          name: userRoles.name,
-          displayName: userRoles.displayName,
+          ...userRoles,
+        },
+        permissions: {
+          ...rolesPermission
         }
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+      .leftJoin(rolesPermission, eq(users.roleId, rolesPermission.id))
       .where(eq(users.email, body.email))
       .limit(1)
 
@@ -98,12 +101,13 @@ export const signInUser_func = async (
       .update(users)
       .set({ lastLoginAt: new Date() })
       .where(eq(users.id, user.id))
-
+    console.log("");
+    
     // Create JWT token
     const tokenPayload = {
       id: user.id,
       email: user.email,
-      // role: user.role,
+      role: user.role,
       fullName: user.fullName,
       username: user.username,
       organizationId: user.organizationId

@@ -52,9 +52,9 @@ export async function createUserRole_func({ data }: CreateUserRoleParams) {
       // Create role-permission association
       await db.insert(rolesPermission).values({
         roleId: newRole.id,
-        api_permissions: apiPermissions.length > 0 ? JSON.stringify(apiPermissions) : null,
-        component_permissions: componentPermissions.length > 0 ? JSON.stringify(componentPermissions) : null,
-        navigation_permissions: navigationPermissions.length > 0 ? JSON.stringify(navigationPermissions) : null,
+        api_permissions: apiPermissions.length > 0 ? apiPermissions : null,
+        component_permissions: componentPermissions.length > 0 ? componentPermissions : null,
+        navigation_permissions: navigationPermissions.length > 0 ? navigationPermissions : null,
       })
     }
 

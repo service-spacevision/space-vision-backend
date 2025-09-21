@@ -94,6 +94,7 @@ export class UserRoleController {
 
       const result = await updateUserRole_func({
         roleId,
+        userInfo: (ctx as any).user,
         data: body as any
       })
 

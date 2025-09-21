@@ -1,14 +1,14 @@
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm'
-import { pgTable, serial, integer, text, timestamp, unique } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, jsonb, timestamp, unique } from 'drizzle-orm/pg-core'
 import { t } from 'elysia'
 
-// roles_permission table holds flattened permission strings as JSON in text columns
+// roles_permission table holds permission arrays as JSONB
 export const rolesPermission = pgTable('roles_permission', {
   id: serial('id').primaryKey(),
   roleId: integer('roleId').notNull(),
-  api_permissions: text('api_permissions'),
-  component_permissions: text('component_permissions'),
-  navigation_permissions: text('navigation_permissions'),
+  api_permissions: jsonb('api_permissions').$type<string[]>(),
+  component_permissions: jsonb('component_permissions').$type<string[]>(),
+  navigation_permissions: jsonb('navigation_permissions').$type<string[]>(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull()
 }, (table) => [
   unique('roles_permission_roleId_unique').on(table.roleId)

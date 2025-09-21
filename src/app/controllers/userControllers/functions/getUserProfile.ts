@@ -3,6 +3,8 @@ import { users } from '../../../models/User'
 import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import { ReqObjectType } from '../../../utils/types'
+import { rolesPermission } from '../../../models/RolePermission'
+import { permissions } from '../../../models/Permission'
 
 export const getUserProfile_func = async ({
   reqObject,
@@ -29,13 +31,15 @@ export const getUserProfile_func = async ({
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         role: {
-          id: userRoles.id,
-          name: userRoles.name,
-          displayName: userRoles.displayName,
+          ...userRoles
+        },
+        permissions: {
+          ...rolesPermission
         }
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+      .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
       .where(eq(users.id, Number(reqObject.user.id)))
       .limit(1)
 
@@ -47,7 +51,8 @@ export const getUserProfile_func = async ({
     }
 
     const userProfile = result[0]
-
+    console.log("user", userProfile.permissions?.api_permissions);
+    
     return {
       success: true,
       message: 'Profile retrieved successfully',

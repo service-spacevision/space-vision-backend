@@ -5,7 +5,7 @@ import { pgTable, varchar, timestamp, boolean, text, serial, integer, jsonb } fr
 export const sessions = pgTable('sessions', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),
-  token: varchar('token', { length: 255 }),
+  token: text('token'),
   currentDB: varchar('current_db', { length: 100 }),
   sessionData: jsonb('session_data'),
   ipAddress: varchar('ip_address', { length: 45 }),

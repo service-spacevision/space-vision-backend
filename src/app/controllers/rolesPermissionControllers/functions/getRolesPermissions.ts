@@ -5,12 +5,7 @@ import { count, desc } from 'drizzle-orm'
 interface Params { pagination?: { currentPage: number; pageSize: number; all?: string } }
 
 function parseRow(row: any) {
-  return {
-    ...row,
-    api_permissions: row.api_permissions ? JSON.parse(row.api_permissions) : [],
-    component_permissions: row.component_permissions ? JSON.parse(row.component_permissions) : [],
-    navigation_permissions: row.navigation_permissions ? JSON.parse(row.navigation_permissions) : [],
-  }
+  return row // No parsing needed anymore, JSONB handles arrays natively
 }
 
 export async function getRolesPermissions_func({ pagination }: Params) {

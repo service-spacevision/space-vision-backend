@@ -6,7 +6,6 @@ import {
   boolean,
   text,
   serial,
-  jsonb,
   integer,
 } from "drizzle-orm/pg-core";
 import { t } from "elysia";
@@ -17,7 +16,6 @@ export const userRoles = pgTable("user_roles", {
   name: varchar("name", { length: 100 }).notNull().unique(),
   displayName: varchar("display_name", { length: 200 }),
   description: text("description"),
-  permissions: jsonb().default([]),
   isActive: boolean("is_active").default(true),
   isSystem: boolean("is_system").default(false), // System roles cannot be deleted
   createdAt: timestamp("created_at").defaultNow(),
@@ -106,10 +104,15 @@ export const UpdateUserRoleSchema = t.Object({
   ),
   permissions: t.Optional(
     t.Array(
-      t.String({
-        description: "Permission name",
+      t.Number({
+        description: "Permission Ids",
       })
     )
+  ),
+  permittedVesselGroups: t.Optional(
+    t.Array(t.Number(), {
+      description: "Array of vessel group IDs that this role can access",
+    })
   ),
 });
 

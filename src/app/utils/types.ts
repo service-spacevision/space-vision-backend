@@ -1,4 +1,6 @@
 import { Context } from 'elysia'
+import { UserRole } from '../models/UserRole'
+import { RolePermission } from '../models/RolePermission'
 
 export interface CustomContext extends Context {
   user?: AuthUser
@@ -10,10 +12,12 @@ export interface ReqObjectType {
   user: AuthUser
 }
 
+
 export interface AuthUser {
   id: string
   email: string
-  role?: string
+  role?: UserRole
+  permissions?: RolePermission
   fullName?: string
   username?: string
   organizationId?: number
@@ -51,4 +55,4 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 }
 
 export type AuthType = 'local' | 'oauth' | 'ldap'
-export type UserRole = 'admin' | 'user' | 'moderator'
+export type UserRoleType = 'admin' | 'user' | 'moderator'

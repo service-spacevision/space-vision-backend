@@ -49,23 +49,11 @@ export async function getLoggedUserRole_func({ reqObject }: GetLoggedUserRolePar
       }
     }
 
-    // Parse JSON permissions if they exist, with proper type safety
+    // Permissions are now stored as JSONB arrays, no parsing needed
     const permissions = userWithRole.permissions || {
-      api_permissions: '[]',
-      component_permissions: '[]',
-      navigation_permissions: '[]'
-    };
-    
-    const parsedPermissions = {
-      api_permissions: permissions.api_permissions 
-        ? JSON.parse(permissions.api_permissions) 
-        : [],
-      component_permissions: permissions.component_permissions 
-        ? JSON.parse(permissions.component_permissions) 
-        : [],
-      navigation_permissions: permissions.navigation_permissions 
-        ? JSON.parse(permissions.navigation_permissions) 
-        : []
+      api_permissions: [],
+      component_permissions: [],
+      navigation_permissions: []
     }
 
     return {
@@ -74,7 +62,7 @@ export async function getLoggedUserRole_func({ reqObject }: GetLoggedUserRolePar
       data: {
         user: userWithRole.user,
         role: userWithRole.role,
-        permissions: parsedPermissions
+        permissions: permissions
       }
     }
   } catch (error: any) {
