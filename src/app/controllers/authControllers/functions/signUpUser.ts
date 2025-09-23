@@ -4,12 +4,15 @@ import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { CreateUserData } from '../../../models/User'
+import { AuthUser } from '../../../utils/types'
 
 export const signUpUser_func = async (
   {
-    data
+    data,
+    user
   }: {
     data: CreateUserData
+    user: AuthUser
   }
 ) => {
   try {
@@ -51,19 +54,21 @@ export const signUpUser_func = async (
       hashedPassword = await bcrypt.hash(password, saltRounds)
     }
 
+    const userData = {
+      email,
+      password: hashedPassword,
+      fullName,
+      username,
+      isActive: true,
+      isEmailVerified: false,
+      roleId: data.roleId || defaultRole.id,
+      organizationId: user?.organizationId || data?.organizationId || null
+    }
+
     // Create new user
     const [newUser] = await db
       .insert(users)
-      .values({
-        email,
-        password: hashedPassword,
-        fullName,
-        username,
-        isActive: true,
-        ...(data.organizationId && { organizationId: data.organizationId }),
-        isEmailVerified: false,
-        roleId: data.roleId || defaultRole.id
-      })
+      .values(userData)
       .returning({
         id: users.id,
         email: users.email,

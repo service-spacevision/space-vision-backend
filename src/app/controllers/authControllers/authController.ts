@@ -6,9 +6,9 @@ import { invalidateUserSessions } from '../../middlewares/session'
 export class AuthController {
   static async signUpUser(ctx: CustomContext) {
     try {
-      const { body } = ctx
+      const { body, user } = ctx
       const result = await signUpUser_func(
-        { data: body as any }
+        { data: body as any, user: user as any }
       )
       
       ctx.set.status = result?.success === true ? 201 : 400
