@@ -19,39 +19,54 @@ export async function getUserRoleById_func({ roleId }: GetUserRoleByIdParams) {
       }
     }
 
-    const [role] = await db.select({
-      id: userRoles.id,
-      name: userRoles.name,
-      displayName: userRoles.displayName,
-      description: userRoles.description,
-      isActive: userRoles.isActive,
-      isSystem: userRoles.isSystem,
-      created_by: userRoles.createdBy,
-      organizationId: userRoles.organizationId,
-      createdAt: userRoles.createdAt,
-      updatedAt: userRoles.updatedAt,
-      permissions: {
+    const [roleData] = await db
+      .select({
+        id: userRoles.id,
+        name: userRoles.name,
+        displayName: userRoles.displayName,
+        description: userRoles.description,
+        isActive: userRoles.isActive,
+        isSystem: userRoles.isSystem,
+        created_by: userRoles.createdBy,
+        organizationName: userRoles.organizationName,
+        permittedVesselGroups: userRoles.permittedVesselGroups,
+        organization_id: userRoles.organizationId,
+        createdAt: userRoles.createdAt,
+        updatedAt: userRoles.updatedAt,
         api_permissions: rolesPermission.api_permissions,
         component_permissions: rolesPermission.component_permissions,
         navigation_permissions: rolesPermission.navigation_permissions
-      }
-    })
+      })
       .from(userRoles)
       .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
       .where(eq(userRoles.id, idNum))
       .limit(1)
 
-    if (!role) {
+    if (!roleData) {
       return {
         success: false,
         message: 'User role not found'
       }
     }
 
+    const {
+      api_permissions,
+      component_permissions,
+      navigation_permissions,
+      ...role
+    } = roleData
+
     return {
       success: true,
       message: 'User role retrieved successfully',
-      data: role
+      data: {
+        ...role,
+        permissions: {
+          api_permissions,
+          component_permissions,
+          navigation_permissions
+        }
+      }
     }
   } catch (error: any) {
     console.error('Error fetching user role:', error)
