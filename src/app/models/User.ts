@@ -29,6 +29,27 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow()
 })
 
+// Columns safe to expose in API responses
+export const userPublicColumns = {
+  id: users.id,
+  email: users.email,
+  fullName: users.fullName,
+  username: users.username,
+  roleId: users.roleId,
+  isActive: users.isActive,
+  isEmailVerified: users.isEmailVerified,
+  mfaEnabled: users.mfaEnabled,
+  lastLoginAt: users.lastLoginAt,
+  profilePicture: users.profilePicture,
+  bio: users.bio,
+  preferences: users.preferences,
+  organizationId: users.organizationId,
+  createdBy: users.createdBy,
+  updatedBy: users.updatedBy,
+  createdAt: users.createdAt,
+  updatedAt: users.updatedAt
+} as const
+
 export type User = InferSelectModel<typeof users>
 export type NewUser = InferInsertModel<typeof users>
 
