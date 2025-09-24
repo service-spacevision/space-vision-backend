@@ -97,7 +97,7 @@ export class GroupAccessController {
       const user = ctx.user!;
 
       // Check if user is admin
-      if (user.role !== 'admin') {
+      if (!user.role || user.role.name !== 'admin') {
         ctx.set.status = 403;
         return {
           success: false,

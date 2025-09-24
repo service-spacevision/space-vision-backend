@@ -1,86 +1,78 @@
-import RouterOSAPI from "node-routeros";
-
-import { mikrotikVessels } from "../models/MikrotikVessel";
-import {
-  mikrotikUsageSession,
-
-} from "../models/MikrotikUsageSession";
-import { eq } from "drizzle-orm";
+// MikrotikService.ts
 import * as net from "net";
+import { eq } from "drizzle-orm";
 import { db } from "../db/connection";
+import { mikrotikVessels } from "../models/MikrotikVessel";
+import { mikrotikUsageSession } from "../models/MikrotikUsageSession";
+import { RouterOSClient } from "mikro-routeros";
+
+// ---- helper for safe logging
+function mask(val?: string, revealAll = false) {
+  if (!val) return "(empty)";
+  if (revealAll) return val;
+  if (val.length <= 4) return val[0] + "***";
+  return `${val.slice(0, 2)}***${val.slice(-2)}`;
+}
 
 export class MikrotikService {
   private static async isPortReachable(
     host: string,
     port: number,
-    timeout = 4000
-  ): Promise<boolean> {
-    return new Promise((resolve) => {
+    timeout = 5000
+  ) {
+    return new Promise<boolean>((resolve) => {
       const socket = new net.Socket();
-      let isConnected = false;
-
-      const onError = () => {
-        socket.destroy();
-        if (!isConnected) {
-          resolve(false);
+      let settled = false;
+      const done = (ok: boolean) => {
+        if (!settled) {
+          settled = true;
+          try {
+            socket.destroy();
+          } catch {}
+          resolve(ok);
         }
       };
-
       socket.setTimeout(timeout);
-      socket.once("error", onError);
-      socket.once("timeout", onError);
-
-      socket.connect(port, host, () => {
-        isConnected = true;
-        socket.end();
-        resolve(true);
-      });
+      socket.once("connect", () => done(true));
+      socket.once("timeout", () => done(false));
+      socket.once("error", () => done(false));
+      try {
+        socket.connect(port, host);
+      } catch {
+        done(false);
+      }
     });
   }
 
   static async syncMikrotikUsage() {
-    try {
-      // Get all vessels with Mikrotik routers
-      const vessels = await db.select().from(mikrotikVessels).execute();
-      console.log("these are mikrotik vessels", vessels);
+    const vessels = await db.select().from(mikrotikVessels).execute();
 
-      for (const vessel of vessels) {
-        if (!vessel.routerIp || !vessel.apiPort) continue;
+    for (const vessel of vessels) {
+      if (!vessel.routerIp || vessel.apiPort == null) continue;
 
-        // Check if router is reachable
-        const isReachable = await this.isPortReachable(
-          vessel.routerIp,
-          vessel.apiPort
-        );
-        if (!isReachable) {
-          console.log(`[!] ${vessel.vesselName}: Vessel Offline`);
-          continue;
-        }
-
-        if (vessel.routerIp && vessel.apiPort !== null) {
-          try {
-            await this.fetchAndStoreData({
-              id: vessel.id,
-              vesselName: vessel.vesselName,
-              routerIp: vessel.routerIp,
-              apiPort: vessel.apiPort,
-            });
-            console.log(`✅ ${vessel.vesselName}: Data stored`);
-          } catch (error) {
-            console.error(`[X] Error with ${vessel.vesselName}:`, error);
-          }
-        } else {
-          console.log(
-            `[!] ${vessel.vesselName}: Missing router IP or API port`
-          );
-        }
-
-        // Small delay between routers
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      const reachable = await this.isPortReachable(
+        vessel.routerIp,
+        vessel.apiPort,
+        4000
+      );
+      if (!reachable) {
+        console.log(`[!] ${vessel.vesselName}: Vessel Offline`);
+        continue;
       }
-    } catch (error) {
-      console.error("Error in syncMikrotikUsage:", error);
-      throw error;
+
+      try {
+        await this.fetchAndStoreData({
+          id: vessel.id,
+          vesselName: vessel.vesselName,
+          routerIp: vessel.routerIp,
+          apiPort: vessel.apiPort!,
+        });
+        console.log(`✅ ${vessel.vesselName}: Data stored`);
+      } catch (e: any) {
+        console.error(`[X] Error with ${vessel.vesselName}:`, e?.message || e);
+      }
+
+      await new Promise((r) => setTimeout(r, 750));
     }
   }
 
@@ -90,74 +82,76 @@ export class MikrotikService {
     routerIp: string;
     apiPort: number;
   }) {
-    const conn = new RouterOSAPI({
-      host: vessel.routerIp,
-      user: "svcoreadmin",
-      password: "V3ss3l@dmin#2025",
-      port: vessel.apiPort,
-      timeout: 10, // seconds
-    });
+    const host = vessel.routerIp;
+    const port = vessel.apiPort;
+
+    // Prefer env; fallback to your provided creds (with apostrophe)
+    const user = process.env.MT_USER || "svcoreadmin";
+    const pass = process.env.MT_PASS || "V3ss3l@dmin#2025";
+
+    // Construct client (timeout in ms)
+    const client = new RouterOSClient(host, port, 30000);
+
+    // Optional: event hooks for deeper debugging
+    // client.on('close', () => console.log(`[${vessel.vesselName}] <close>`));
+    // client.on('error', (e) => console.error(`[${vessel.vesselName}] <error>`, e));
+    // client.on('trap',  (t) => console.error(`[${vessel.vesselName}] <trap>`, t));
+
+    const REVEAL_FULL_PASSWORD = false;
+
+    console.log(
+      `[${
+        vessel.vesselName
+      }] Connecting to ${host}:${port}… | user=${user}, pass=${mask(
+        pass,
+        REVEAL_FULL_PASSWORD
+      )}`
+    );
 
     try {
-      await new Promise<void>((resolve, reject) => {
-        conn.on("error", reject);
-        conn.connect();
-        resolve();
-      });
+      await client.connect();
+      await client.login(user, pass);
+      console.log(`[${vessel.vesselName}] Connected & authenticated`);
 
-      // Get active sessions
-      const sessions = await new Promise<any[]>((resolve, reject) => {
-        conn.write("/ip/hotspot/active/print", (err, packets) => {
-          if (err) return reject(err);
-          resolve(packets || []);
-        });
-      });
+      // Fetch data
+      const sessions: any[] = await client.runQuery("/ip/hotspot/active/print");
+      const users: any[] = await client.runQuery("/ip/hotspot/user/print");
 
-      // Get hotspot users
-      const hotspotUsers = await new Promise<Record<string, any>>(
-        (resolve, reject) => {
-          conn.write("/ip/hotspot/user/print", (err, packets) => {
-            if (err) return reject(err);
-            const users: Record<string, any> = {};
-            (packets || []).forEach((user: any) => {
-              if (user.name) {
-                users[user.name] = user;
-              }
-            });
-            resolve(users);
-          });
-        }
+      console.log(
+        `[${vessel.vesselName}] Active sessions: ${sessions.length}, users: ${users.length}`
       );
+      console.dir(sessions.slice(0, 3), { depth: 5 });
+      console.dir(users.slice(0, 3), { depth: 5 });
 
-      // Start a transaction
+      // Map users by name for limits
+      const userMap: Record<string, any> = {};
+      for (const u of users) if (u?.name) userMap[u.name] = u;
+
+      // DB write
       await db.transaction(async (tx) => {
-        // Delete existing sessions for this vessel
         await tx
           .delete(mikrotikUsageSession)
           .where(eq(mikrotikUsageSession.vesselName, vessel.vesselName));
 
-        // Insert new sessions
-        for (const session of sessions) {
-          const username = session.user || "";
+        for (const s of sessions) {
+          const username = (s?.user as string) || "";
           if (!username) continue;
 
-          const ipAddr = session.address || "";
-          const mac = session["mac-address"] || "";
-          const uptime = session.uptime || "";
+          const ipAddr = (s?.address as string) || "";
+          const mac = (s?.["mac-address"] as string) || "";
+          const uptime = (s?.uptime as string) || "";
 
-          // Convert bytes to MB
-          const rxBytes = parseInt(session["bytes-in"] || "0", 10);
-          const txBytes = parseInt(session["bytes-out"] || "0", 10);
+          const rxBytes = parseInt(String(s?.["bytes-in"] ?? "0"), 10) || 0;
+          const txBytes = parseInt(String(s?.["bytes-out"] ?? "0"), 10) || 0;
           const rxMb = Math.floor(rxBytes / 1048576);
           const txMb = Math.floor(txBytes / 1048576);
 
-          const userProfile = hotspotUsers[username] || {};
-          const limitBytes = parseInt(
-            userProfile["limit-bytes-total"] || "0",
-            10
-          );
+          const profile = userMap[username] || {};
+          const limitBytes =
+            parseInt(String(profile?.["limit-bytes-total"] ?? "0"), 10) || 0;
           const allowedMb =
             limitBytes > 0 ? Math.floor(limitBytes / 1048576) : 5000;
+
           const totalUsedMb = (rxBytes + txBytes) / 1048576;
           const percentageUsed =
             allowedMb > 0 ? Math.round((totalUsedMb / allowedMb) * 10) / 10 : 0;
@@ -171,16 +165,16 @@ export class MikrotikService {
             rxMb,
             txMb,
             totalAllowedMb: allowedMb,
-            percentageUsed: percentageUsed.toString(),
+            percentageUsed: String(percentageUsed),
             lastUpdated: new Date(),
           });
         }
       });
-
-      conn.close();
-    } catch (error) {
-      conn.close();
-      throw error;
+    } finally {
+      try {
+        await client.close();
+        console.log(`[${vessel.vesselName}] Connection closed`);
+      } catch {}
     }
   }
 }

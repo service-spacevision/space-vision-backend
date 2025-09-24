@@ -1,6 +1,38 @@
 import { db } from '../../../db/connection'
 import { starlinkUsage, vessels, vesselGroups } from '../../../db/schema'
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray, SQL } from 'drizzle-orm'
+import { isAdmin } from '../../../../utils/permissionUtils'
+import { InferSelectModel } from 'drizzle-orm'
+
+type VesselWithGroup = InferSelectModel<typeof vessels> & {
+  group: InferSelectModel<typeof vesselGroups> | null;
+};
+
+type StarlinkUsageWithVessel = InferSelectModel<typeof starlinkUsage> & {
+  vessel: VesselWithGroup | null;
+};
+
+type StarlinkUsageResponse = 
+  | { success: true; message: string; data: { 
+      records: Array<StarlinkUsageWithVessel & { 
+        vessel: VesselWithGroup | null;
+      }>; 
+      summary: {
+        totalRecords: number;
+        uniqueKits: number;
+        totalPriorityDataGB: number;
+        totalStandardDataGB: number;
+        totalDataGB: number;
+        dateRange: {
+          startDate: string;
+          endDate: string;
+          totalDays: number;
+        };
+      };
+    }; 
+  }
+  | { success: false; message: string; error?: string; }
+  | StarlinkUsageWithVessel[]; // For backward compatibility with non-admin flow
 
 interface GetStarlinkUsageByDateRangeParams {
   reqObject: {
@@ -14,7 +46,7 @@ export async function getStarlinkUsageByDateRange_func({
   reqObject,
   startDate,
   endDate
-}: GetStarlinkUsageByDateRangeParams) {
+}: GetStarlinkUsageByDateRangeParams): Promise<StarlinkUsageResponse> {
   try {
     const { user } = reqObject
 
@@ -35,50 +67,59 @@ export async function getStarlinkUsageByDateRange_func({
       }
     }
 
+    // Build base where conditions for date range
+    const baseConditions = [
+      gte(starlinkUsage.dateKey, startDate),
+      lte(starlinkUsage.dateKey, endDate)
+    ];
+
+    // For non-admin users with permitted vessel groups, we need to join with vessels table
+    if (!isAdmin(user) && user?.role?.permittedVesselGroups?.length) {
+      const result = await db
+        .select()
+        .from(starlinkUsage)
+        .leftJoin(vessels, eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber))
+        .leftJoin(vesselGroups, eq(vessels.groupId, vesselGroups.id))
+        .where(
+          and(
+            ...baseConditions,
+            inArray(vessels.groupId, user.role.permittedVesselGroups)
+          )
+        )
+        .orderBy(starlinkUsage.dateKey, starlinkUsage.kitNumber);
+
+      const resultData = result.map(row => ({
+        ...row.starlink_usage,
+        vessel: row.vessels ? {
+          ...row.vessels,
+          group: row.vessel_groups || null
+        } : null
+      })) as StarlinkUsageWithVessel[];
+      
+      // For backward compatibility, we'll return the array directly for non-admin users
+      // But we should consider updating the calling code to handle the consistent response format
+      return resultData;
+    }
+
+    // For admin users or users without vessel group restrictions
+    const whereConditions = [...baseConditions];
+
     // Query starlink usage data with vessel information
-    const usageData = await db
-      .select({
-        // Starlink usage fields
-        id: starlinkUsage.id,
-        dateKey: starlinkUsage.dateKey,
-        kitNumber: starlinkUsage.kitNumber,
-        vesselName: starlinkUsage.vesselName,
-        mobilePriorityGb: starlinkUsage.mobilePriorityGb,
-        standardGb: starlinkUsage.standardGb,
-        chargebeeSubscriptionId: starlinkUsage.chargebeeSubscriptionId,
-        usageLimitGB: starlinkUsage.usageLimitGB,
-        publicIP_Enabled: starlinkUsage.publicIP_Enabled,
-        createdAt: starlinkUsage.createdAt,
-        updatedAt: starlinkUsage.updatedAt,
-        // Vessel fields (can be null if no matching vessel)
-        vessel: {
-          id: vessels.id,
-          vesselsKitNumber: vessels.vesselsKitNumber,
-          name: vessels.name,
-          subscriptionPlan: vessels.subscriptionPlan,
-          groupId: vessels.groupId,
-          deviceId: vessels.deviceId,
-          createdAt: vessels.createdAt,
-          updatedAt: vessels.updatedAt
-        },
-        // Vessel group fields (can be null if no matching group)
-        vesselGroup: {
-          id: vesselGroups.id,
-          groupName: vesselGroups.groupName,
-          createdAt: vesselGroups.createdAt,
-          updatedAt: vesselGroups.updatedAt
-        }
-      })
+    const result = await db
+      .select()
       .from(starlinkUsage)
       .leftJoin(vessels, eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber))
       .leftJoin(vesselGroups, eq(vessels.groupId, vesselGroups.id))
-      .where(
-        and(
-          gte(starlinkUsage.dateKey, startDate),
-          lte(starlinkUsage.dateKey, endDate)
-        )
-      )
-      .orderBy(starlinkUsage.dateKey, starlinkUsage.kitNumber)
+      .where(and(...whereConditions))
+      .orderBy(starlinkUsage.dateKey, starlinkUsage.kitNumber);
+
+    const usageData = result.map(row => ({
+      ...row.starlink_usage,
+      vessel: row.vessels ? {
+        ...row.vessels,
+        group: row.vessel_groups || null
+      } : null
+    })) as StarlinkUsageWithVessel[];
 
     // Transform the data to a more readable format
     const transformedData = usageData.map(record => ({
@@ -93,7 +134,7 @@ export async function getStarlinkUsageByDateRange_func({
       publicIP_Enabled: record.publicIP_Enabled,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
-      vessel: record.vessel && record.vessel.id ? {
+      vessel: record.vessel ? {
         id: record.vessel.id,
         vesselsKitNumber: record.vessel.vesselsKitNumber,
         name: record.vessel.name,
@@ -102,11 +143,11 @@ export async function getStarlinkUsageByDateRange_func({
         deviceId: record.vessel.deviceId,
         createdAt: record.vessel.createdAt,
         updatedAt: record.vessel.updatedAt,
-        group: record.vesselGroup && record.vesselGroup.id ? {
-          id: record.vesselGroup.id,
-          groupName: record.vesselGroup.groupName,
-          createdAt: record.vesselGroup.createdAt,
-          updatedAt: record.vesselGroup.updatedAt
+        group: record.vessel.group ? {
+          id: record.vessel.group.id,
+          groupName: record.vessel.group.groupName,
+          createdAt: record.vessel.group.createdAt,
+          updatedAt: record.vessel.group.updatedAt
         } : null
       } : null
     }))
@@ -131,14 +172,18 @@ export async function getStarlinkUsageByDateRange_func({
       success: true,
       message: 'Starlink usage data retrieved successfully',
       data: {
-        records: transformedData,
+        records: transformedData as Array<StarlinkUsageWithVessel & { vessel: VesselWithGroup | null }>,
         summary: {
           totalRecords,
           uniqueKits,
           totalPriorityDataGB: Math.round(totalPriorityData * 100) / 100,
           totalStandardDataGB: Math.round(totalStandardData * 100) / 100,
           totalDataGB: Math.round((totalPriorityData + totalStandardData) * 100) / 100,
-          dateRange
+          dateRange: {
+            startDate,
+            endDate,
+            totalDays: dateRange.totalDays
+          }
         }
       }
     }

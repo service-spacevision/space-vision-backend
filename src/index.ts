@@ -5,7 +5,7 @@ import { APP_CONFIG } from "./app/constants/constants";
 import { connectDatabase, db } from "./app/db/connection";
 import { initializeSystem } from "./app/db/initializeSystem";
 import { smartMigrate } from "./app/db/syncMigrations";
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { initializeMaterializedViews } from "./app/db/initializeMaterializedViews";
 import { corsMiddleware } from "./app/middlewares/cors";
 import { startCrons } from "./app/cron/index.cron";
@@ -81,9 +81,18 @@ const app = new Elysia()
             name: "Telephony DIDs",
             description: "Telephony DID management endpoints",
           },
-          { name: "Organization", description: "Organization management endpoints" },
-          { name: "Permissions", description: "Permission management endpoints" },
-          { name: "RolesPermission", description: "Flattened role permissions endpoints" },
+          {
+            name: "Organization",
+            description: "Organization management endpoints",
+          },
+          {
+            name: "Permissions",
+            description: "Permission management endpoints",
+          },
+          {
+            name: "RolesPermission",
+            description: "Flattened role permissions endpoints",
+          },
         ],
         servers: [
           {
@@ -99,7 +108,7 @@ const app = new Elysia()
           {
             url: "http://localhost:3000",
             description: "Local development server",
-          }
+          },
         ],
       },
     })
@@ -183,11 +192,13 @@ async function startServer() {
     await connectDatabase();
 
     // Run migrations (strict in prod, smart in dev)
-    const strictMigrations = process.env.NODE_ENV === 'production' || process.env.DB_STRICT_MIGRATIONS === 'true'
+    const strictMigrations =
+      process.env.NODE_ENV === "production" ||
+      process.env.DB_STRICT_MIGRATIONS === "true";
     if (strictMigrations) {
-      console.log('Running strict migrations...')
-      await migrate(db, { migrationsFolder: './src/app/db/migrations' })
-      console.log('✅ Strict migrations completed successfully')
+      console.log("Running strict migrations...");
+      await migrate(db, { migrationsFolder: "./src/app/db/migrations" });
+      console.log("✅ Strict migrations completed successfully");
     } else {
       // Use smart migration system for local/dev convenience
       await smartMigrate();

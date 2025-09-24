@@ -5,6 +5,7 @@ import { vesselGroups } from "../../../models/VesselGroup";
 import { and, gte, lte, sql, eq, count, inArray, desc } from "drizzle-orm";
 import { format } from "date-fns";
 import { IPagination } from "../../../utils/types";
+import { isAdmin } from "../../../../utils/permissionUtils";
 
 interface GetStarlinkUsageKitDataParams {
   reqObject: {
@@ -47,11 +48,46 @@ export async function getStarlinkUsageKitData_func({
       parseInt(endDate.substring(6, 8))
     );
 
+    // Check if user is admin or has permitted vessel groups
+    const user = reqObject?.user;
+    let permittedGroupIds: number[] = [];
+    
+    if (!isAdmin(user) && user?.role?.permittedVesselGroups?.length) {
+      permittedGroupIds = user.role.permittedVesselGroups;
+    }
+
     // Build the query conditions
     const conditions = [
       gte(starlinkUsage.dateKey, startDate),
       lte(starlinkUsage.dateKey, endDate),
     ];
+
+    // If user has permitted vessel groups, add filter for those groups
+    if (permittedGroupIds.length > 0) {
+      // Get all kit numbers under permitted groups
+      const kitsInPermittedGroups = await db
+        .select({ kit: vessels.vesselsKitNumber })
+        .from(vessels)
+        .where(inArray(vessels.groupId, permittedGroupIds));
+
+      const permittedKitNumbers = kitsInPermittedGroups
+        .map((k) => k.kit)
+        .filter(Boolean) as string[];
+
+      if (permittedKitNumbers.length === 0) {
+        return {
+          success: true,
+          message: "No data found for your permitted vessel groups",
+          data: [],
+          pagination: {
+            total: 0,
+            page: pagination?.currentPage || 1,
+            pageSize: pagination?.pageSize || 10,
+          },
+        };
+      }
+      conditions.push(inArray(starlinkUsage.kitNumber, permittedKitNumbers));
+    }
 
     if (kitNumber) {
       conditions.push(eq(starlinkUsage.kitNumber, kitNumber));
@@ -72,6 +108,20 @@ export async function getStarlinkUsageKitData_func({
         return {
           success: true,
           message: "No data found for the specified criteria",
+          data: [],
+          pagination: {
+            total: 0,
+            page: pagination?.currentPage || 1,
+            pageSize: pagination?.pageSize || 10,
+          },
+        };
+      }
+
+      // If user has restricted access, verify they have access to this group
+      if (permittedGroupIds.length > 0 && !permittedGroupIds.includes(group.id)) {
+        return {
+          success: false,
+          message: "You don't have permission to access this vessel group",
           data: [],
           pagination: {
             total: 0,

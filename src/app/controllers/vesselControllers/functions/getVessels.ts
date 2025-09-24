@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
 import { vessels, vesselGroups } from '../../../db/schema'
-import { eq, ilike, and } from 'drizzle-orm'
+import { eq, ilike, and, inArray, SQL } from 'drizzle-orm'
+import { isAdmin } from '../../../../utils/permissionUtils'
 
 interface GetVesselsParams {
   reqObject: {
@@ -20,7 +21,7 @@ interface GetVesselsParams {
 
 export async function getVessels_func({ reqObject, query, pagination }: GetVesselsParams) {
   try {
-    let whereConditions: any[] = []
+    let whereConditions: SQL[] = []
 
     // Add filters based on query parameters
     if (query?.name) {
@@ -33,6 +34,26 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
 
     if (query?.subscriptionPlan) {
       whereConditions.push(ilike(vessels.subscriptionPlan, `%${query.subscriptionPlan}%`))
+    }
+
+    // For non-admin users, only show vessels from permitted vessel groups
+    if (!isAdmin(reqObject.user) && reqObject.user?.role?.permittedVesselGroups?.length) {
+      whereConditions.push(
+        inArray(vessels.groupId, reqObject.user.role.permittedVesselGroups)
+      )
+    } else if (!isAdmin(reqObject.user)) {
+      // If user has no permitted vessel groups and is not admin, return empty result
+      return {
+        success: true,
+        message: 'No vessels found for your account',
+        data: [],
+        pagination: {
+          currentPage: 1,
+          pageSize: 0,
+          totalItems: 0,
+          totalPages: 0
+        }
+      };
     }
 
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined

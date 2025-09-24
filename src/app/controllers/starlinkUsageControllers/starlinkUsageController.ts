@@ -129,17 +129,45 @@ export class StarlinkUsageController {
 
   static async getStarlinkUsageByDateRange(ctx: CustomContext) {
     try {
-      const { query } = ctx
-      const user = ctx.user!
+      const { query } = ctx;
+      const user = ctx.user!;
+
+      if (!query?.startDate || !query?.endDate) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: 'Both startDate and endDate query parameters are required'
+        };
+      }
 
       const result = await getStarlinkUsageByDateRange_func({
         reqObject: { user },
-        startDate: query?.startDate as string,
-        endDate: query?.endDate as string
-      })
+        startDate: query.startDate as string,
+        endDate: query.endDate as string
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      // Handle array response (legacy format for non-admin users)
+      if (Array.isArray(result)) {
+        ctx.set.status = 200;
+        return {
+          success: true,
+          data: result,
+          message: 'Starlink usage data retrieved successfully'
+        };
+      }
+
+      // Handle object response with success flag
+      if (result && typeof result === 'object' && 'success' in result) {
+        ctx.set.status = result.success ? 200 : 400;
+        return result;
+      }
+
+      // Fallback for unexpected response format
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Unexpected response format from starlink usage service'
+      };
     } catch (err: any) {
       ctx.set.status = 500
       return {

@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
-import { sql } from 'drizzle-orm'
+import { sql, and } from 'drizzle-orm'
 import { AuthUser, IPagination } from '../../../utils/types'
+import { isAdmin } from '../../../../utils/permissionUtils'
 
 interface GetStarlinkUsageStatsParams {
   reqObject: {
@@ -12,10 +13,24 @@ interface GetStarlinkUsageStatsParams {
 
 export async function getStarlinkUsageStats_func({ reqObject, kitNumber, pagination }: GetStarlinkUsageStatsParams) {
   try {
-    const { user } = reqObject
-    console.log("requestedBy", user)
+    const { user } = reqObject;
+    console.log("requestedBy", user);
 
-    const whereSql = kitNumber ? sql`WHERE kit_number = ${kitNumber}` : sql``
+    // Build where conditions
+    const whereConditions = [];
+    
+    if (kitNumber) {
+      whereConditions.push(sql`kit_number = ${kitNumber}`);
+    }
+    
+    // Add vessel group filter for non-admin users
+    if (!isAdmin(user) && user.role?.permittedVesselGroups?.length) {
+      whereConditions.push(sql`vessel_group_id = ANY(${user.role.permittedVesselGroups})`);
+    }
+    
+    const whereSql = whereConditions.length > 0 
+      ? sql`WHERE ${and(...whereConditions)}` 
+      : sql``;
 
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === 'true' || pagination?.all === '1') {
@@ -84,24 +99,44 @@ export async function getStarlinkUsageStats_func({ reqObject, kitNumber, paginat
 
 export async function getStarlinkSystemSummary_func({ reqObject }: { reqObject: { user: AuthUser } }) {
   try {
-    const { user } = reqObject
-    console.log("requestedBy", user)
+    const { user } = reqObject;
+    
+    // Build where conditions
+    const whereConditions = [];
+    
+    // Add vessel group filter for non-admin users
+    if (!isAdmin(user) && user.role?.permittedVesselGroups?.length) {
+      whereConditions.push(sql`vessel_group_id = ANY(${user.role.permittedVesselGroups})`);
+    }
+    
+    const whereSql = whereConditions.length > 0 
+      ? sql`WHERE ${and(...whereConditions)}` 
+      : sql``;
 
-    const summary = await db.execute(sql`SELECT * FROM starlink_system_summary_mv`)
+    const summary = await db.execute(sql`
+      SELECT 
+        COUNT(DISTINCT kit_number) as total_kits,
+        COUNT(DISTINCT vessel_name) as total_vessels,
+        COUNT(DISTINCT vessel_group_id) as total_groups,
+        COALESCE(SUM(total_usage_gb), 0) as total_usage_gb,
+        COALESCE(SUM(usage_limit_gb), 0) as total_allocated_gb,
+        COALESCE(SUM(usage_percentage) / NULLIF(COUNT(*), 0), 0) as avg_usage_percentage
+      FROM starlink_usage_stats_mv
+      ${whereSql}
+    `);
 
     return {
       success: true,
-      message: 'Starlink system summary retrieved successfully',
-      data: summary[0] || null
-    }
-
+      message: 'System summary retrieved successfully',
+      data: summary[0]
+    };
   } catch (error: any) {
-    console.error('Error getting starlink system summary:', error)
+    console.error('Error getting system summary:', error);
     return {
       success: false,
-      message: 'Failed to retrieve starlink system summary',
+      message: 'Failed to retrieve system summary',
       error: error.message
-    }
+    };
   }
 }
 
@@ -115,28 +150,46 @@ export async function getTopUsageKits_func({
   period?: '7' | '30' | '60' | 'lifetime'
 }) {
   try {
-    const { user } = reqObject
-    console.log("requestedBy", user)
+    const { user } = reqObject;
+    
+    // Build where conditions
+    const whereConditions = [];
+    
+    // Add vessel group filter for non-admin users
+    if (!isAdmin(user) && user.role?.permittedVesselGroups?.length) {
+      whereConditions.push(sql`vessel_group_id = ANY(${user.role.permittedVesselGroups})`);
+    }
+    
+    // Add period filter
+    if (period !== 'lifetime') {
+      const days = parseInt(period, 10);
+      whereConditions.push(sql`last_updated >= NOW() - INTERVAL '${days} days'`);
+    }
+    
+    const whereSql = whereConditions.length > 0 
+      ? sql`WHERE ${and(...whereConditions)}` 
+      : sql``;
 
-    let orderByColumn = 'last_60_days_usage_gb'
+    let orderByColumn = 'last_60_days_usage_gb';
     switch (period) {
       case '7':
-        orderByColumn = 'last_7_days_usage_gb'
-        break
+        orderByColumn = 'last_7_days_usage_gb';
+        break;
       case '30':
-        orderByColumn = 'last_30_days_usage_gb'
-        break
+        orderByColumn = 'last_30_days_usage_gb';
+        break;
       case 'lifetime':
-        orderByColumn = 'lifetime_usage_gb'
-        break
+        orderByColumn = 'lifetime_usage_gb';
+        break;
       default:
-        orderByColumn = 'last_60_days_usage_gb'
+        orderByColumn = 'last_60_days_usage_gb';
     }
 
     const topKits = await db.execute(sql`
       SELECT 
         kit_number,
         vessel_name,
+        vessel_group_name,
         last_7_days_usage_gb,
         last_30_days_usage_gb,
         last_60_days_usage_gb,
@@ -145,6 +198,7 @@ export async function getTopUsageKits_func({
         current_usage_limit,
         current_public_ip_enabled
       FROM starlink_usage_stats_mv 
+      ${whereSql}
       ORDER BY ${sql.raw(orderByColumn)} DESC 
       LIMIT ${limit}
     `)
@@ -167,8 +221,19 @@ export async function getTopUsageKits_func({
 
 export async function getUsageTrends_func({ reqObject }: { reqObject: { user: AuthUser } }) {
   try {
-    const { user } = reqObject
-    console.log("requestedBy", user)
+    const { user } = reqObject;
+    
+    // Build where conditions
+    const whereConditions = [];
+    
+    // Add vessel group filter for non-admin users
+    if (!isAdmin(user) && user.role?.permittedVesselGroups?.length) {
+      whereConditions.push(sql`vessel_group_id = ANY(${user.role.permittedVesselGroups})`);
+    }
+    
+    const whereSql = whereConditions.length > 0 
+      ? sql`AND ${and(...whereConditions)}` 
+      : sql``;
 
     // Get daily usage trends for the last 60 days across all kits
     const trends = await db.execute(sql`
@@ -180,6 +245,7 @@ export async function getUsageTrends_func({ reqObject }: { reqObject: { user: Au
           AVG(COALESCE(mobile_priority_gb, 0) + COALESCE(standard_gb, 0)) as avg_usage_per_kit
         FROM starlink_usage
         WHERE to_date(date_key, 'YYYYMMDD') >= (current_date - interval '60 days')
+        ${whereSql}
         GROUP BY to_date(date_key, 'YYYYMMDD')
         ORDER BY usage_date
       )

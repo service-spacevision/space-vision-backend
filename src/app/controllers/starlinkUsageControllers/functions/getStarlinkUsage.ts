@@ -1,7 +1,9 @@
 import { db } from "../../../db/connection";
 import { starlinkUsage } from "../../../models/StarlinkUsage";
-import { eq, and, count, desc, SQL, gte, lte } from "drizzle-orm";
+import { vessels } from "../../../models/Vessel";
+import { eq, and, count, desc, SQL, gte, lte, inArray } from "drizzle-orm";
 import { IPagination } from "../../../utils/types";
+import { isAdmin } from "../../../../utils/permissionUtils";
 
 interface GetStarlinkUsageParams {
   reqObject: {
@@ -23,8 +25,9 @@ export async function getStarlinkUsage_func({
 }: GetStarlinkUsageParams) {
   try {
     const conditions: (SQL<unknown> | undefined)[] = [];
+    
+    // Handle date range conditions
     if (query?.startDate && query?.endDate) {
-      // Add date range condition using gte and lte for proper range query
       conditions.push(
         and(
           gte(starlinkUsage.dateKey, query.startDate),
@@ -32,17 +35,50 @@ export async function getStarlinkUsage_func({
         )
       );
     } else if (query?.startDate) {
-      // If only startDate is provided, get records from startDate onwards
       conditions.push(gte(starlinkUsage.dateKey, query.startDate));
     } else if (query?.endDate) {
-      // If only endDate is provided, get records up to endDate
       conditions.push(lte(starlinkUsage.dateKey, query.endDate));
     }
+    
+    // Handle kit number condition
     if (query?.kitNumber) {
       conditions.push(eq(starlinkUsage.kitNumber, query.kitNumber));
     }
+    
+    // Handle vessel name condition
     if (query?.vesselName) {
       conditions.push(eq(starlinkUsage.vesselName, query.vesselName));
+    }
+    
+    // Check if user is non-admin with permitted vessel groups
+    const user = reqObject?.user;
+    if (!isAdmin(user) && user?.role?.permittedVesselGroups?.length) {
+      // Get all kit numbers from permitted vessel groups
+      const kitsInPermittedGroups = await db
+        .select({ kitNumber: vessels.vesselsKitNumber })
+        .from(vessels)
+        .where(inArray(vessels.groupId, user.role.permittedVesselGroups));
+      
+      const permittedKitNumbers = kitsInPermittedGroups
+        .map(k => k.kitNumber)
+        .filter(Boolean) as string[];
+      
+      if (permittedKitNumbers.length === 0) {
+        // No kits in permitted groups, return empty result
+        return {
+          success: true,
+          message: "No data found for your permitted vessel groups",
+          data: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            pageSize: 0,
+          },
+        };
+      }
+      
+      // Add condition to filter by permitted kit numbers
+      conditions.push(inArray(starlinkUsage.kitNumber, permittedKitNumbers));
     }
 
     // Filter out any undefined conditions and combine with AND

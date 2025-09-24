@@ -12,8 +12,14 @@ const client = postgres(DATABASE_CONFIG.DATABASE_URL, {
   connect_timeout: 10
 })
 
-// Create drizzle instance
-export const db = drizzle(client, { schema })
+// Create drizzle instance with schema
+const dbConfig = {
+  schema,
+  // Disable schema verification to prevent enum creation errors
+  logger: false
+} as const
+
+export const db = drizzle(client, dbConfig)
 
 export const connectDatabase = async (): Promise<void> => {
   try {

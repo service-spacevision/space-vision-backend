@@ -1,7 +1,8 @@
 import { db } from "../../../db/connection";
 import { vesselGroups } from "../../../models/VesselGroup";
-import { eq, count, desc, like } from "drizzle-orm";
+import { eq, count, desc, like, and } from "drizzle-orm";
 import { IPagination } from "../../../utils/types";
+import { withVesselGroupFilter } from "../../../../utils/permissionUtils";
 
 interface GetVesselGroupsParams {
   reqObject: {
@@ -19,9 +20,15 @@ export async function getVesselGroups_func({
   pagination,
 }: GetVesselGroupsParams) {
   try {
-    const whereCondition = query?.groupName
-      ? like(vesselGroups.groupName, `%${query.groupName}%`)
-      : undefined;
+    const whereConditions = [];
+    
+    // Add group name filter if provided
+    if (query?.groupName) {
+      whereConditions.push(like(vesselGroups.groupName, `%${query.groupName}%`));
+    }
+    
+    // Apply vessel group filter based on user permissions
+    const whereCondition = withVesselGroupFilter(reqObject?.user, whereConditions, vesselGroups.id);
 
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === "true" || pagination?.all === "1") {
