@@ -137,10 +137,15 @@ export class UserController {
   // Get full user list super admin
   static async getAllUsers(ctx: CustomContext) {
     try {
+      const pagination = {
+        currentPage: Number(ctx.query.page) || 1,
+        pageSize: Number(ctx.query.pageSize) || 10,
+        all: ctx.query.all || "false"
+      }
       const result = await getAllUsers_func(
         {
           reqObject: { user: ctx.user! },
-          pagination: ctx.query.pagination as any
+          pagination: pagination
         }
       )
 
@@ -157,10 +162,15 @@ export class UserController {
   // Get all user under org
   static async getAllUsersUnderOrg(ctx: CustomContext) {
     try {
+      const pagination = {
+        currentPage: Number(ctx.query.page) || 1,
+        pageSize: Number(ctx.query.pageSize) || 10,
+        all: ctx.query.all || "false"
+      }
       const result = await getAllUsersUnderOrg_func(
         {
           reqObject: { user: ctx.user! },
-          pagination: ctx.query.pagination as any
+          pagination: pagination
         }
       )
 
