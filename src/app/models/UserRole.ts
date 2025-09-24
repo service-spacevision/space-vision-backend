@@ -26,7 +26,7 @@ export const userRoles = pgTable("user_roles", {
     .array()
     .default(sql`ARRAY[]::integer[]`)
     .notNull(),
-  organizationId: varchar("organization_id", { length: 100 }),
+  organizationId: integer("organization_id"),
 });
 
 export type UserRole = InferSelectModel<typeof userRoles>;
@@ -36,7 +36,7 @@ export type UserRoleWithoutSystem = Omit<UserRole, "isSystem">;
 
 export type CreateUserRoleData = Pick<
   NewUserRole,
-  "name" | "displayName" | "description" | "permittedVesselGroups"
+  "name" | "displayName" | "description" | "permittedVesselGroups" | "organizationId"
 >;
 
 export type UpdateUserRoleData = Partial<
@@ -73,7 +73,7 @@ export const CreateUserRoleSchema = t.Object({
     )
   ),
   organizationId: t.Optional(
-    t.String({
+    t.Number({
       description: "Organization ID",
     })
   ),

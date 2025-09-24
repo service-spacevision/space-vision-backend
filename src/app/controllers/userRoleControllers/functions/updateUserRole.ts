@@ -56,12 +56,15 @@ export async function updateUserRole_func({
     // If permissions array is provided, update role-permission associations
     if (data.permissions !== undefined) {
       if (data.permissions.length > 0) {
+        console.log("permissions up", data.permissions);
+        
         // Fetch all permissions by IDs
         const fetchedPermissions = await db
           .select()
           .from(permissions)
           .where(inArray(permissions.id, data.permissions))
-
+        console.log("permissions up", fetchedPermissions);
+        
         // Group permissions by category
         const apiPermissions: string[] = []
         const componentPermissions: string[] = []
@@ -82,7 +85,7 @@ export async function updateUserRole_func({
         })
 
         // Update or insert role-permission association
-        await db
+        const updatedData = await db
           .insert(rolesPermission)
           .values({
             roleId: Number(roleId),
@@ -99,7 +102,12 @@ export async function updateUserRole_func({
               updatedAt: new Date(),
             }
           })
+          .returning();
+          console.log("updatedData", updatedData);
+          
       } else {
+        console.log("permissions", data.permissions);
+        
         // If empty permissions array, clear all permissions for this role
         await db
           .insert(rolesPermission)

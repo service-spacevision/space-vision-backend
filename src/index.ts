@@ -13,6 +13,7 @@ import { ensureSyncState } from "./app/db/ensureSyncState";
 import { ensureBluetideTelemetry } from "./app/db/ensureBluetideTelemetry";
 import { ensurePermissions } from "./app/db/ensurePermissions";
 import { syncApiPermissions } from "./app/controllers/permissionControllers/functions/syncApiPermissions";
+import { populatePermissions } from "./app/controllers/permissionControllers/functions/populatePermissions";
 // import { loggingMiddleware } from './app/middlewares/logging'
 import {
   authRoutes,
@@ -217,6 +218,9 @@ async function startServer() {
 
     // Sync API permissions from route files to database
     await syncApiPermissions();
+
+    // Populate navigation permissions from permissionsData
+    await populatePermissions();
 
     console.log("✅ Server initialization completed successfully");
 

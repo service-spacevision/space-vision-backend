@@ -4,22 +4,28 @@ import { permissions } from '../../../models/Permission'
 import { rolesPermission } from '../../../models/RolePermission'
 import { CreateUserRoleData } from '../../../models/UserRole'
 import { inArray } from 'drizzle-orm'
+import { AuthUser } from '../../../utils/types'
 
 interface CreateUserRoleParams {
   data: CreateUserRoleData & {
     permissions?: number[] // Array of permission IDs
-  }
+  },
+  user: AuthUser
 }
 
-export async function createUserRole_func({ data }: CreateUserRoleParams) {
+export async function createUserRole_func({ data, user }: CreateUserRoleParams) {
   try {
-    // First, create the user role
+    // const orgId: string | null =
+    //   user?.organizationId != null
+    //     ? String(user.organizationId)
+    //     : (data?.organizationId ?? null);
+
     const [newRole] = await db.insert(userRoles).values({
-      name: `api_${data.name}`,
+      name: `${data.name}`,
       displayName: data.displayName,
       description: data.description,
-      createdBy: (data as any).createdBy?.toString?.() ?? (data as any).created_by,
-      organizationId: (data as any).organizationId,
+      createdBy: user?.id,
+      organizationId: user?.organizationId || data?.organizationId || null,
     }).returning()
 
     // If permissions array is provided, handle role-permission associations

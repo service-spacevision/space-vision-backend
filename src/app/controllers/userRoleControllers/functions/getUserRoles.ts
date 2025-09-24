@@ -20,7 +20,7 @@ export async function getUserRoles_func({
 
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === "true" || pagination?.all === "1") {
-      const roles = await db
+      const rolesData = await db
         .select({
           id: userRoles.id,
           name: userRoles.name,
@@ -34,16 +34,28 @@ export async function getUserRoles_func({
           organization_id: userRoles.organizationId,
           createdAt: userRoles.createdAt,
           updatedAt: userRoles.updatedAt,
-          permissions: {
-            api_permissions: rolesPermission.api_permissions,
-            component_permissions: rolesPermission.component_permissions,
-            navigation_permissions: rolesPermission.navigation_permissions,
-          },
+          api_permissions: rolesPermission.api_permissions,
+          component_permissions: rolesPermission.component_permissions,
+          navigation_permissions: rolesPermission.navigation_permissions,
         })
         .from(userRoles)
         .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
         .where(whereCondition)
         .orderBy(desc(userRoles.createdAt));
+
+      // Transform the data to have nested permissions structure
+      const roles = rolesData.map(role => ({
+        ...role,
+        permissions: {
+          api_permissions: role.api_permissions,
+          component_permissions: role.component_permissions,
+          navigation_permissions: role.navigation_permissions,
+        },
+        // Remove the flat permission fields
+        api_permissions: undefined,
+        component_permissions: undefined,
+        navigation_permissions: undefined,
+      }));
 
       return {
         success: true,
@@ -71,7 +83,7 @@ export async function getUserRoles_func({
     const total = totalResult.count;
 
     // Get paginated data
-    const roles = await db
+    const rolesData = await db
       .select({
         id: userRoles.id,
         name: userRoles.name,
@@ -85,11 +97,9 @@ export async function getUserRoles_func({
         organization_id: userRoles.organizationId,
         createdAt: userRoles.createdAt,
         updatedAt: userRoles.updatedAt,
-        permissions: {
-          api_permissions: rolesPermission.api_permissions,
-          component_permissions: rolesPermission.component_permissions,
-          navigation_permissions: rolesPermission.navigation_permissions,
-        },
+        api_permissions: rolesPermission.api_permissions,
+        component_permissions: rolesPermission.component_permissions,
+        navigation_permissions: rolesPermission.navigation_permissions,
       })
       .from(userRoles)
       .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
@@ -97,6 +107,20 @@ export async function getUserRoles_func({
       .orderBy(desc(userRoles.createdAt))
       .limit(pageSize)
       .offset(offset);
+
+    // Transform the data to have nested permissions structure
+    const roles = rolesData.map(role => ({
+      ...role,
+      permissions: {
+        api_permissions: role.api_permissions,
+        component_permissions: role.component_permissions,
+        navigation_permissions: role.navigation_permissions,
+      },
+      // Remove the flat permission fields
+      api_permissions: undefined,
+      component_permissions: undefined,
+      navigation_permissions: undefined,
+    }));
 
     return {
       success: true,

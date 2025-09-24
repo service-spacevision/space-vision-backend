@@ -15,9 +15,10 @@ export class UserRoleController {
       const result = await createUserRole_func({
         data: {
           ...(body as any),
-          createdBy: user?.id,
+          // user: user,
           organizationName: (body as any)?.organizationName ?? user?.organizationName,
-        } as any
+        },
+        user: user as any 
       })
 
       ctx.set.status = result?.success === true ? 201 : 400
