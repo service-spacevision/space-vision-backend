@@ -48,6 +48,11 @@ export const userRolesRelations = relations(userRoles, ({ many, one }) => ({
     fields: [userRoles.organizationName],
     references: [organizations.name],
     relationName: 'role_organization'
+  }),
+  permissions: one(rolesPermission, {
+    fields: [userRoles.id],
+    references: [rolesPermission.roleId],
+    relationName: 'role_permission_role'
   })
 }))
 

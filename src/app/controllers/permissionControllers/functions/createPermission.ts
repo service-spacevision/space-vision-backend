@@ -11,15 +11,20 @@ export async function createPermission_func({ data }: Params) {
       action: data.action,
       scope: (data.scope as any) ?? 'own',
       category: data.category as any,
+      section: (data.section as any) ?? 'organization',
       description: data.description
     }).returning()
 
     return { success: true, message: 'Permission created successfully', data: created }
   } catch (error: any) {
-    if (error?.code === '23505') {
+    // Handle various forms of duplicate key errors
+    if (error?.code === '23505' ||
+      error?.constraint === 'permissions_name_unique' ||
+      error?.message?.includes('duplicate key') ||
+      error?.message?.includes('already exists')) {
       return { success: false, message: 'Permission name already exists' }
     }
-    console.error('Error creating permission:', error)
+    // Silently handle other errors during permission population
     return { success: false, message: 'Failed to create permission' }
   }
 }
