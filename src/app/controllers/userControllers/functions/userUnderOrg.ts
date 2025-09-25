@@ -1,6 +1,6 @@
 import { count, eq } from "drizzle-orm"
 import { db } from "../../../db/connection"
-import { users } from "../../../models/User"
+import { users, userPublicColumns } from "../../../models/User"
 import { IPagination, ReqObjectType } from "../../../utils/types"
 
 export const getAllUsersUnderOrg_func = async ({
@@ -13,7 +13,9 @@ export const getAllUsersUnderOrg_func = async ({
   try {
     console.log("reqObject", reqObject.user);
     if (pagination?.all === 'true' || pagination?.all === '1') {
-      const result = await db.select().from(users).where(eq(users.organizationId, Number(reqObject.user.organizationId)))
+      const result = await db.select(userPublicColumns)
+        .from(users)
+        .where(eq(users.organizationId, Number(reqObject.user.organizationId)))
       return {
         success: result?.length > 0,
         message: result?.length > 0 ? 'Users fetched successfully' : 'No users found',
@@ -31,16 +33,16 @@ export const getAllUsersUnderOrg_func = async ({
     const offset = (page - 1) * pageSize
     const [resultCount] = await db.select({ count: count() }).from(users).where(eq(users.organizationId, Number(reqObject?.user?.organizationId)))
     const total = resultCount.count
-    const [result] = await db
-      .select()
+    const result = await db
+      .select(userPublicColumns)
       .from(users)
       .limit(pageSize)
       .offset(offset)
       .where(eq(users.organizationId, Number(reqObject.user.organizationId)))
 
     return {
-      success: true,
-      message: 'Users fetched successfully',
+      success: result.length > 0,
+      message: result.length > 0 ? 'Users fetched successfully' : 'No users found',
       data: result,
       pagination: {
         total,
