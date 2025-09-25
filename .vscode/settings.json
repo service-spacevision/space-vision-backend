@@ -1,0 +1,8 @@
+{
+  "prettier.jsxSingleQuote": true,
+  "prettier.singleQuote": true,
+  "javascript.preferences.quoteStyle": "single",
+  "typescript.preferences.quoteStyle": "single",
+  "yaml.format.singleQuote": true,
+  "html.completion.attributeDefaultValue": "singlequotes"
+}

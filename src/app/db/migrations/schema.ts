@@ -19,6 +19,22 @@ export const mikrotikUsageSession = pgTable("mikrotik_usage_session", {
 	lastUpdated: timestamp("last_updated", { mode: 'string' }).defaultNow(),
 });
 
+export const mikrotikUsageAlltime = pgTable("mikrotik_usage_alltime", {
+	id: serial().primaryKey().notNull(),
+	vesselName: text("vessel_name").notNull(),
+	username: text().notNull(),
+	uptime: text(),
+	rxMb: integer("rx_mb").default(0).notNull(),
+	txMb: integer("tx_mb").default(0).notNull(),
+	totalAllowedMb: integer("total_allowed_mb").default(5000).notNull(),
+	percentageUsed: numeric("percentage_used", { precision: 5, scale: 1 }).default('0.0').notNull(),
+	lastUpdated: timestamp("last_updated", { mode: 'string' }).defaultNow(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow()
+}, (table) => ({
+	unqVesselUsername: unique("unq_vessel_username").on(table.vesselName, table.username),
+}));
+
 export const groupAccess = pgTable("group_access", {
 	id: serial().primaryKey().notNull(),
 	role: integer().notNull(),

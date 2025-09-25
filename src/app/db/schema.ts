@@ -12,6 +12,7 @@ import { bluetideUsage } from '../models/BluetideUsage'
 import { bluetideTelemetry } from '../models/BluetideTelemetry'
 import { mikrotikVessels } from '../models/MikrotikVessel'
 import { mikrotikUsageSession } from '../models/MikrotikUsageSession'
+import { mikrotikUsageAlltime } from '../models/MikrotikUsageAlltime'
 import { permissions, permissionScopeEnum } from '../models/Permission'
 import { rolesPermission } from '../models/RolePermission'
 import { telephonyDids } from '../models/TelephonyDid'
@@ -153,6 +154,7 @@ export { rolesPermission } from '../models/RolePermission'
 export { telephonyDids } from '../models/TelephonyDid'
 export { pins } from '../models/Pin'
 export { syncState } from '../models/SyncState'
+export { mikrotikUsageAlltime } from '../models/MikrotikUsageAlltime'
 
 // Export enum values with type-safe names
 export { 

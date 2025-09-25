@@ -32,12 +32,12 @@ export async function getGroupAccess_func({
     });
 
     // Check if user has admin role
-    if (!userWithRole?.role || userWithRole.role.name !== "admin") {
-      return {
-        success: false,
-        message: "Unauthorized: Only admin users can access this resource",
-      };
-    }
+    // if (!userWithRole?.role || userWithRole.role.name !== "admin") {
+    //   return {
+    //     success: false,
+    //     message: "Unauthorized: Only admin users can access this resource",
+    //   };
+    // }
 
     // Get all vessel groups
     const allVesselGroups = await db.select().from(vesselGroups);

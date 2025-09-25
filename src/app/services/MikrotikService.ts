@@ -1,9 +1,14 @@
 // MikrotikService.ts
 import * as net from "net";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/connection";
 import { mikrotikVessels } from "../models/MikrotikVessel";
 import { mikrotikUsageSession } from "../models/MikrotikUsageSession";
+import {
+  mikrotikUsageAlltime,
+  type MikrotikUsageAlltime,
+  type NewMikrotikUsageAlltime,
+} from "../models/MikrotikUsageAlltime";
 import { RouterOSClient } from "mikro-routeros";
 
 // ---- helper for safe logging
@@ -74,6 +79,110 @@ export class MikrotikService {
 
       await new Promise((r) => setTimeout(r, 750));
     }
+  }
+
+  /**
+   * Updates the all-time usage statistics for a user
+   */
+  private static async updateAlltimeUsage(
+    vesselName: string,
+    username: string,
+    vesselId: number,
+    newRxMb: number,
+    newTxMb: number,
+    uptime: string,
+    totalAllowedMb: number
+  ): Promise<void> {
+    try {
+      // Try to find existing all-time record
+      const existing = await db
+        .select()
+        .from(mikrotikUsageAlltime)
+        .where(
+          and(
+            eq(mikrotikUsageAlltime.vesselName, vesselName),
+            eq(mikrotikUsageAlltime.username, username)
+          )
+        )
+        .limit(1);
+
+      const now = new Date();
+      const percentageUsed =
+        totalAllowedMb > 0
+          ? Math.round(((newRxMb + newTxMb) / totalAllowedMb) * 1000) / 10
+          : 0;
+
+      if (existing.length > 0) {
+        // Update existing record
+        await db
+          .update(mikrotikUsageAlltime)
+          .set({
+            rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${newRxMb}`,
+            txMb: sql`${mikrotikUsageAlltime.txMb} + ${newTxMb}`,
+            totalAllowedMb,
+            percentageUsed: percentageUsed.toString(),
+            uptime,
+            lastUpdated: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(mikrotikUsageAlltime.vesselName, vesselName),
+              eq(mikrotikUsageAlltime.username, username)
+            )
+          );
+      } else {
+        // Insert new record
+        const newRecord: NewMikrotikUsageAlltime = {
+          vesselName,
+          username,
+          vesselId,
+          rxMb: newRxMb,
+          txMb: newTxMb,
+          totalAllowedMb,
+          percentageUsed: percentageUsed.toString(),
+          uptime,
+          lastUpdated: now,
+        };
+        await db.insert(mikrotikUsageAlltime).values(newRecord);
+      }
+      console.log(`[${vesselName}] Updated all-time usage for ${username}`);
+    } catch (error) {
+      console.error(
+        `[${vesselName}] Error updating all-time usage for ${username}:`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Gets all-time usage statistics for a vessel
+   */
+  static async getAlltimeUsage(
+    vesselName: string
+  ): Promise<MikrotikUsageAlltime[]> {
+    return db
+      .select()
+      .from(mikrotikUsageAlltime)
+      .where(eq(mikrotikUsageAlltime.vesselName, vesselName))
+      .orderBy(mikrotikUsageAlltime.username);
+  }
+
+  /**
+   * Resets all-time usage statistics for a user
+   */
+  static async resetAlltimeUsage(
+    vesselName: string,
+    username: string
+  ): Promise<void> {
+    await db
+      .delete(mikrotikUsageAlltime)
+      .where(
+        and(
+          eq(mikrotikUsageAlltime.vesselName, vesselName),
+          eq(mikrotikUsageAlltime.username, username)
+        )
+      );
   }
 
   private static async fetchAndStoreData(vessel: {
@@ -159,6 +268,7 @@ export class MikrotikService {
           await tx.insert(mikrotikUsageSession).values({
             vesselName: vessel.vesselName,
             username,
+            vesselId: vessel.id,
             ip: ipAddr,
             mac,
             uptime,
@@ -168,6 +278,17 @@ export class MikrotikService {
             percentageUsed: String(percentageUsed),
             lastUpdated: new Date(),
           });
+
+          // Update all-time usage in the background
+          this.updateAlltimeUsage(
+            vessel.vesselName,
+            username,
+            vessel.id,
+            rxMb,
+            txMb,
+            uptime,
+            allowedMb
+          ).catch(console.error);
         }
       });
     } finally {

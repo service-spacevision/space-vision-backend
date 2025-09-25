@@ -76,7 +76,11 @@ const app = new Elysia()
           },
           {
             name: "Mikrotik Usage",
-            description: "Mikrotik hotspot usage tracking endpoints",
+            description: "Mikrotik usage statistics endpoints",
+          },
+          {
+            name: "Mikrotik All-time Usage",
+            description: "Mikrotik all-time usage statistics endpoints",
           },
           {
             name: "Telephony DIDs",
@@ -134,6 +138,8 @@ const app = new Elysia()
       bluetideUsage: "/api/bluetide-usage",
       bluetideTelemetry: "/api/bluetide-telemetry",
       mikrotikVessels: "/api/mikrotik-vessels",
+      mikrotikUsage: "/api/mikrotik-usage",
+      mikrotikAlltimeUsage: "/api/mikrotik-usage-alltime",
       telephonyDids: "/api/telephony-dids",
       organizations: "/api/organizations",
       permissions: "/api/permissions",
