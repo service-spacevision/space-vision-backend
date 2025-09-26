@@ -113,7 +113,7 @@ export class UserController {
   static async updateUserProfileById(ctx: CustomContext) {
     try {
       const { body } = ctx
-      const userId = ctx.params?.id
+      const userId = ctx.query?.id ?? ctx.params?.id
       const user = ctx.user!
 
       const result = await updateUserProfileById_func(

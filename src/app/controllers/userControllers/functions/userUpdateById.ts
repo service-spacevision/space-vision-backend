@@ -19,6 +19,22 @@ export const updateUserProfileById_func = async (
   }
 ) => {
   try {
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User ID is required'
+      }
+    }
+
+    const parsedUserId = Number(userId)
+
+    if (Number.isNaN(parsedUserId)) {
+      return {
+        success: false,
+        message: 'User ID must be a valid number'
+      }
+    }
+
     const { fullName, username, profilePicture, bio, preferences, password } = data
 
     // Only allow updating certain fields
@@ -33,7 +49,8 @@ export const updateUserProfileById_func = async (
 
     // Check if the requesting user has system role
     const isSystemUser = await hasSystemRole(reqObject.user.id)
-
+    console.log("its sytsem user", isSystemUser);
+    
     // Get user's role to check permissions
     const [userWithRole] = await db
       .select({
@@ -43,7 +60,7 @@ export const updateUserProfileById_func = async (
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, parsedUserId))
       .limit(1)
 
     // System users can update additional fields including password
@@ -94,7 +111,7 @@ export const updateUserProfileById_func = async (
         ...updateData,
         updatedAt: new Date()
       })
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, parsedUserId))
       .returning({
         id: users.id,
         email: users.email,
