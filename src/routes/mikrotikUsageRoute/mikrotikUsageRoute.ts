@@ -7,6 +7,7 @@ const permission = {
   "GET_/api/mikrotik-usage": "read_mikrotik_usage",
   "GET_/api/mikrotik-usage/vessel": "read_mikrotik_usage",
   "POST_/api/mikrotik-usage/sync": "sync_mikrotik_usage",
+  "POST_/api/mikrotik-usage/crew-login": "crew_login",
 };
 
 const mikrotikUsageRoute = new Elysia({ prefix: "/api/mikrotik-usage" })
@@ -94,6 +95,25 @@ const mikrotikUsageRoute = new Elysia({ prefix: "/api/mikrotik-usage" })
       description:
         "Trigger a sync with all Mikrotik routers to update usage data",
       security: [{ bearerAuth: [] }],
+    },
+  })
+  
+  // Crew login endpoint
+  .post("/crew-login", MikrotikUsageController.crewLogin, {
+    body: t.Object({
+      username: t.String({
+        description: "Crew username",
+        minLength: 1,
+      }),
+      password: t.String({
+        description: "Crew password",
+        minLength: 1,
+      }),
+    }),
+    detail: {
+      tags: ["Mikrotik Usage"],
+      summary: "Crew login to access vessel usage data",
+      description: "Authenticate crew and return vessel usage data",
     },
   });
 

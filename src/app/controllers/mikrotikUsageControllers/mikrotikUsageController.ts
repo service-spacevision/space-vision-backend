@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { getMikrotikUsage } from "./functions/getMikrotikUsage";
 import { getMikrotikUsageByVesselId } from "./functions/getMikrotikUsageByVesselId";
 import { syncMikrotikUsage } from "./functions/syncMikrotikUsage";
+import { crewLogin as crewLoginFunction } from "./functions/crewLogin";
 
 export class MikrotikUsageController {
   static getMikrotikUsage = async ({
@@ -94,6 +95,38 @@ export class MikrotikUsageController {
       return {
         success: false,
         message: 'Failed to fetch Mikrotik usage data for the specified vessel',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+
+  static crewLogin = async ({
+    body,
+    set,
+  }: {
+    body: {
+      username: string;
+      password: string;
+    };
+    set: any;
+  }) => {
+    try {
+      const result = await crewLoginFunction({
+        username: body.username,
+        password: body.password,
+      });
+
+      if (!result.success) {
+        set.status = result.status || 500;
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error in crew login:", error);
+      set.status = 500;
+      return {
+        success: false,
+        message: "Failed to process login",
         error: error instanceof Error ? error.message : String(error),
       };
     }

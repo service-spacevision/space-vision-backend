@@ -7,7 +7,7 @@ export function generateRandomString(
   let chars = 'abcdefghijklmnopqrstuvwxyz';
   const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const numbers = '0123456789';
-  const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const special = '@#$';
 
   if (includeUppercase) chars += uppercase;
   if (includeNumbers) chars += numbers;
@@ -15,10 +15,10 @@ export function generateRandomString(
 
   let result = '';
   const charsLength = chars.length;
-  
+
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * charsLength));
   }
-  
+
   return result;
 }

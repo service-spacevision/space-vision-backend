@@ -1,14 +1,17 @@
-import { generatePin_func } from "./functions/createPin";
-import { getPins_func } from "./functions/getPin";
-import { CustomContext } from "../../utils/types";
-
+import { generatePin_func } from './functions/createPin';
+import { getPins_func } from './functions/getPin';
+import { PinType } from '../../../types/pin.types';
+import { CustomContext } from '../../utils/types';
 export class PinManagementController {
   static async generatePin(ctx: CustomContext) {
     try {
       const { body } = ctx as {
         body: {
-          vessel_id: number;
-          kitp: string;
+          type?: PinType;
+          kitp?: string;
+          mikrotik_user_name?: string;
+          vessel_id?: number;
+          vessel_name?: string;
           number_of_pins_to_generate: number;
         };
       };
@@ -18,25 +21,48 @@ export class PinManagementController {
         ctx.set.status = 401;
         return {
           success: false,
-          message: "Unauthorized",
+          message: 'Unauthorized',
         };
       }
 
-      // Validate required fields
-      if (!body.vessel_id || !body.kitp || !body.number_of_pins_to_generate) {
+      // Validate required fields based on type
+      if (body.type === PinType.OTHER) {
+        if (!body.kitp) {
+          ctx.set.status = 400;
+          return {
+            success: false,
+            message: 'kitp is required for non-MikroTik pins',
+          };
+        }
+      } else {
+        if (!body.vessel_id || !body.vessel_name) {
+          ctx.set.status = 400;
+          return {
+            success: false,
+            message: 'vessel_id and vessel_name are required for MikroTik pins',
+          };
+        }
+      }
+
+      if (!body.number_of_pins_to_generate) {
         ctx.set.status = 400;
         return {
           success: false,
-          message:
-            "Missing required fields: vessel_id, kitp, and number_of_pins_to_generate are required",
+          message: 'number_of_pins_to_generate is required',
         };
       }
+
+      // Ensure type is defined (default to 'mikrotik' if not provided)
+      const pinType: PinType = body.type || PinType.MIKROTIK;
 
       const result = await generatePin_func({
         reqObject: { user },
         data: {
-          vessel_id: body.vessel_id,
+          type: pinType,
           kitp: body.kitp,
+          mikrotik_user_name: body.mikrotik_user_name || '',
+          vessel_id: body.vessel_id,
+          vessel_name: body.vessel_name,
           number_of_pins_to_generate: body.number_of_pins_to_generate,
         },
       });
@@ -44,49 +70,48 @@ export class PinManagementController {
       ctx.set.status = result.success ? 201 : 400;
       return result;
     } catch (error) {
-      console.error("Error in generatePin controller:", error);
+      console.error('Error in generatePin controller:', error);
       ctx.set.status = 500;
       return {
         success: false,
-        message: "Internal server error while generating pins",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
   static async getPins(ctx: CustomContext) {
     try {
-      // Get pagination parameters from query string with defaults
-      const page = ctx.query.page ? parseInt(String(ctx.query.page), 10) : 1;
-      const pageSize = ctx.query.pageSize ? parseInt(String(ctx.query.pageSize), 10) : 10;
-
-      // Validate pagination parameters
-      if (isNaN(page) || page < 1) {
-        ctx.set.status = 400;
-        return {
-          success: false,
-          message: "Invalid page number. Page must be a positive integer",
+      const { query } = ctx as {
+        query: {
+          page?: string;
+          pageSize?: string;
+          type?: string;
+          vessel_id?: string;
         };
-      }
+      };
 
-      if (isNaN(pageSize) || pageSize < 1 || pageSize > 100) {
-        ctx.set.status = 400;
-        return {
-          success: false,
-          message: "Invalid page size. Page size must be a positive integer between 1 and 100",
-        };
-      }
+      // Convert query params to proper types
+      const type = query.type as PinType | undefined;
+      const page = query.page ? parseInt(query.page, 10) : 1;
+      const pageSize = query.pageSize ? parseInt(query.pageSize, 10) : 10;
+      const vessel_id = query.vessel_id
+        ? parseInt(query.vessel_id, 10)
+        : undefined;
 
-      const result = await getPins_func(page, pageSize);
-      ctx.set.status = result.success ? 200 : 400;
-      return result;
+      return await getPins_func({
+        page,
+        pageSize,
+        type,
+        vessel_id,
+      });
     } catch (error) {
-      console.error("Error in getPins controller:", error);
+      console.error('Error in getPins controller:', error);
       ctx.set.status = 500;
       return {
         success: false,
-        message: "Internal server error while fetching pins",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: 'Failed to retrieve pins',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

@@ -1,7 +1,7 @@
-import { db } from "../../../db/connection";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { mikrotikUsageSession } from "../../../models/MikrotikUsageSession";
-import { mikrotikUsageAlltime } from "../../../models/MikrotikUsageAlltime";
+import { db } from '../../../db/connection';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { mikrotikUsageSession } from '../../../models/MikrotikUsageSession';
+import { mikrotikUsageAlltime } from '../../../models/MikrotikUsageAlltime';
 
 interface PaginatedResult<T> {
   data: T[];
@@ -20,7 +20,13 @@ export async function getMikrotikUsageByVesselId(params: {
   currentPage?: string | number;
   pageSize?: string | number;
 }): Promise<PaginatedResult<any>> {
-  const { vesselId, mode, username, currentPage = "1", pageSize = "10" } = params;
+  const {
+    vesselId,
+    mode,
+    username,
+    currentPage = '1',
+    pageSize = '10',
+  } = params;
 
   const page = Number(currentPage) || 1;
   const limit = Number(pageSize) || 10;
@@ -28,24 +34,25 @@ export async function getMikrotikUsageByVesselId(params: {
 
   // Determine which table to query based on mode
   const isSession = mode === 'current-session';
-  
+
   // Build conditions
   const conditions = [];
-  
+
   if (isSession) {
     conditions.push(eq(mikrotikUsageSession.vesselId, vesselId));
-    if (username) {
+    if (username && username !== 'None') {
       conditions.push(eq(mikrotikUsageSession.username, username));
     }
   } else {
     conditions.push(eq(mikrotikUsageAlltime.vesselId, vesselId));
-    if (username) {
+    if (username && username !== 'None') {
       conditions.push(eq(mikrotikUsageAlltime.username, username));
     }
   }
 
   // Create where clause
-  const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0] || undefined;
+  const whereClause =
+    conditions.length > 1 ? and(...conditions) : conditions[0] || undefined;
 
   // Get total count
   let total = 0;
@@ -57,7 +64,7 @@ export async function getMikrotikUsageByVesselId(params: {
       .select({ count: sql<number>`count(*)` })
       .from(mikrotikUsageSession)
       .where(whereClause);
-    
+
     total = Number(countResult[0]?.count || 0);
 
     // Get paginated session data
@@ -76,7 +83,7 @@ export async function getMikrotikUsageByVesselId(params: {
       .select({ count: sql<number>`count(*)` })
       .from(mikrotikUsageAlltime)
       .where(whereClause);
-    
+
     total = Number(countResult[0]?.count || 0);
 
     // Get paginated all-time data
