@@ -50,12 +50,12 @@ export const updateUserProfileById_func = async (
     // Check if the requesting user has system role
     const isSystemUser = await hasSystemRole(reqObject.user.id)
     console.log("its sytsem user", isSystemUser);
-    
+
     // Get user's role to check permissions
     const [userWithRole] = await db
       .select({
         role: {
-          name: userRoles.name,
+          ...userRoles
         }
       })
       .from(users)
@@ -91,9 +91,10 @@ export const updateUserProfileById_func = async (
       }
 
       // Legacy admin check for backward compatibility
-      if (userWithRole?.role?.name === 'admin') {
+      if (userWithRole?.role?.isSystem) {
         if (data.isActive !== undefined) updateData.isActive = data.isActive
         if (data.roleId !== undefined) updateData.roleId = data.roleId
+        if (data.mfaEnabled !== undefined) updateData.mfaEnabled = data.mfaEnabled
       }
     }
 

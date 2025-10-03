@@ -31,6 +31,7 @@ export const signInUser_func = async (
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
+        mfaSecret: users.mfaSecret,
         lastLoginAt: users.lastLoginAt,
         profilePicture: users.profilePicture,
         organizationId: users.organizationId,
@@ -125,6 +126,8 @@ export const signInUser_func = async (
     const session = await createSession({
       user_Id: user.id,
       token: token,
+      mfaEnabled: user.mfaEnabled || false,
+      mfaVerified: false,
       sessionData: {
         loginTime: new Date(),
       },

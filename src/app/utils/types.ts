@@ -15,12 +15,17 @@ export interface ReqObjectType {
 
 export interface AuthUser {
   id: string
+  sessionId?: Number
   email: string
   role?: UserRole
   permissions?: RolePermission
   fullName?: string
   username?: string
   organizationId?: number
+  sessionInfo: {
+    mfaEnabled?: boolean
+    mfaVerified?: boolean
+  }
 }
 
 export interface ApiResponse<T = any> {
