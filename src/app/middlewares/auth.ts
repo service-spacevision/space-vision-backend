@@ -46,7 +46,14 @@ export const authMiddleware = async ({
         }
         return { success: true, message: "verify token", data: user } 
       }
-      return { success: false, message: 'MFA not verified' }
+      return {
+        success: false, 
+        message: 'MFA not verified',
+        data: {
+          mfaEnabled: session.mfaEnabled,
+          mfaVerified: session.mfaVerified
+        }
+      }
     }
     // Attach user info to context
     const user: AuthUser = {
