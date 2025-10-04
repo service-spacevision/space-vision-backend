@@ -66,7 +66,7 @@ export type CreateUserData = Pick<NewUser,
 >
 
 export type UpdateUserData = Partial<Pick<User,
-  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences' | 'createdBy' | 'organizationId' | 'updatedBy' | 'password'
+  'fullName' | 'username' | 'isActive' | 'roleId' | 'profilePicture' | 'bio' | 'preferences' | 'createdBy' | 'organizationId' | 'updatedBy' | 'password' | 'mfaEnabled'
 >>
 
 // Elysia schemas for request/response validation
@@ -136,6 +136,12 @@ export const UpdateProfileSchema = t.Object({
     minLength: 8,
     description: 'New password (system users only, minimum 8 characters)'
   })),
+  mfaEnabled: t.Optional(t.Boolean({
+    description: 'Multi-factor authentication enabled status (system users only)'
+  })),
+  mfaRegenerate: t.Optional(t.Boolean({
+    description: 'Regenerate MFA secret (Only account owner)'
+  }))
 })
 
 export const ChangePasswordSchema = t.Object({

@@ -1,7 +1,9 @@
+import * as OTPAuth from "otpauth";
 import { CustomContext } from '../../utils/types'
 import { signUpUser_func } from './functions/signUpUser'
 import { signInUser_func } from './functions/signInUser'
 import { invalidateUserSessions } from '../../middlewares/session'
+import { verifyMfaToken_func } from './functions/verifyMFA';
 
 export class AuthController {
   static async signUpUser(ctx: CustomContext) {
@@ -10,14 +12,14 @@ export class AuthController {
       const result = await signUpUser_func(
         { data: body as any, user: user as any }
       )
-      
+
       ctx.set.status = result?.success === true ? 201 : 400
       return result
     } catch (err: any) {
       ctx.set.status = 500
-      return { 
-        success: false, 
-        message: 'Internal server error during signup' 
+      return {
+        success: false,
+        message: 'Internal server error during signup'
       }
     }
   }
@@ -25,11 +27,6 @@ export class AuthController {
   static async signIn(ctx: CustomContext) {
     try {
       const { body } = ctx
-      // const ipAddress = ctx.request.headers.get('x-forwarded-for') || 
-      //                  ctx.request.headers.get('x-real-ip') || 
-      //                  'unknown'
-      // const userAgent = ctx.request.headers.get('user-agent') || 'unknown'
-
       const result = await signInUser_func(
         {
           data: body as any
@@ -51,8 +48,8 @@ export class AuthController {
       return result
     } catch (err: any) {
       ctx.set.status = 500
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: err
       }
     }
@@ -71,15 +68,15 @@ export class AuthController {
       ctx.cookie.jwt_token.remove()
 
       ctx.set.status = 200
-      return { 
-        success: true, 
-        message: 'User logged out successfully' 
+      return {
+        success: true,
+        message: 'User logged out successfully'
       }
     } catch (err: any) {
       ctx.set.status = 500
-      return { 
-        success: false, 
-        message: 'Internal server error during logout' 
+      return {
+        success: false,
+        message: 'Internal server error during logout'
       }
     }
   }
@@ -93,24 +90,42 @@ export class AuthController {
 
       if (!user) {
         ctx.set.status = 401
-        return { 
-          success: false, 
-          message: 'No valid session found' 
+        return {
+          success: false,
+          message: 'No valid session found'
         }
       }
 
       ctx.set.status = 200
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: 'Token refreshed successfully',
         data: { user }
       }
     } catch (err: any) {
       ctx.set.status = 500
-      return { 
-        success: false, 
-        message: 'Internal server error during token refresh' 
+      return {
+        success: false,
+        message: 'Internal server error during token refresh'
       }
+    }
+  }
+  static async verifyMfaToken(ctx: CustomContext) {
+    try {
+      const { body, user } = ctx as any
+      const mfaVerified = await verifyMfaToken_func({
+        code: body?.mfaCode,
+        session: user,
+        sessionId: user?.sessionId
+      })
+      ctx.set.status = mfaVerified?.success === true ? 201 : 400
+      if (!mfaVerified.success) {
+        return { success: false, message: mfaVerified.message }
+      }
+      return { success: true, message: "MFA Verified" }
+    } catch (err: any) {
+      ctx.set.status = 500
+      return { success: false, message: err.message }
     }
   }
 }

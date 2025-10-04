@@ -1,44 +1,18 @@
-import { Context } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { JWT_CONFIG } from '../constants/constants'
 import { getSession } from './session'
 import { AuthUser } from '../utils/types'
-
-export const authMiddleware = async (cookieToken: string) => {
+export const authMiddleware = async ({
+  cookieToken,
+  permission
+}: {
+  cookieToken: string
+  permission?: string
+}) => {
   try {
     // Try to get token from cookie first, then Authorization header
-    console.log("ctx", cookieToken);
-    
     let token: string | undefined
     token = cookieToken
-    // // Try to get token from Elysia cookie object
-    // if (ctx.cookie && ctx.cookie.jwt_token) {
-    //   token = ctx.cookie.jwt_token.value
-    // }
-    
-    // // If no token from cookie object, parse from cookie header
-    // if (!token) {
-    //   const cookieHeader = ctx.request.headers.get('cookie')
-    //   if (cookieHeader) {
-    //     const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-    //       const [key, value] = cookie.trim().split('=')
-    //       if (key && value) {
-    //         acc[key] = value
-    //       }
-    //       return acc
-    //     }, {} as Record<string, string>)
-    //     token = cookies.jwt_token
-    //   }
-    // }
-    
-    // If still no token, try Authorization header
-    // if (!token) {
-    //   const authHeader = ctx.request.headers.get('authorization')
-    //   if (authHeader && authHeader.startsWith('Bearer ')) {
-    //     token = authHeader.substring(7)
-    //   }
-    // }
-
     if (!token) {
       return { success: false, message: "Token not found" }
     }
@@ -55,15 +29,45 @@ export const authMiddleware = async (cookieToken: string) => {
     if (!session || !session.isActive || new Date() > session.expiresAt) {
       return { success: false, message: 'Invalid or expired session' }
     }
-
+    if(session.mfaEnabled && !session.mfaVerified) {
+      if(permission === "verify_mfa_token"){
+        const user: AuthUser = {
+          id: decoded.id,
+          sessionId: session.id,
+          email: decoded.email,
+          role: decoded.role,
+          fullName: decoded.fullName,
+          username: decoded.username,
+          organizationId: decoded.organizationId,
+          sessionInfo: {
+            mfaEnabled: session.mfaEnabled || false,
+            mfaVerified: session.mfaVerified || false
+          }
+        }
+        return { success: true, message: "verify token", data: user } 
+      }
+      return {
+        success: false, 
+        message: 'MFA not verified',
+        data: {
+          mfaEnabled: session.mfaEnabled,
+          mfaVerified: session.mfaVerified
+        }
+      }
+    }
     // Attach user info to context
     const user: AuthUser = {
       id: decoded.id,
+      sessionId: session.id,
       email: decoded.email,
       role: decoded.role,
       fullName: decoded.fullName,
       username: decoded.username,
-      organizationId: decoded.organizationId
+      organizationId: decoded.organizationId,
+      sessionInfo: {
+        mfaEnabled: session.mfaEnabled || false,
+        mfaVerified: session.mfaVerified || false
+      }
     }
 
     return { success: true, message: "User found", data: user }

@@ -11,6 +11,8 @@ export const sessions = pgTable('sessions', {
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
   isActive: boolean('is_active').default(true),
+  mfaEnabled: boolean('mfa_enabled').default(false),
+  mfaVerified: boolean('mfa_verified').default(false),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -20,7 +22,7 @@ export type Session = InferSelectModel<typeof sessions>
 export type NewSession = InferInsertModel<typeof sessions>
 
 export type CreateSessionData = Pick<NewSession,
-  'userId' | 'currentDB' | 'token' | 'sessionData' | 'ipAddress' | 'userAgent' | 'expiresAt'
+  'userId' | 'currentDB' | 'token' | 'sessionData' | 'ipAddress' | 'mfaEnabled' | 'mfaVerified' | 'userAgent' | 'expiresAt'
 >
 
 export type SessionData = {

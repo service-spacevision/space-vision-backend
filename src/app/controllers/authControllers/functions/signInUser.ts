@@ -31,6 +31,7 @@ export const signInUser_func = async (
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
+        mfaSecret: users.mfaSecret,
         lastLoginAt: users.lastLoginAt,
         profilePicture: users.profilePicture,
         organizationId: users.organizationId,
@@ -102,7 +103,7 @@ export const signInUser_func = async (
       .set({ lastLoginAt: new Date() })
       .where(eq(users.id, user.id))
     console.log("");
-    
+
     // Create JWT token
     const tokenPayload = {
       id: user.id,
@@ -125,6 +126,8 @@ export const signInUser_func = async (
     const session = await createSession({
       user_Id: user.id,
       token: token,
+      mfaEnabled: user.mfaEnabled || false,
+      mfaVerified: false,
       sessionData: {
         loginTime: new Date(),
       },
@@ -139,7 +142,8 @@ export const signInUser_func = async (
       data: {
         user: others,
         token,
-        sessionId: session.id
+        sessionId: session.id,
+        ...(user.mfaEnabled && { mfaEnabled: user.mfaEnabled })
       }
     }
   } catch (error: any) {

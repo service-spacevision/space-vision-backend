@@ -9,7 +9,10 @@ export const checkUser = (permission: string) => {
     if (!contextToken) {
       contextToken = ctx.headers.authorization?.split(" ")[1];
     }
-    const authResult = await authMiddleware(contextToken!);
+    const authResult = await authMiddleware({
+      cookieToken: contextToken!,
+      permission: permission
+    });
 
     if (!authResult || !authResult.success) {
       ctx.set.status = 401;
@@ -31,7 +34,7 @@ export const checkUser = (permission: string) => {
     //     message: "Access denied"
     //   }
     // }
-    (ctx as any).user = authResult.data;   
+    (ctx as any).user = authResult.data;
     return;
   };
 };

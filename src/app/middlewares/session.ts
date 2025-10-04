@@ -9,6 +9,8 @@ export const createSession = async ({
   currentDB = 'default',
   token,
   sessionData,
+  mfaEnabled,
+  mfaVerified,
   ipAddress,
   userAgent
 }: {
@@ -16,6 +18,8 @@ export const createSession = async ({
   currentDB?: string
   token?: string
   sessionData: SessionData
+  mfaEnabled?: boolean
+  mfaVerified?: boolean
   ipAddress?: string
   userAgent?: string
 }) => {
@@ -28,6 +32,8 @@ export const createSession = async ({
       currentDB,
       sessionData: sessionData,
       ipAddress,
+      mfaEnabled,
+      mfaVerified,
       userAgent,
       expiresAt
     }
