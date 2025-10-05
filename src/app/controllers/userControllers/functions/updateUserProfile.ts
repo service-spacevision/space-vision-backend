@@ -1,60 +1,66 @@
-import { db } from '../../../db/connection'
-import { users } from '../../../models/User'
-import { userRoles } from '../../../models/UserRole'
-import { eq } from 'drizzle-orm'
-import { ReqObjectType } from '../../../utils/types'
-import { UpdateUserData } from '../../../models/User'
-import { generateTOTP } from '../../authControllers/functions/verifyMFA'
-import * as OTPAuth from "otpauth"
+import { db } from '../../../db/connection';
+import { users } from '../../../models/User';
+import { userRoles } from '../../../models/UserRole';
+import { eq } from 'drizzle-orm';
+import { ReqObjectType } from '../../../utils/types';
+import { UpdateUserData } from '../../../models/User';
+import { generateTOTP } from '../../authControllers/functions/verifyMFA';
+import * as OTPAuth from 'otpauth';
 
-
-export const updateUserProfile_func = async (
-  {
-    reqObject,
-    data,
-  }: {
-    reqObject: ReqObjectType
-    data: UpdateUserData & {
-      mfaRegenerate?: boolean
-    }
-  }
-) => {
+export const updateUserProfile_func = async ({
+  reqObject,
+  data,
+}: {
+  reqObject: ReqObjectType;
+  data: UpdateUserData & {
+    mfaRegenerate?: boolean;
+  };
+}) => {
   try {
-    const { fullName, username, profilePicture, bio, preferences, mfaEnabled, mfaRegenerate } = data
+    const {
+      fullName,
+      username,
+      profilePicture,
+      bio,
+      preferences,
+      mfaEnabled,
+      mfaRegenerate,
+    } = data;
 
     // Only allow updating certain fields
-    const updateData: Partial<UpdateUserData & { mfaSecret: string }> = {}
+    const updateData: Partial<UpdateUserData & { mfaSecret: string }> = {};
 
-    if (fullName !== undefined) updateData.fullName = fullName
-    if (username !== undefined) updateData.username = username
-    if (profilePicture !== undefined) updateData.profilePicture = profilePicture
-    if (bio !== undefined) updateData.bio = bio
-    if (preferences !== undefined) updateData.preferences = preferences
+    if (fullName !== undefined) updateData.fullName = fullName;
+    if (username !== undefined) updateData.username = username;
+    if (profilePicture !== undefined)
+      updateData.profilePicture = profilePicture;
+    if (bio !== undefined) updateData.bio = bio;
+    if (preferences !== undefined) updateData.preferences = preferences;
 
     // Get user's role to check permissions
     const [userWithRole] = await db
       .select({
         role: {
-          ...userRoles
-        }
+          ...userRoles,
+        },
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
       .where(eq(users.id, Number(reqObject.user.id)))
-      .limit(1)
+      .limit(1);
 
     // Admin users can update additional fields
     if (userWithRole?.role?.isSystem) {
-      if (data.isActive !== undefined) updateData.isActive = data.isActive
-      if (data.roleId !== undefined) updateData.roleId = data.roleId
+      if (data.isActive !== undefined) updateData.isActive = data.isActive;
+      if (data.roleId !== undefined) updateData.roleId = data.roleId;
     }
-    let totpUrl = null
-    let secret = null
+    let totpUrl = null;
+    let secret = null;
     if (mfaEnabled && mfaRegenerate) {
       secret = new OTPAuth.Secret();
-      const totp = generateTOTP(secret.base32, "Space Vision")
-      totpUrl = totp.toString()
-      updateData.mfaSecret = secret.base32
+      const totp = generateTOTP(secret.base32, 'Space Vision');
+      totpUrl = totp.toString();
+      updateData.mfaSecret = secret.base32;
     }
     if (Object.keys(updateData).length === 0) {
       return {
@@ -100,9 +106,9 @@ export const updateUserProfile_func = async (
       data: {
         ...updatedUser,
         // mfaSecret: secret,
-        totpUrl: totpUrl
-      }
-    }
+        totpUrl: totpUrl,
+      },
+    };
   } catch (error: any) {
     console.error('Update user profile error:', error);
     return {

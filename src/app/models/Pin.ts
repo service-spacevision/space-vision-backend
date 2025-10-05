@@ -11,14 +11,16 @@ import { users } from './User';
 import { vessels } from './Vessel';
 import { mikrotikVessels } from './MikrotikVessel';
 
-export const pinTypeEnum = pgEnum('pin_type', ['mikrotik', 'other']);
+// Using string literal type for better type safety
+export type PinType = 'mikrotik' | 'other';
 
 export const pins = pgTable('pins', {
   id: serial('id').primaryKey(),
-  type: pinTypeEnum('type').notNull().default('other'),
+  type: text('type').$type<PinType>().notNull().default('other'),
   // For MikroTik pins
   vessel_id: integer('vessel_id').references(
-    () => mikrotikVessels.id
+    () => mikrotikVessels.id,
+    { onDelete: 'set null', onUpdate: 'cascade' }
   ),
   vessel_name: text('vessel_name'),
   // For non-MikroTik pins
@@ -28,10 +30,15 @@ export const pins = pgTable('pins', {
   password: text('password').notNull(),
   generated_by: integer('generated_by')
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
 });
 
-export type Pin = InferSelectModel<typeof pins>;
-export type NewPin = InferInsertModel<typeof pins>;
+export type Pin = Omit<InferSelectModel<typeof pins>, 'type'> & {
+  type: PinType;
+};
+
+export type NewPin = Omit<InferInsertModel<typeof pins>, 'type'> & {
+  type?: PinType;
+};

@@ -27,6 +27,15 @@ export const frontendPermissions = [
     description: 'Dashboard quick access page in dashboards section',
   },
   {
+    name: 'nav_vessel_status',
+    resource: 'Vessel Status',
+    action: 'view',
+    scope: 'organization',
+    category: 'navigation',
+    section: 'organization',
+    description: 'Vessel status page in dashboards section',
+  },
+  {
     name: 'nav_user_overview',
     resource: 'User Overview',
     action: 'view',
@@ -51,7 +60,8 @@ export const frontendPermissions = [
     scope: 'organization',
     category: 'navigation',
     section: 'organization',
-    description: 'Role management page under platform user management navigation',
+    description:
+      'Role management page under platform user management navigation',
   },
   {
     name: 'nav_platform',
@@ -150,7 +160,8 @@ export const frontendPermissions = [
     scope: 'organization',
     category: 'navigation',
     section: 'organization',
-    description: 'Add Mikrotik vessel page under Mikrotik management navigation',
+    description:
+      'Add Mikrotik vessel page under Mikrotik management navigation',
   },
   {
     name: 'nav_platform_mikrotik_management_hotspot',
@@ -168,7 +179,8 @@ export const frontendPermissions = [
     scope: 'organization',
     category: 'navigation',
     section: 'organization',
-    description: 'Hotspot PIN generator page under Mikrotik management navigation',
+    description:
+      'Hotspot PIN generator page under Mikrotik management navigation',
   },
   {
     name: 'nav_platform_mikrotik_management_firewall',
@@ -215,4 +227,369 @@ export const frontendPermissions = [
     section: 'organization',
     description: 'Permission management page under access control navigation',
   },
-]
+
+  // Components
+  {
+    name: 'comp_dashboard_analytic_overview',
+    resource: 'Dashboard Analytic Overview Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Dashboard analytic overview component in dashboard analytic page',
+  },
+  {
+    name: 'comp_dashboard_analytic_charts',
+    resource: 'Dashboard Analytic Charts Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Dashboard analytic charts component in dashboard analytic page',
+  },
+  {
+    name: 'comp_dashboard_analytic_metrics',
+    resource: 'Dashboard Analytic Metrics Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Dashboard analytic metrics component in dashboard analytic page',
+  },
+  {
+    name: 'comp_dashboard_analytic_reports',
+    resource: 'Dashboard Analytic Reports Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Dashboard analytic reports component in dashboard analytic page',
+  },
+
+  // Dashboard Quick Access -> Vessel Status
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_container',
+    resource: 'Vessel Status Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Vessel status container component in vessel status page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_table',
+    resource: 'Vessel Status Usage Summary Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Usage summary table component in vessel status page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_chart',
+    resource: 'Vessel Status Usage Chart Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Usage chart component in vessel status page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_filter',
+    resource: 'Vessel Status Filter Modal Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Filter modal component in vessel status page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_search',
+    resource: 'Vessel Status Shared Search Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Shared search component in vessel status page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_vessel_status_stats',
+    resource: 'Vessel Status Usage Stats Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Usage stats component in vessel status page',
+  },
+
+  // Dashboard Quick Access -> User Overview
+  {
+    name: 'comp_dashboard_quick_access_user_overview_users_container',
+    resource: 'Users Overview Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Users overview container component in user overview page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_user_overview_add_new_user',
+    resource: 'Add New User Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Add new user component in user overview page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_user_overview_table',
+    resource: 'User Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'User table component in user overview page',
+  },
+
+  // Platform -> User Management -> Overview
+  {
+    name: 'comp_dashboard_quick_access_user_overview_users',
+    resource: 'Users Overview Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Users overview component in platform user management overview page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_user_overview_add_new_user',
+    resource: 'Add New User Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Add new user component in platform user management overview page',
+  },
+  {
+    name: 'comp_dashboard_quick_access_user_overview_table',
+    resource: 'User Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'User table component in platform user management overview page',
+  },
+
+  // Platform -> User Management -> Role Management
+  {
+    name: 'comp_platform_user_management_role_management_roles_container',
+    resource: 'Roles Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Roles container component in role management page',
+  },
+  {
+    name: 'comp_platform_user_management_role_management_create_role',
+    resource: 'Create Role Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Create role component in role management page',
+  },
+  {
+    name: 'comp_platform_user_management_role_management_role_table',
+    resource: 'Role Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Role table component in role management page',
+  },
+
+  // Platform -> Vessel Management -> Vessel Overview
+  {
+    name: 'comp_platform_vessel_management_vessel_overview_container',
+    resource: 'Vessel Overview Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Vessel overview container component in vessel overview page',
+  },
+  {
+    name: 'comp_platform_vessel_management_vessel_overview_add_vessel',
+    resource: 'Add Vessel Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Add vessel component in vessel overview page',
+  },
+  {
+    name: 'comp_platform_vessel_management_vessel_overview_table',
+    resource: 'Vessel Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Vessel table component in vessel overview page',
+  },
+
+  // Platform -> Vessel Management -> Group Overview
+  {
+    name: 'comp_platform_vessel_management_group_overview_container',
+    resource: 'Groups Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Groups container component in group management page',
+  },
+  {
+    name: 'comp_platform_vessel_management_group_overview_add_group',
+    resource: 'Add Group Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Add group component in group management page',
+  },
+  {
+    name: 'comp_platform_vessel_management_group_overview_table',
+    resource: 'Group Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Group table component in group management page',
+  },
+
+  // Platform -> Mikrotik Management -> Mikrotik Vessel
+  {
+    name: 'comp_platform_mikrotik_management_mikrotik_vessels_container',
+    resource: 'Mikrotik Vessel Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Mikrotik vessel container component in mikrotik vessel page',
+  },
+  {
+    name: 'comp_platform_mikrotik_management_mikrotik_vessels_add_vessel',
+    resource: 'Add Mikrotik Vessel Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Add mikrotik vessel component in mikrotik vessel page',
+  },
+  {
+    name: 'comp_platform_mikrotik_management_mikrotik_vessels_table',
+    resource: 'Mikrotik Vessel Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Mikrotik vessel table component in mikrotik vessel page',
+  },
+
+  // Platform -> Access Control -> Manage Organizations
+  {
+    name: 'comp_platform_access_control_manage_organizations_container',
+    resource: 'Organizations Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Organizations container component in manage organizations page',
+  },
+  {
+    name: 'comp_platform_access_control_manage_organizations_add_organization',
+    resource: 'Add Organization Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Add organization component in manage organizations page',
+  },
+  {
+    name: 'comp_platform_access_control_manage_organizations_table',
+    resource: 'Organization Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Organization table component in manage organizations page',
+  },
+
+  // Platform -> Access Control -> Permission Management
+  {
+    name: 'comp_platform_access_control_permission_management_container',
+    resource: 'Permissions Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Permissions container component in permission management page',
+  },
+  {
+    name: 'comp_platform_access_control_permission_management_create_permission',
+    resource: 'Create Permission Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Create permission component in permission management page',
+  },
+  {
+    name: 'comp_platform_access_control_permission_management_table',
+    resource: 'Permission Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Permission table component in permission management page',
+  },
+
+  // Platform -> Organization Management -> Overview
+  {
+    name: 'comp_platform_organization_management_organization_container',
+    resource: 'Organization Overview Container Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Overview container component in organization overview page',
+  },
+  {
+    name: 'comp_platform_organization_management_organization_create_new_organization',
+    resource: 'Create New Organization Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description:
+      'Create new organization component in organization overview page',
+  },
+  {
+    name: 'comp_platform_organization_management_organization_table',
+    resource: 'Organization Table Component',
+    action: 'view',
+    scope: 'organization',
+    category: 'component',
+    section: 'organization',
+    description: 'Organization table component in organization overview page',
+  },
+];

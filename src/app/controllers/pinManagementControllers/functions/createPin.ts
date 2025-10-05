@@ -1,6 +1,6 @@
 import { generateRandomString } from '../../../../utils/stringHelpers';
 import { db } from '../../../db/connection';
-import { pins, type NewPin, pinTypeEnum } from '../../../models/Pin';
+import { pins, type NewPin } from '../../../models/Pin';
 import { mikrotikPermissions } from '../../../models/MikrotikPermission';
 import { eq, and, desc } from 'drizzle-orm';
 import { PinType } from '../../../../types/pin.types';
@@ -168,7 +168,7 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
       try {
         await db.transaction(async (tx) => {
           let insertedPins;
-          
+
           if (type === PinType.MIKROTIK && vessel_id) {
             // For MikroTik pins, we'll handle the insertion in the MikroTik section
             insertedPins = [];
@@ -196,7 +196,9 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
               }));
 
               if (permissions.length > 0) {
-                console.log(`Creating ${permissions.length} permission entries`);
+                console.log(
+                  `Creating ${permissions.length} permission entries`
+                );
                 await tx.insert(mikrotikPermissions).values(permissions);
               }
             }
@@ -209,7 +211,9 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
               .values(generatedPins)
               .returning();
 
-            console.log(`Inserted ${insertedMikrotikPins.length} MikroTik pins`);
+            console.log(
+              `Inserted ${insertedMikrotikPins.length} MikroTik pins`
+            );
             insertedPins = insertedMikrotikPins;
 
             // Fetch the Mikrotik vessel details
