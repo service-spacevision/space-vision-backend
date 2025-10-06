@@ -1,16 +1,16 @@
-import { db } from "../../../db/connection";
-import { userRoles } from "../../../models/UserRole";
-import { UpdateUserRoleData } from "../../../models/UserRole";
-import { permissions } from '../../../models/Permission'
-import { rolesPermission } from '../../../models/RolePermission'
-import { eq, inArray } from "drizzle-orm";
-import { AuthUser } from "../../../utils/types";
+import { db } from '../../../db/connection';
+import { userRoles } from '../../../models/UserRole';
+import { UpdateUserRoleData } from '../../../models/UserRole';
+import { permissions } from '../../../models/Permission';
+import { rolesPermission } from '../../../models/RolePermission';
+import { eq, inArray } from 'drizzle-orm';
+import { AuthUser } from '../../../utils/types';
 
 interface UpdateUserRoleParams {
   roleId: string;
   userInfo: AuthUser;
   data: UpdateUserRoleData & {
-    permissions?: number[] // Array of permission IDs
+    permissions?: number[]; // Array of permission IDs
   };
 }
 
@@ -30,14 +30,14 @@ export async function updateUserRole_func({
     if (!existingRole) {
       return {
         success: false,
-        message: "User role not found",
+        message: 'User role not found',
       };
     }
 
     if (existingRole.isSystem && !userInfo.role?.isSystem) {
       return {
         success: false,
-        message: "Cannot modify system roles",
+        message: 'Cannot modify system roles',
       };
     }
 
@@ -49,6 +49,7 @@ export async function updateUserRole_func({
         isActive: (data as any).isActive,
         organizationId: (data as any).organizationId,
         updatedAt: new Date(),
+        permittedVesselGroups: (data as any).permittedVesselGroups,
       })
       .where(eq(userRoles.id, Number(roleId)))
       .returning();
@@ -56,33 +57,33 @@ export async function updateUserRole_func({
     // If permissions array is provided, update role-permission associations
     if (data.permissions !== undefined) {
       if (data.permissions.length > 0) {
-        console.log("permissions up", data.permissions);
-        
+        console.log('permissions up', data.permissions);
+
         // Fetch all permissions by IDs
         const fetchedPermissions = await db
           .select()
           .from(permissions)
-          .where(inArray(permissions.id, data.permissions))
-        console.log("permissions up", fetchedPermissions);
-        
-        // Group permissions by category
-        const apiPermissions: string[] = []
-        const componentPermissions: string[] = []
-        const navigationPermissions: string[] = []
+          .where(inArray(permissions.id, data.permissions));
+        console.log('permissions up', fetchedPermissions);
 
-        fetchedPermissions.forEach(permission => {
+        // Group permissions by category
+        const apiPermissions: string[] = [];
+        const componentPermissions: string[] = [];
+        const navigationPermissions: string[] = [];
+
+        fetchedPermissions.forEach((permission) => {
           switch (permission.category) {
             case 'api':
-              apiPermissions.push(permission.name)
-              break
+              apiPermissions.push(permission.name);
+              break;
             case 'component':
-              componentPermissions.push(permission.name)
-              break
+              componentPermissions.push(permission.name);
+              break;
             case 'navigation':
-              navigationPermissions.push(permission.name)
-              break
+              navigationPermissions.push(permission.name);
+              break;
           }
-        })
+        });
 
         // Update or insert role-permission association
         const updatedData = await db
@@ -90,24 +91,28 @@ export async function updateUserRole_func({
           .values({
             roleId: Number(roleId),
             api_permissions: apiPermissions.length > 0 ? apiPermissions : null,
-            component_permissions: componentPermissions.length > 0 ? componentPermissions : null,
-            navigation_permissions: navigationPermissions.length > 0 ? navigationPermissions : null,
+            component_permissions:
+              componentPermissions.length > 0 ? componentPermissions : null,
+            navigation_permissions:
+              navigationPermissions.length > 0 ? navigationPermissions : null,
           })
           .onConflictDoUpdate({
             target: rolesPermission.roleId,
             set: {
-              api_permissions: apiPermissions.length > 0 ? apiPermissions : null,
-              component_permissions: componentPermissions.length > 0 ? componentPermissions : null,
-              navigation_permissions: navigationPermissions.length > 0 ? navigationPermissions : null,
+              api_permissions:
+                apiPermissions.length > 0 ? apiPermissions : null,
+              component_permissions:
+                componentPermissions.length > 0 ? componentPermissions : null,
+              navigation_permissions:
+                navigationPermissions.length > 0 ? navigationPermissions : null,
               updatedAt: new Date(),
-            }
+            },
           })
           .returning();
-          console.log("updatedData", updatedData);
-          
+        console.log('updatedData', updatedData);
       } else {
-        console.log("permissions", data.permissions);
-        
+        console.log('permissions', data.permissions);
+
         // If empty permissions array, clear all permissions for this role
         await db
           .insert(rolesPermission)
@@ -124,22 +129,22 @@ export async function updateUserRole_func({
               component_permissions: null,
               navigation_permissions: null,
               updatedAt: new Date(),
-            }
-          })
+            },
+          });
       }
     }
 
     return {
       success: true,
-      message: "User role updated successfully",
+      message: 'User role updated successfully',
       data: updatedRole,
     };
   } catch (error: any) {
-    console.error("Error updating user role:", error);
+    console.error('Error updating user role:', error);
 
     return {
       success: false,
-      message: "Failed to update user role",
+      message: 'Failed to update user role',
     };
   }
 }

@@ -22,6 +22,11 @@ const vesselRoute = new Elysia({ prefix: "/api/vessels" })
     beforeHandle: [checkUser(permission["GET_/api/vessels/grouped"])],
     tags: ["Vessels"],
     query: t.Object({
+      search: t.Optional(
+        t.String({
+          description: "Search by group name or vessel name",
+        })
+      ),
       currentPage: t.Optional(
         t.String({ description: "Current Page number", default: "1" })
       ),
@@ -31,7 +36,7 @@ const vesselRoute = new Elysia({ prefix: "/api/vessels" })
     }),
     detail: {
       summary: "Get all vessels grouped by vessel groups",
-      description: "Fetches all vessels organized by their vessel groups",
+      description: "Fetches all vessels organized by their vessel groups with optional search",
       operationId: "getAllVesselsGrouped",
     },
   })
@@ -57,6 +62,16 @@ const vesselRoute = new Elysia({ prefix: "/api/vessels" })
       name: t.Optional(
         t.String({
           description: "Filter by vessel name",
+        })
+      ),
+      kitpNumber: t.Optional(
+        t.String({
+          description: "Filter by KITP Number",
+        })
+      ),
+      deviceId: t.Optional(
+        t.String({
+          description: "Filter by Device ID",
         })
       ),
       groupId: t.Optional(

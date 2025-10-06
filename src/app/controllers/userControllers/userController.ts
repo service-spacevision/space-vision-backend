@@ -1,93 +1,88 @@
-import { CustomContext, IPagination } from '../../utils/types'
-import { getUserProfile_func } from './functions/getUserProfile'
-import { updateUserProfile_func } from './functions/updateUserProfile'
-import { changePassword_func } from './functions/changePassword'
-import { updateUserProfileById_func } from './functions/userUpdateById'
-import { getAllUsers_func } from './functions/getAllUser'
-import { getAllUsersUnderOrg_func } from './functions/userUnderOrg'
+import { CustomContext, IPagination } from '../../utils/types';
+import { getUserProfile_func } from './functions/getUserProfile';
+import { updateUserProfile_func } from './functions/updateUserProfile';
+import { changePassword_func } from './functions/changePassword';
+import { updateUserProfileById_func } from './functions/userUpdateById';
+import { getAllUsers_func } from './functions/getAllUser';
+import { getAllUsersUnderOrg_func } from './functions/userUnderOrg';
 
 export class UserController {
   static async getProfile(ctx: CustomContext) {
     try {
-      const user = ctx.user!
-      console.log("user", user);
+      const user = ctx.user!;
+      console.log('user', user);
 
-      const result = await getUserProfile_func(
-        {
-          reqObject: { user }
-        })
+      const result = await getUserProfile_func({
+        reqObject: { user },
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 404
-      return result
+      ctx.set.status = result?.success === true ? 200 : 404;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while fetching profile'
-      }
+        message: 'Internal server error while fetching profile',
+      };
     }
   }
 
   static async updateProfile(ctx: CustomContext) {
     try {
-      const { body } = ctx
-      const user = ctx.user!
+      const { body } = ctx;
+      const user = ctx.user!;
 
-      const result = await updateUserProfile_func(
-        {
-          reqObject: { user },
-          data: body as any
-        }
-      )
+      const result = await updateUserProfile_func({
+        reqObject: { user },
+        data: body as any,
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while updating profile'
-      }
+        message: 'Internal server error while updating profile',
+      };
     }
   }
 
   static async changePassword(ctx: CustomContext) {
     try {
-      const { body } = ctx
+      const { body } = ctx;
       const reqObject = {
-        user: ctx.user!
-      }
-      const result = await changePassword_func(
-        {
-          reqObject,
-          data: body as any
-        }
-      )
+        user: ctx.user!,
+      };
+      const result = await changePassword_func({
+        reqObject,
+        data: body as any,
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while changing password'
-      }
+        message: 'Internal server error while changing password',
+      };
     }
   }
 
   static async deleteAccount(ctx: CustomContext) {
     try {
-      const user = ctx.user!
+      const user = ctx.user!;
 
       // For security, require password confirmation
-      const { password } = ctx.body as any
+      const { password } = ctx.body as any;
 
       if (!password) {
-        ctx.set.status = 400
+        ctx.set.status = 400;
         return {
           success: false,
-          message: 'Password confirmation required'
-        }
+          message: 'Password confirmation required',
+        };
       }
 
       // This would typically involve:
@@ -96,92 +91,91 @@ export class UserController {
       // 3. Invalidating all sessions
       // 4. Potentially anonymizing data based on privacy requirements
 
-      ctx.set.status = 200
+      ctx.set.status = 200;
       return {
         success: true,
-        message: 'Account deletion initiated. This action cannot be undone.'
-      }
+        message: 'Account deletion initiated. This action cannot be undone.',
+      };
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while deleting account'
-      }
+        message: 'Internal server error while deleting account',
+      };
     }
   }
   // update user profile by id
   static async updateUserProfileById(ctx: CustomContext) {
     try {
-      const { body } = ctx
-      const userId = ctx.query?.id ?? ctx.params?.id
-      const user = ctx.user!
+      const { body } = ctx;
+      const userId = ctx.query?.id ?? ctx.params?.id;
+      const user = ctx.user!;
+      console.log('user', ctx);
 
-      const result = await updateUserProfileById_func(
-        {
-          reqObject: { user },
-          data: body as any,
-          userId
-        }
-      )
+      const result = await updateUserProfileById_func({
+        reqObject: { user },
+        data: body as any,
+        userId,
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while updating profile'
-      }
+        message: 'Internal server error while updating profile',
+      };
     }
   }
   // Get full user list super admin
   static async getAllUsers(ctx: CustomContext) {
     try {
       const pagination = {
-        currentPage: Number(ctx.query.page) || 1,
+        currentPage: Number(ctx.query.currentPage) || 1,
         pageSize: Number(ctx.query.pageSize) || 10,
-        all: ctx.query.all || "false"
-      }
-      const result = await getAllUsers_func(
-        {
-          reqObject: { user: ctx.user! },
-          pagination: pagination
-        }
-      )
+        all: ctx.query.all || 'false',
+      };
+      const searchQuery = ctx.query.search ? String(ctx.query.search) : '';
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      const result = await getAllUsers_func({
+        reqObject: { user: ctx.user! },
+        pagination,
+        searchQuery,
+      });
+
+      ctx.set.status = result?.success ? 200 : 400;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      console.error('Error in getAllUsers:', err);
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while fetching users'
-      }
+        message: err.message || 'Internal server error while fetching users',
+      };
     }
   }
   // Get all user under org
   static async getAllUsersUnderOrg(ctx: CustomContext) {
     try {
       const pagination = {
-        currentPage: Number(ctx.query.page) || 1,
+        currentPage: Number(ctx.query.currentPage) || 1,
         pageSize: Number(ctx.query.pageSize) || 10,
-        all: ctx.query.all || "false"
-      }
-      const result = await getAllUsersUnderOrg_func(
-        {
-          reqObject: { user: ctx.user! },
-          pagination: pagination
-        }
-      )
+        all: ctx.query.all || 'false',
+      };
+      const result = await getAllUsersUnderOrg_func({
+        reqObject: { user: ctx.user! },
+        pagination: pagination,
+      });
 
-      ctx.set.status = result?.success === true ? 200 : 400
-      return result
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
     } catch (err: any) {
-      ctx.set.status = 500
+      ctx.set.status = 500;
       return {
         success: false,
-        message: 'Internal server error while fetching users'
-      }
+        message: 'Internal server error while fetching users',
+      };
     }
   }
 }

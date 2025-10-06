@@ -1,5 +1,5 @@
-import { Context } from "elysia";
-import { authMiddleware } from "./auth";
+import { Context } from 'elysia';
+import { authMiddleware } from './auth';
 
 export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
@@ -7,12 +7,13 @@ export const checkUser = (permission: string) => {
     // console.log("ctx->data", ctx.cookie.jwt_token);
     let contextToken = ctx.cookie.jwt_token.value;
     if (!contextToken) {
-      contextToken = ctx.headers.authorization?.split(" ")[1];
+      contextToken = ctx.headers.authorization?.split(' ')[1];
     }
     const authResult = await authMiddleware({
       cookieToken: contextToken!,
-      permission: permission
+      permission: permission,
     });
+    console.log('auth result', authResult);
 
     if (!authResult || !authResult.success) {
       ctx.set.status = 401;

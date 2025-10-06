@@ -1,23 +1,28 @@
-import { Elysia, t } from 'elysia'
-import { cookie } from '@elysiajs/cookie'
-import { UserController } from '../../app/controllers/userControllers/userController'
-import { checkUser } from '../../app/middlewares/permissions'
-import { UpdateProfileSchema, ChangePasswordSchema, DeleteAccountSchema, UserResponseSchema } from '../../app/models/User'
+import { Elysia, t } from 'elysia';
+import { cookie } from '@elysiajs/cookie';
+import { UserController } from '../../app/controllers/userControllers/userController';
+import { checkUser } from '../../app/middlewares/permissions';
+import {
+  UpdateProfileSchema,
+  ChangePasswordSchema,
+  DeleteAccountSchema,
+  UserResponseSchema,
+} from '../../app/models/User';
 
 const permission = {
-  "GET_/api/users/profile": "read_user_profile",
-  "PUT_/api/users/profile": "update_user_profile",
-  "POST_/api/users/change-password": "change_password",
-  "DELETE_/api/users/account": "delete_user_account",
-  "PATCH_/api/users/update-by-id": "update_user_by_id",
-  "GET_/api/users/all": "get_all_users",
-  "GET_/api/users/all-under-org": "get_all_users_under_org"
-}
+  'GET_/api/users/profile': 'read_user_profile',
+  'PUT_/api/users/profile': 'update_user_profile',
+  'POST_/api/users/change-password': 'change_password',
+  'DELETE_/api/users/account': 'delete_user_account',
+  'PATCH_/api/users/update-by-id': 'update_user_by_id',
+  'GET_/api/users/all': 'get_all_users',
+  'GET_/api/users/all-under-org': 'get_all_users_under_org',
+};
 
 const userRoute = new Elysia({ prefix: '/api/users' })
   .use(cookie())
   .get('/profile', UserController.getProfile, {
-    beforeHandle: [checkUser(permission["GET_/api/users/profile"])],
+    beforeHandle: [checkUser(permission['GET_/api/users/profile'])],
     tags: ['User'],
     detail: {
       summary: 'Get user profile',
@@ -34,7 +39,7 @@ const userRoute = new Elysia({ prefix: '/api/users' })
       summary: 'Update user profile',
       description: 'Update current user profile information',
       operationId: 'updateUserProfile',
-    }
+    },
   })
   .get('/all', UserController.getAllUsers, {
     beforeHandle: [checkUser(permission['GET_/api/users/all'])],
@@ -43,6 +48,7 @@ const userRoute = new Elysia({ prefix: '/api/users' })
       currentPage: t.Optional(t.String({ default: '1' })),
       pageSize: t.Optional(t.String({ default: '10' })),
       all: t.Optional(t.String({ default: 'false' })),
+      search: t.Optional(t.String({ default: '' })),
     }),
     detail: {
       summary: 'Get all users',
@@ -73,7 +79,7 @@ const userRoute = new Elysia({ prefix: '/api/users' })
       summary: 'Change password',
       description: 'Change user password',
       operationId: 'changePassword',
-    }
+    },
   })
 
   .delete('/account', UserController.deleteAccount, {
@@ -84,14 +90,14 @@ const userRoute = new Elysia({ prefix: '/api/users' })
       summary: 'Delete user account',
       description: 'Delete current user account',
       operationId: 'deleteUserAccount',
-    }
+    },
   })
   .patch('/update-by-id', UserController.updateUserProfileById, {
-    beforeHandle: [checkUser(permission["PATCH_/api/users/update-by-id"])],
+    beforeHandle: [checkUser(permission['PATCH_/api/users/update-by-id'])],
     query: t.Object({
       id: t.String({
-        description: 'User ID'
-      })
+        description: 'User ID',
+      }),
     }),
     body: UpdateProfileSchema,
     tags: ['User'],
@@ -99,8 +105,8 @@ const userRoute = new Elysia({ prefix: '/api/users' })
       summary: 'Update user profile by id',
       description: 'Update current user profile information',
       operationId: 'updateUserProfileById',
-    }
-  })
+    },
+  });
 
-export { permission }
-export default userRoute
+export { permission };
+export default userRoute;

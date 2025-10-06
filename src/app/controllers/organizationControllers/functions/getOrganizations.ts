@@ -1,21 +1,24 @@
 import { db } from '../../../db/connection';
 import { organizations } from '../../../models/Organization';
-import { count, desc } from 'drizzle-orm';
+import { count, desc, ilike } from 'drizzle-orm';
 
 interface Params {
   pagination?: { currentPage: number; pageSize: number; all?: string };
+  search?: string;
 }
 
-export async function getOrganizations_func({ pagination }: Params) {
+export async function getOrganizations_func({ pagination, search }: Params) {
   try {
     const page = pagination?.currentPage || 1;
     const size = pagination?.pageSize || 10;
     const all = pagination?.all === 'true';
+    const searchQuery = search || '';
 
     if (all) {
       const rows = await db
         .select()
         .from(organizations)
+        .where(ilike(organizations.name, `%${searchQuery}%`))
         .orderBy(desc(organizations.id));
       return {
         success: true,
@@ -28,6 +31,7 @@ export async function getOrganizations_func({ pagination }: Params) {
     const rows = await db
       .select()
       .from(organizations)
+      .where(ilike(organizations.name, `%${searchQuery}%`))
       .orderBy(desc(organizations.id))
       .limit(size)
       .offset(offset);

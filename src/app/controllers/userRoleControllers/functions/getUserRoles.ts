@@ -1,22 +1,45 @@
 import { db } from "../../../db/connection";
 import { userRoles } from "../../../models/UserRole";
 import { rolesPermission } from "../../../models/RolePermission";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, or, ilike, and } from "drizzle-orm";
 import { IPagination } from "../../../utils/types";
 
 interface GetUserRolesParams {
   includeInactive?: boolean;
   pagination?: IPagination;
+  searchQuery?: string;
 }
 
 export async function getUserRoles_func({
   includeInactive = false,
   pagination,
+  searchQuery = '',
 }: GetUserRolesParams = {}) {
   try {
-    const whereCondition = includeInactive
-      ? undefined
-      : eq(userRoles.isActive, true);
+    // Build where conditions
+    const whereConditions = [];
+
+    // Add search conditions if searchQuery is provided
+    if (searchQuery) {
+      const searchTerm = `%${searchQuery}%`;
+      whereConditions.push(
+        or(
+          ilike(userRoles.name, searchTerm),
+          ilike(userRoles.displayName, searchTerm)
+        )
+      );
+    }
+
+    // Add active/inactive condition
+    if (!includeInactive) {
+      whereConditions.push(eq(userRoles.isActive, true));
+    }
+
+    const whereCondition = whereConditions.length > 1
+      ? and(...whereConditions)
+      : whereConditions.length === 1
+        ? whereConditions[0]
+        : undefined;
 
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === "true" || pagination?.all === "1") {

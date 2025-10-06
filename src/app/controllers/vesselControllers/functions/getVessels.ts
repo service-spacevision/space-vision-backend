@@ -9,6 +9,8 @@ interface GetVesselsParams {
   }
   query?: {
     name?: string
+    kitpNumber?: string
+    deviceId?: string
     groupId?: string
     subscriptionPlan?: string
   }
@@ -26,6 +28,14 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
     // Add filters based on query parameters
     if (query?.name) {
       whereConditions.push(ilike(vessels.name, `%${query.name}%`))
+    }
+
+    if (query?.kitpNumber) {
+      whereConditions.push(ilike(vessels.vesselsKitNumber, `%${query.kitpNumber}%`))
+    }
+
+    if (query?.deviceId) {
+      whereConditions.push(ilike(vessels.deviceId, `%${query.deviceId}%`))
     }
 
     if (query?.groupId) {

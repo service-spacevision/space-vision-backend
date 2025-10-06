@@ -35,6 +35,7 @@ const organizationRoute = new Elysia({ prefix: '/api/organizations' })
       currentPage: t.Optional(t.String({ default: '1' })),
       pageSize: t.Optional(t.String({ default: '10' })),
       all: t.Optional(t.String({ default: 'false' })),
+      search: t.Optional(t.String()),
     }),
     tags: ['Organization'],
     detail: {

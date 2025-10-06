@@ -36,6 +36,7 @@ export const updateUserProfile_func = async ({
       updateData.profilePicture = profilePicture;
     if (bio !== undefined) updateData.bio = bio;
     if (preferences !== undefined) updateData.preferences = preferences;
+    if (mfaEnabled !== undefined) updateData.mfaEnabled = mfaEnabled;
 
     // Get user's role to check permissions
     const [userWithRole] = await db
@@ -92,6 +93,7 @@ export const updateUserProfile_func = async ({
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       });
+    console.log('updatedUser', reqObject.user);
 
     if (!updatedUser) {
       return {

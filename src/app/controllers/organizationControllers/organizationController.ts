@@ -24,12 +24,13 @@ export class OrganizationController {
   static async list(ctx: CustomContext) {
     try {
       const { query } = ctx;
+      const search = query?.search || '';
       const pagination = {
         currentPage: Number(query?.currentPage || query?.page) || 1,
         pageSize: Number(query?.pageSize) || 10,
         all: query?.all || 'false',
       };
-      const result = await getOrganizations_func({ pagination });
+      const result = await getOrganizations_func({ pagination, search });
       ctx.set.status = result?.success ? 200 : 404;
       return result;
     } catch (err) {

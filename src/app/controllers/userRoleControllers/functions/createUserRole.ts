@@ -1,10 +1,10 @@
-import { db } from "../../../db/connection";
-import { userRoles } from "../../../models/UserRole";
-import { permissions } from "../../../models/Permission";
-import { rolesPermission } from "../../../models/RolePermission";
-import { CreateUserRoleData } from "../../../models/UserRole";
-import { inArray } from "drizzle-orm";
-import { AuthUser } from "../../../utils/types";
+import { db } from '../../../db/connection';
+import { userRoles } from '../../../models/UserRole';
+import { permissions } from '../../../models/Permission';
+import { rolesPermission } from '../../../models/RolePermission';
+import { CreateUserRoleData } from '../../../models/UserRole';
+import { inArray } from 'drizzle-orm';
+import { AuthUser } from '../../../utils/types';
 
 interface CreateUserRoleParams {
   data: CreateUserRoleData & {
@@ -50,13 +50,13 @@ export async function createUserRole_func({
 
       fetchedPermissions.forEach((permission) => {
         switch (permission.category) {
-          case "api":
+          case 'api':
             apiPermissions.push(permission.name);
             break;
-          case "component":
+          case 'component':
             componentPermissions.push(permission.name);
             break;
-          case "navigation":
+          case 'navigation':
             navigationPermissions.push(permission.name);
             break;
         }
@@ -75,23 +75,31 @@ export async function createUserRole_func({
 
     return {
       success: true,
-      message: "User role created successfully",
+      message: 'User role created successfully',
       data: newRole,
     };
   } catch (error: any) {
-    console.error("Error creating user role:", error);
+    console.error('Error creating user role:', error);
+    console.log('error code', error.code);
+    console.log('error cause', error.cause);
 
-    if (error.code === "23505") {
+    // Check for unique constraint violation (23505)
+    const isUniqueViolation = error.code === '23505' ||
+      (error.cause && error.cause.code === '23505') ||
+      error.message?.includes('duplicate key value') ||
+      error.message?.includes('unique constraint');
+
+    if (isUniqueViolation) {
       // Unique constraint violation
       return {
         success: false,
-        message: "Role name already exists",
+        message: 'Role name already exists',
       };
     }
 
     return {
       success: false,
-      message: "Failed to create user role",
+      message: 'Failed to create user role',
     };
   }
 }
