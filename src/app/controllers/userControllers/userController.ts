@@ -144,7 +144,7 @@ export class UserController {
         searchQuery,
       });
 
-      ctx.set.status = result?.success ? 200 : 400;
+      ctx.set.status = result?.success ? 200 : 200;
       return result;
     } catch (err: any) {
       console.error('Error in getAllUsers:', err);

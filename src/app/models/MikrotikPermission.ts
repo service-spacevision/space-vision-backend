@@ -13,6 +13,8 @@ export const mikrotikPermissions = pgTable('mikrotik_permissions', {
   id: serial('id').primaryKey(),
   vesselId: integer('vessel_id').notNull(),
   vesselName: text('vessel_name').notNull(),
+  mikrotikVesselId: text('mikrotik_vessel_id'),
+  mikrotikVesselName: text('mikrotik_vessel_name'),
   mikrotikUserName: text('mikrotik_user_name').notNull(),
   routerIp: text('router_ip').notNull(),
   routerPort: integer('router_port').notNull(),
@@ -61,6 +63,17 @@ export const CreateMikrotikPermissionSchema = t.Object({
   assignedById: t.Number({
     description: 'ID of the user who assigned this permission',
   }),
+
+  mikrotikVesselId: t.Optional(
+    t.String({
+      description: 'ID of the Mikrotik vessel',
+    })
+  ),
+  mikrotikVesselName: t.Optional(
+    t.String({
+      description: 'Name of the Mikrotik vessel',
+    })
+  ),
 });
 
 export const UpdateMikrotikPermissionSchema = t.Object({
@@ -109,12 +122,25 @@ export const UpdateMikrotikPermissionSchema = t.Object({
       description: 'ID of the user who assigned this permission',
     })
   ),
+
+  mikrotikVesselId: t.Optional(
+    t.String({
+      description: 'ID of the Mikrotik vessel',
+    })
+  ),
+  mikrotikVesselName: t.Optional(
+    t.String({
+      description: 'Name of the Mikrotik vessel',
+    })
+  ),
 });
 
 export const MikrotikPermissionResponseSchema = t.Object({
   id: t.Number(),
   vesselId: t.Number(),
   vesselName: t.String(),
+  mikrotikVesselId: t.String(),
+  mikrotikVesselName: t.String(),
   mikrotikUserName: t.String(),
   routerIp: t.String(),
   routerPort: t.Number(),

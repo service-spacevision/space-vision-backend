@@ -67,6 +67,8 @@ export const updateUserProfileById_func = async ({
     if (isSystemUser) {
       if (data.isActive !== undefined) updateData.isActive = data.isActive;
       if (data.roleId !== undefined) updateData.roleId = data.roleId;
+      if (data.mfaEnabled !== undefined)
+        updateData.mfaEnabled = data.mfaEnabled;
 
       // Handle password update for system users only
       if (password !== undefined && password !== null) {

@@ -18,10 +18,10 @@ export const pins = pgTable('pins', {
   id: serial('id').primaryKey(),
   type: text('type').$type<PinType>().notNull().default('other'),
   // For MikroTik pins
-  vessel_id: integer('vessel_id').references(
-    () => mikrotikVessels.id,
-    { onDelete: 'set null', onUpdate: 'cascade' }
-  ),
+  vessel_id: integer('vessel_id').references(() => mikrotikVessels.id, {
+    onDelete: 'cascade',
+    onUpdate: 'cascade',
+  }),
   vessel_name: text('vessel_name'),
   // For non-MikroTik pins
   kitp: text('kitp'),
@@ -31,6 +31,11 @@ export const pins = pgTable('pins', {
   generated_by: integer('generated_by')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  mikrotikVesselId: integer('mikrotik_vessel_id').references(
+    () => mikrotikVessels.id,
+    { onDelete: 'set null', onUpdate: 'cascade' }
+  ),
+  mikrotikVesselName: text('mikrotik_vessel_name'),
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
 });
