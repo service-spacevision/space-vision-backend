@@ -3,6 +3,7 @@ import { getVesselGroups_func } from "./functions/getVesselGroups";
 import { createVesselGroup_func } from "./functions/createVesselGroup";
 import { updateVesselGroup_func } from "./functions/updateVesselGroup";
 import { deleteVesselGroup_func } from "./functions/deleteVesselGroup";
+import { toggleVesselGroupStatus_func } from "./functions/toggleVesselGroupStatus";
 
 export class VesselGroupController {
   static async getVesselGroups(ctx: CustomContext) {
@@ -94,6 +95,27 @@ export class VesselGroupController {
       return {
         success: false,
         message: "Internal server error while deleting vessel group",
+      };
+    }
+  }
+
+  static async toggleVesselGroupStatus(ctx: CustomContext) {
+    try {
+      const { query } = ctx;
+      const user = ctx.user!;
+
+      const result = await toggleVesselGroupStatus_func({
+        reqObject: { user },
+        query: query as any,
+      });
+
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
+    } catch (err: any) {
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: "Internal server error while toggling vessel group status",
       };
     }
   }

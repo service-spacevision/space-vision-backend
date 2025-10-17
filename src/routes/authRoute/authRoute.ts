@@ -58,6 +58,39 @@ const authRoute = new Elysia({ prefix: '/api/auth' })
       description: 'Verify the MFA code provided by the user',
       operationId: 'verifyMfaToken',
     },
+  })
+
+  .post('/forgot-password', AuthController.requestPasswordReset, {
+    body: t.Object({
+      email: t.String({
+        format: 'email',
+        description: 'Email address of the account',
+      }),
+    }),
+    tags: ['Authentication'],
+    detail: {
+      summary: 'Request password reset',
+      description: 'Send a password reset link to the user\'s email',
+      operationId: 'requestPasswordReset',
+    },
+  })
+
+  .post('/reset-password', AuthController.resetPassword, {
+    body: t.Object({
+      token: t.String({
+        description: 'Password reset token from email',
+      }),
+      newPassword: t.String({
+        minLength: 8,
+        description: 'New password (minimum 8 characters)',
+      }),
+    }),
+    tags: ['Authentication'],
+    detail: {
+      summary: 'Reset password',
+      description: 'Reset user password using the token from email',
+      operationId: 'resetPassword',
+    },
   });
 
 // .post('/refresh', AuthController.refreshToken, {

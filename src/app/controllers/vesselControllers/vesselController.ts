@@ -5,6 +5,8 @@ import { createVessel_func } from "./functions/createVessel";
 import { updateVessel_func } from "./functions/updateVessel";
 import { deleteVessel_func } from "./functions/deleteVessel";
 import { getVesselsByGroupId_func } from "./functions/getVesselsByGroupId";
+import { getUniqueSubscriptionPlans_func } from "./functions/getUniqueSubscriptionPlans";
+import { toggleVesselStatus_func } from "./functions/toggleVesselStatus";
 
 export class VesselController {
   static async getAllVesselsGrouped(ctx: CustomContext) {
@@ -161,6 +163,46 @@ export class VesselController {
       return {
         success: false,
         message: "Internal server error while fetching vessels by group ID",
+      };
+    }
+  }
+
+  static async getUniqueSubscriptionPlans(ctx: CustomContext) {
+    try {
+      const user = ctx.user!;
+
+      const result = await getUniqueSubscriptionPlans_func({
+        reqObject: { user }
+      });
+
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
+    } catch (err: any) {
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: "Internal server error while fetching unique subscription plans"
+      };
+    }
+  }
+
+  static async toggleVesselStatus(ctx: CustomContext) {
+    try {
+      const { query } = ctx;
+      const user = ctx.user!;
+
+      const result = await toggleVesselStatus_func({
+        reqObject: { user },
+        query: query as any,
+      });
+
+      ctx.set.status = result?.success === true ? 200 : 400;
+      return result;
+    } catch (err: any) {
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: "Internal server error while toggling vessel status",
       };
     }
   }

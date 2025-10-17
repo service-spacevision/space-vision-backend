@@ -5,10 +5,12 @@ export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
     // First check authentication
     // console.log("ctx->data", ctx.cookie.jwt_token);
-    let contextToken = ctx.cookie.jwt_token.value;
+    let contextToken =
+      ctx.cookie.jwt_token.value || ctx.cookie['auth-token'].value;
     if (!contextToken) {
       contextToken = ctx.headers.authorization?.split(' ')[1];
     }
+    console.log('contextToken', contextToken);
     const authResult = await authMiddleware({
       cookieToken: contextToken!,
       permission: permission,

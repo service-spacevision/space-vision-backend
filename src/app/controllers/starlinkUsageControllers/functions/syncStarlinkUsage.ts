@@ -23,7 +23,7 @@ interface SyncStarlinkUsageParams {
   reqObject: {
     user: AuthUser
   }
-  datekey?: string
+  datekey?: number
 }
 
 export async function syncStarlinkUsage_func({ reqObject, datekey }: SyncStarlinkUsageParams) {

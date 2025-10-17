@@ -118,8 +118,8 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
     }
 
     for (let i = 0; i < number_of_pins_to_generate; i++) {
-      const username = generateRandomString(8, true, true, true);
-      const password = generateRandomString(12, true, true, true);
+      const username = generateRandomString(5, true, true);
+      const password = generateRandomString(5, true, true);
 
       // Encode to base64 for storage
       const encodedUsername = Buffer.from(username).toString('base64');

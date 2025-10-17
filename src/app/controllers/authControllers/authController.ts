@@ -3,7 +3,9 @@ import { CustomContext } from '../../utils/types'
 import { signUpUser_func } from './functions/signUpUser'
 import { signInUser_func } from './functions/signInUser'
 import { invalidateUserSessions } from '../../middlewares/session'
-import { verifyMfaToken_func } from './functions/verifyMFA';
+import { verifyMfaToken_func } from './functions/verifyMFA'
+import { requestPasswordReset_func } from './functions/requestPasswordReset'
+import { resetPassword_func } from './functions/resetPassword'
 
 export class AuthController {
   static async signUpUser(ctx: CustomContext) {
@@ -126,6 +128,42 @@ export class AuthController {
     } catch (err: any) {
       ctx.set.status = 500
       return { success: false, message: err.message }
+    }
+  }
+
+  static async requestPasswordReset(ctx: CustomContext) {
+    try {
+      const { body } = ctx
+      const result = await requestPasswordReset_func({
+        data: body as any
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error during password reset request'
+      }
+    }
+  }
+
+  static async resetPassword(ctx: CustomContext) {
+    try {
+      const { body } = ctx
+      const result = await resetPassword_func({
+        data: body as any
+      })
+
+      ctx.set.status = result?.success === true ? 200 : 400
+      return result
+    } catch (err: any) {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error during password reset'
+      }
     }
   }
 }

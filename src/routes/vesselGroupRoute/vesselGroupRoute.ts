@@ -1,36 +1,48 @@
-import { Elysia, t } from 'elysia'
-import { cookie } from '@elysiajs/cookie'
-import { VesselGroupController } from '../../app/controllers/vesselGroupControllers/vesselGroupController'
-import { checkUser } from '../../app/middlewares/permissions'
-import { CreateVesselGroupSchema, UpdateVesselGroupSchema } from '../../app/models/VesselGroup'
+import { Elysia, t } from 'elysia';
+import { cookie } from '@elysiajs/cookie';
+import { VesselGroupController } from '../../app/controllers/vesselGroupControllers/vesselGroupController';
+import { checkUser } from '../../app/middlewares/permissions';
+import {
+  CreateVesselGroupSchema,
+  UpdateVesselGroupSchema,
+} from '../../app/models/VesselGroup';
 
 const permission = {
-  "GET_/api/vessel-groups": "read_vessel_groups",
-  "POST_/api/vessel-groups": "create_vessel_group",
-  "PUT_/api/vessel-groups": "update_vessel_group",
-  "DELETE_/api/vessel-groups": "delete_vessel_group"
-}
+  'GET_/api/vessel-groups': 'read_vessel_groups',
+  'POST_/api/vessel-groups': 'create_vessel_group',
+  'PUT_/api/vessel-groups': 'update_vessel_group',
+  'DELETE_/api/vessel-groups': 'delete_vessel_group',
+  'PUT_/api/vessel-groups/toggle-status': 'update_vessel_group',
+};
 
 const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
   .use(cookie())
   .get('/', VesselGroupController.getVesselGroups, {
-    beforeHandle: [checkUser(permission["GET_/api/vessel-groups"])],
+    beforeHandle: [checkUser(permission['GET_/api/vessel-groups'])],
     query: t.Object({
-      groupName: t.Optional(t.String({
-        description: 'Filter by group name'
-      })),
-      currentPage: t.Optional(t.String({
-        description: 'Current Page number',
-        default: "1"
-      })),
-      pageSize: t.Optional(t.String({
-        description: 'Number of items per page',
-        default: "10"
-      })),
-      all: t.Optional(t.String({
-        description: 'Retrieve all vessel groups (true/false)',
-        default: "false"
-      }))
+      groupName: t.Optional(
+        t.String({
+          description: 'Filter by group name',
+        })
+      ),
+      currentPage: t.Optional(
+        t.String({
+          description: 'Current Page number',
+          default: '1',
+        })
+      ),
+      pageSize: t.Optional(
+        t.String({
+          description: 'Number of items per page',
+          default: '10',
+        })
+      ),
+      all: t.Optional(
+        t.String({
+          description: 'Retrieve all vessel groups (true/false)',
+          default: 'false',
+        })
+      ),
     }),
     tags: ['Vessel Groups'],
     detail: {
@@ -41,22 +53,22 @@ const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
   })
 
   .post('/', VesselGroupController.createVesselGroup, {
-    beforeHandle: [checkUser(permission["POST_/api/vessel-groups"])],
+    beforeHandle: [checkUser(permission['POST_/api/vessel-groups'])],
     body: CreateVesselGroupSchema,
     tags: ['Vessel Groups'],
     detail: {
       summary: 'Create vessel group',
       description: 'Create a new vessel group',
       operationId: 'createVesselGroup',
-    }
+    },
   })
 
   .put('/', VesselGroupController.updateVesselGroup, {
-    beforeHandle: [checkUser(permission["PUT_/api/vessel-groups"])],
+    beforeHandle: [checkUser(permission['PUT_/api/vessel-groups'])],
     query: t.Object({
       id: t.String({
-        description: 'Group ID to update'
-      })
+        description: 'Group ID to update',
+      }),
     }),
     body: UpdateVesselGroupSchema,
     tags: ['Vessel Groups'],
@@ -64,23 +76,40 @@ const vesselGroupRoute = new Elysia({ prefix: '/api/vessel-groups' })
       summary: 'Update vessel group',
       description: 'Update an existing vessel group',
       operationId: 'updateVesselGroup',
-    }
+    },
+  })
+
+  .put('/toggle-status', VesselGroupController.toggleVesselGroupStatus, {
+    beforeHandle: [
+      checkUser(permission['PUT_/api/vessel-groups/toggle-status']),
+    ],
+    query: t.Object({
+      id: t.String({
+        description: 'Group ID to toggle status',
+      }),
+    }),
+    tags: ['Vessel Groups'],
+    detail: {
+      summary: 'Toggle vessel group status',
+      description: 'Toggle the active status of a vessel group',
+      operationId: 'toggleVesselGroupStatus',
+    },
   })
 
   .delete('/', VesselGroupController.deleteVesselGroup, {
-    beforeHandle: [checkUser(permission["DELETE_/api/vessel-groups"])],
+    beforeHandle: [checkUser(permission['DELETE_/api/vessel-groups'])],
     query: t.Object({
       groupId: t.String({
-        description: 'Group Id to delete'
-      })
+        description: 'Group Id to delete',
+      }),
     }),
     tags: ['Vessel Groups'],
     detail: {
       summary: 'Delete vessel group',
       description: 'Delete an existing vessel group',
       operationId: 'deleteVesselGroup',
-    }
-  })
+    },
+  });
 
-export { permission }
-export default vesselGroupRoute
+export { permission };
+export default vesselGroupRoute;

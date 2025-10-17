@@ -1,155 +1,185 @@
-import { Elysia, t } from "elysia";
-import { cookie } from "@elysiajs/cookie";
-import { VesselController } from "../../app/controllers/vesselControllers/vesselController";
-import { checkUser } from "../../app/middlewares/permissions";
+import { Elysia, t } from 'elysia';
+import { cookie } from '@elysiajs/cookie';
+import { VesselController } from '../../app/controllers/vesselControllers/vesselController';
+import { checkUser } from '../../app/middlewares/permissions';
 import {
   CreateVesselSchema,
   UpdateVesselSchema,
-} from "../../app/models/Vessel";
+} from '../../app/models/Vessel';
 
 const permission = {
-  "GET_/api/vessels": "read_vessels",
-  "GET_/api/vessels/grouped": "read_vessels",
-  "GET_/api/vessels/group": "read_vessels",
-  "POST_/api/vessels": "create_vessel",
-  "PUT_/api/vessels": "update_vessel",
-  "DELETE_/api/vessels": "delete_vessel",
+  'GET_/api/vessels': 'read_vessels',
+  'GET_/api/vessels/grouped': 'read_vessels',
+  'GET_/api/vessels/group': 'read_vessels',
+  'GET_/api/vessels/subscription-plans': 'read_vessels',
+  'POST_/api/vessels': 'create_vessel',
+  'PUT_/api/vessels': 'update_vessel',
+  'DELETE_/api/vessels': 'delete_vessel',
+  'PUT_/api/vessels/toggle-status': 'update_vessel',
 };
 
-const vesselRoute = new Elysia({ prefix: "/api/vessels" })
+const vesselRoute = new Elysia({ prefix: '/api/vessels' })
   .use(cookie())
-  .get("/grouped", VesselController.getAllVesselsGrouped, {
-    beforeHandle: [checkUser(permission["GET_/api/vessels/grouped"])],
-    tags: ["Vessels"],
+  .get('/grouped', VesselController.getAllVesselsGrouped, {
+    beforeHandle: [checkUser(permission['GET_/api/vessels/grouped'])],
+    tags: ['Vessels'],
     query: t.Object({
       search: t.Optional(
         t.String({
-          description: "Search by group name or vessel name",
+          description: 'Search by group name or vessel name',
         })
       ),
       currentPage: t.Optional(
-        t.String({ description: "Current Page number", default: "1" })
+        t.String({ description: 'Current Page number', default: '1' })
       ),
       pageSize: t.Optional(
-        t.String({ description: "Number of items per page", default: "10" })
+        t.String({ description: 'Number of items per page', default: '10' })
       ),
     }),
     detail: {
-      summary: "Get all vessels grouped by vessel groups",
-      description: "Fetches all vessels organized by their vessel groups with optional search",
-      operationId: "getAllVesselsGrouped",
+      summary: 'Get all vessels grouped by vessel groups',
+      description:
+        'Fetches all vessels organized by their vessel groups with optional search',
+      operationId: 'getAllVesselsGrouped',
     },
   })
 
-  .get("/group", VesselController.getVesselsByGroupId, {
-    beforeHandle: [checkUser(permission["GET_/api/vessels/group"])],
+  .get('/group', VesselController.getVesselsByGroupId, {
+    beforeHandle: [checkUser(permission['GET_/api/vessels/group'])],
     query: t.Object({
       groupId: t.String({
-        description: "Group ID to filter vessels by",
+        description: 'Group ID to filter vessels by',
       }),
     }),
-    tags: ["Vessels"],
+    tags: ['Vessels'],
     detail: {
-      summary: "Get vessels by group ID",
-      description: "Fetches all vessels belonging to a specific group",
-      operationId: "getVesselsByGroupId",
+      summary: 'Get vessels by group ID',
+      description: 'Fetches all vessels belonging to a specific group',
+      operationId: 'getVesselsByGroupId',
     },
   })
 
-  .get("/", VesselController.getVessels, {
-    beforeHandle: [checkUser(permission["GET_/api/vessels"])],
+  .get('/subscription-plans', VesselController.getUniqueSubscriptionPlans, {
+    beforeHandle: [
+      checkUser(permission['GET_/api/vessels/subscription-plans']),
+    ],
+    tags: ['Vessels'],
+    detail: {
+      summary: 'Get unique subscription plans',
+      description: 'Fetches all unique subscription plans from vessels',
+      operationId: 'getUniqueSubscriptionPlans',
+    },
+  })
+
+  .get('/', VesselController.getVessels, {
+    beforeHandle: [checkUser(permission['GET_/api/vessels'])],
     query: t.Object({
       name: t.Optional(
         t.String({
-          description: "Filter by vessel name",
+          description: 'Filter by vessel name',
         })
       ),
       kitpNumber: t.Optional(
         t.String({
-          description: "Filter by KITP Number",
+          description: 'Filter by KITP Number',
         })
       ),
       deviceId: t.Optional(
         t.String({
-          description: "Filter by Device ID",
+          description: 'Filter by Device ID',
         })
       ),
       groupId: t.Optional(
         t.String({
-          description: "Filter by group ID",
+          description: 'Filter by group ID',
         })
       ),
       subscriptionPlan: t.Optional(
         t.String({
-          description: "Filter by subscription plan",
+          description: 'Filter by subscription plan',
         })
       ),
       currentPage: t.Optional(
         t.String({
-          description: "Current Page number",
-          default: "1",
+          description: 'Current Page number',
+          default: '1',
         })
       ),
       pageSize: t.Optional(
         t.String({
-          description: "Number of items per page",
-          default: "10",
+          description: 'Number of items per page',
+          default: '10',
         })
       ),
       all: t.Optional(
         t.String({
-          description: "Retrieve all vessels (true/false)",
-          default: "false",
+          description: 'Retrieve all vessels (true/false)',
+          default: 'false',
         })
       ),
     }),
-    tags: ["Vessels"],
+    tags: ['Vessels'],
     detail: {
-      summary: "Get vessels",
-      description: "Retrieve vessels with optional filtering and pagination",
-      operationId: "getVessels",
+      summary: 'Get vessels',
+      description: 'Retrieve vessels with optional filtering and pagination',
+      operationId: 'getVessels',
     },
   })
 
-  .post("/", VesselController.createVessel, {
-    beforeHandle: [checkUser(permission["POST_/api/vessels"])],
+  .post('/', VesselController.createVessel, {
+    beforeHandle: [checkUser(permission['POST_/api/vessels'])],
     body: CreateVesselSchema,
-    tags: ["Vessels"],
+    tags: ['Vessels'],
     detail: {
-      summary: "Create vessel",
-      description: "Create a new vessel",
-      operationId: "createVessel",
+      summary: 'Create vessel',
+      description: 'Create a new vessel',
+      operationId: 'createVessel',
     },
   })
 
-  .put("/", VesselController.updateVessel, {
-    beforeHandle: [checkUser(permission["PUT_/api/vessels"])],
+  .put('/', VesselController.updateVessel, {
+    beforeHandle: [checkUser(permission['PUT_/api/vessels'])],
     query: t.Object({
       id: t.String({
-        description: "Vessel ID to update",
+        description: 'Vessel ID to update',
       }),
     }),
     body: UpdateVesselSchema,
-    tags: ["Vessels"],
+    tags: ['Vessels'],
     detail: {
-      summary: "Update vessel",
-      description: "Update an existing vessel",
-      operationId: "updateVessel",
+      summary: 'Update vessel',
+      description: 'Update an existing vessel',
+      operationId: 'updateVessel',
     },
   })
 
-  .delete("/", VesselController.deleteVessel, {
-    beforeHandle: [checkUser(permission["DELETE_/api/vessels"])],
+  .put('/toggle-status', VesselController.toggleVesselStatus, {
+    beforeHandle: [checkUser(permission['PUT_/api/vessels/toggle-status'])],
     query: t.Object({
       id: t.String({
-        description: "Vessel ID to delete",
+        description: 'Vessel ID to toggle status',
       }),
     }),
-    tags: ["Vessels"],
+    tags: ['Vessels'],
     detail: {
-      summary: "Delete vessel",
-      description: "Delete an existing vessel",
-      operationId: "deleteVessel",
+      summary: 'Toggle vessel status',
+      description: 'Toggle the active status of a vessel',
+      operationId: 'toggleVesselStatus',
+    },
+  })
+
+  .delete('/', VesselController.deleteVessel, {
+    beforeHandle: [checkUser(permission['DELETE_/api/vessels'])],
+    query: t.Object({
+      id: t.String({
+        description: 'Vessel ID to delete',
+      }),
+    }),
+    tags: ['Vessels'],
+    detail: {
+      summary: 'Delete vessel',
+      description: 'Delete an existing vessel',
+      operationId: 'deleteVessel',
     },
   });
 

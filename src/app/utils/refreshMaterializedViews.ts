@@ -40,25 +40,78 @@ export async function refreshStarlinkUsageViews(): Promise<void> {
 export async function createStarlinkUsageViews(): Promise<void> {
   try {
     console.log('Creating Starlink usage materialized views...');
-    
+
+    // Check if views exist first
+    const existingViews = await db.execute(sql`
+      SELECT matviewname FROM pg_matviews
+      WHERE matviewname IN ('starlink_usage_stats_mv', 'starlink_system_summary_mv')
+    `);
+
     // Drop existing views if they exist (for development/migration purposes)
-    await db.execute(DROP_STARLINK_USAGE_STATS_MV);
-    await db.execute(DROP_STARLINK_SYSTEM_SUMMARY_MV);
-    
+    if (existingViews.length > 0) {
+      console.log('Existing materialized views found, dropping them...');
+
+      // First, try to clean up any potential type conflicts
+      try {
+        await db.execute(sql`DROP TYPE IF EXISTS starlink_usage_stats_mv CASCADE`);
+        console.log('✓ Cleaned up potential type conflicts');
+      } catch (cleanupError) {
+        console.warn('Warning during cleanup:', cleanupError);
+      }
+
+      try {
+        await db.execute(DROP_STARLINK_USAGE_STATS_MV);
+        console.log('✓ Dropped starlink_usage_stats_mv');
+      } catch (dropError) {
+        console.warn('Warning: Could not drop starlink_usage_stats_mv:', dropError);
+      }
+
+      try {
+        await db.execute(DROP_STARLINK_SYSTEM_SUMMARY_MV);
+        console.log('✓ Dropped starlink_system_summary_mv');
+      } catch (dropError) {
+        console.warn('Warning: Could not drop starlink_system_summary_mv:', dropError);
+      }
+    }
+
     // Create the main stats materialized view
-    await db.execute(CREATE_STARLINK_USAGE_STATS_MV);
-    
+    try {
+      await db.execute(CREATE_STARLINK_USAGE_STATS_MV);
+      console.log('✓ Created starlink_usage_stats_mv');
+    } catch (createError: any) {
+      // If the view already exists, that's okay - we tried to drop it first
+      if (createError.message && createError.message.includes('already exists')) {
+        console.log('✓ starlink_usage_stats_mv already exists');
+      } else {
+        console.error('Error creating starlink_usage_stats_mv:', createError);
+        throw createError;
+      }
+    }
+
     // Create the system summary materialized view
-    await db.execute(CREATE_STARLINK_SYSTEM_SUMMARY_MV);
-    
+    try {
+      await db.execute(CREATE_STARLINK_SYSTEM_SUMMARY_MV);
+      console.log('✓ Created starlink_system_summary_mv');
+    } catch (createError: any) {
+      // If the view already exists, that's okay - we tried to drop it first
+      if (createError.message && createError.message.includes('already exists')) {
+        console.log('✓ starlink_system_summary_mv already exists');
+      } else {
+        console.error('Error creating starlink_system_summary_mv:', createError);
+        throw createError;
+      }
+    }
+
     // Create indexes for better performance
     for (const indexSql of CREATE_STARLINK_USAGE_STATS_INDEXES) {
-      await db.execute(indexSql);
+      try {
+        await db.execute(indexSql);
+        console.log('✓ Created index');
+      } catch (indexError) {
+        console.warn('Warning: Could not create index:', indexError);
+      }
     }
-    
-    console.log('✓ Created starlink_usage_stats_mv');
-    console.log('✓ Created starlink_system_summary_mv');
-    console.log('✓ Created indexes');
+
     console.log('All Starlink materialized views created successfully');
   } catch (error) {
     console.error('Error creating Starlink materialized views:', error);

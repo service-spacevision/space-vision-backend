@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection';
 import { vesselGroups, vessels } from '../../../db/schema';
-import { eq, ilike, or, and } from 'drizzle-orm';
+import { eq, ilike, or, and, inArray } from 'drizzle-orm';
+import { isAdmin } from '../../../../utils/permissionUtils';
 
 interface GetAllVesselsGroupedParams {
   reqObject: {
@@ -36,7 +37,35 @@ export async function getAllVesselsGrouped_func({
         ilike(vessels.deviceId, searchTerm)
       );
 
-      // Get groups that match search OR have vessels that match search
+      // Check if user has permitted vessel groups
+      if (!isAdmin(reqObject.user)) {
+        if (!reqObject.user?.role?.permittedVesselGroups?.length) {
+          // If user has no permitted vessel groups and is not admin, return empty result
+          return {
+            success: true,
+            message: 'No vessel groups found for your account',
+            data: [],
+            pagination: {
+              currentPage: 1,
+              pageSize: 0,
+              totalItems: 0,
+              totalPages: 0,
+            },
+          };
+        }
+      }
+
+      // Get groups that match search OR have vessels that match search, filtered by permitted groups
+      let groupWhereCondition = or(groupSearchCondition, vesselSearchCondition);
+
+      // For non-admin users, only show groups from permitted vessel groups
+      if (!isAdmin(reqObject.user) && reqObject.user?.role?.permittedVesselGroups?.length) {
+        groupWhereCondition = and(
+          groupWhereCondition,
+          inArray(vesselGroups.id, reqObject.user.role.permittedVesselGroups)
+        );
+      }
+
       const allVesselGroups = await db
         .select({
           id: vesselGroups.id,
@@ -46,7 +75,7 @@ export async function getAllVesselsGrouped_func({
         })
         .from(vesselGroups)
         .leftJoin(vessels, eq(vesselGroups.id, vessels.groupId))
-        .where(or(groupSearchCondition, vesselSearchCondition))
+        .where(groupWhereCondition)
         .groupBy(
           vesselGroups.id,
           vesselGroups.groupName,
@@ -133,7 +162,7 @@ export async function getAllVesselsGrouped_func({
             .select({ count: vesselGroups.id })
             .from(vesselGroups)
             .leftJoin(vessels, eq(vesselGroups.id, vessels.groupId))
-            .where(or(groupSearchCondition, vesselSearchCondition))
+            .where(groupWhereCondition)
             .then((result) => result.length),
         ]);
 
@@ -156,10 +185,36 @@ export async function getAllVesselsGrouped_func({
         };
       }
     } else {
-      // No search query - return all groups with their vessels
+      // Check if user has permitted vessel groups
+      if (!isAdmin(reqObject.user)) {
+        if (!reqObject.user?.role?.permittedVesselGroups?.length) {
+          // If user has no permitted vessel groups and is not admin, return empty result
+          return {
+            success: true,
+            message: 'No vessel groups found for your account',
+            data: [],
+            pagination: {
+              currentPage: 1,
+              pageSize: 0,
+              totalItems: 0,
+              totalPages: 0,
+            },
+          };
+        }
+      }
+
+      // No search query - return all groups with their vessels, filtered by permitted groups
+      let groupWhereCondition;
+
+      // For non-admin users, only show groups from permitted vessel groups
+      if (!isAdmin(reqObject.user) && reqObject.user?.role?.permittedVesselGroups?.length) {
+        groupWhereCondition = inArray(vesselGroups.id, reqObject.user.role.permittedVesselGroups);
+      }
+
       const allVesselGroups = await db
         .select()
         .from(vesselGroups)
+        .where(groupWhereCondition)
         .orderBy(vesselGroups.groupName);
 
       console.log('all vessel groups (no search)', allVesselGroups);
@@ -218,8 +273,8 @@ export async function getAllVesselsGrouped_func({
                 };
               })
           ),
-          // Get total count of vessel groups
-          db.select().from(vesselGroups),
+          // Get total count of vessel groups (filtered)
+          db.select().from(vesselGroups).where(groupWhereCondition),
         ]);
         const totalPages = Math.ceil(totalCount.length / pagination.pageSize);
 

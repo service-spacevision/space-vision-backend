@@ -30,6 +30,15 @@ export async function updateOrganizationByAdmin_func({ organizationId, data, use
       }
     }
 
+    // Validate organizationId
+    const orgId = Number(organizationId)
+    if (isNaN(orgId) || !Number.isInteger(orgId) || orgId <= 0) {
+      return {
+        success: false,
+        message: 'Invalid organization ID. Must be a positive integer.'
+      }
+    }
+
     // Admin users can update all fields including permittedVesselGroups
     const updateData: any = {
       description: data.description,
@@ -42,7 +51,7 @@ export async function updateOrganizationByAdmin_func({ organizationId, data, use
 
     const [updated] = await db.update(organizations)
       .set(updateData)
-      .where(eq(organizations.id, Number(organizationId)))
+      .where(eq(organizations.id, orgId))
       .returning()
 
     if (!updated) return { success: false, message: 'Organization not found' }
