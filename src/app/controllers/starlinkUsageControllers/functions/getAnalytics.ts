@@ -322,15 +322,15 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
           o.id as org_id,
           SUM(COALESCE(su.mobile_priority_gb, 0) + COALESCE(su.standard_gb, 0)) as total_usage
         FROM organizations o
-        LEFT JOIN users u ON u.organization_id = o.id
-        LEFT JOIN vessels v ON v.vesselskit_number = (
-          SELECT kit_number FROM starlink_usage su2
-          WHERE su2.kit_number = v.vesselskit_number
-          AND su2.date_key >= ${startKey} AND su2.date_key <= ${endKey}
-          LIMIT 1
-        )
-        LEFT JOIN starlink_usage su ON su.kit_number = v.vesselskit_number
+        -- Join vessel groups that the organization is permitted to access
+        INNER JOIN vessel_groups vg ON vg.id = ANY(o.permitted_vessel_groups)
+        -- Join vessels that belong to those vessel groups
+        INNER JOIN vessels v ON v.group_id = vg.id
+        -- Join starlink usage for those vessels
+        INNER JOIN starlink_usage su ON su.kit_number = v.vesselskit_number
           AND su.date_key >= ${startKey} AND su.date_key <= ${endKey}
+        WHERE o.permitted_vessel_groups IS NOT NULL
+          AND array_length(o.permitted_vessel_groups, 1) > 0
         GROUP BY o.id, o.name
         HAVING SUM(COALESCE(su.mobile_priority_gb, 0) + COALESCE(su.standard_gb, 0)) > 0
         ORDER BY total_usage DESC

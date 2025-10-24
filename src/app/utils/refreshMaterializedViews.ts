@@ -51,19 +51,32 @@ export async function createStarlinkUsageViews(): Promise<void> {
     if (existingViews.length > 0) {
       console.log('Existing materialized views found, dropping them...');
 
-      // First, try to clean up any potential type conflicts
+      // First, try to clean up any potential type conflicts more thoroughly
       try {
-        await db.execute(sql`DROP TYPE IF EXISTS starlink_usage_stats_mv CASCADE`);
-        console.log('✓ Cleaned up potential type conflicts');
+        // Drop any dependent objects that might prevent dropping the view
+        await db.execute(sql`
+          DO $$
+          DECLARE
+            mv_name text := 'starlink_usage_stats_mv';
+          BEGIN
+            -- Drop any indexes on the materialized view first
+            EXECUTE 'DROP INDEX IF EXISTS idx_starlink_usage_stats_mv_kit_number';
+            EXECUTE 'DROP INDEX IF EXISTS idx_starlink_usage_stats_mv_last_updated';
+
+            -- Drop the materialized view (this should cascade to types)
+            EXECUTE 'DROP MATERIALIZED VIEW IF EXISTS ' || mv_name || ' CASCADE';
+
+            -- Clean up any orphaned types
+            DELETE FROM pg_type WHERE typname = mv_name;
+            DELETE FROM pg_class WHERE relname = mv_name;
+
+            EXCEPTION WHEN OTHERS THEN
+              RAISE NOTICE 'Error during cleanup of %: %', mv_name, SQLERRM;
+          END $$;
+        `);
+        console.log('✓ Cleaned up starlink_usage_stats_mv and related objects');
       } catch (cleanupError) {
         console.warn('Warning during cleanup:', cleanupError);
-      }
-
-      try {
-        await db.execute(DROP_STARLINK_USAGE_STATS_MV);
-        console.log('✓ Dropped starlink_usage_stats_mv');
-      } catch (dropError) {
-        console.warn('Warning: Could not drop starlink_usage_stats_mv:', dropError);
       }
 
       try {

@@ -2,6 +2,7 @@ import { db } from '../../../db/connection';
 import { vessels, vesselGroups } from '../../../db/schema';
 import { eq, ilike, and, inArray, SQL } from 'drizzle-orm';
 import { isAdmin } from '../../../../utils/permissionUtils';
+import { hasSystemRole } from '../../../utils/roleHelpers';
 
 interface GetVesselsParams {
   reqObject: {
@@ -52,6 +53,14 @@ export async function getVessels_func({
       whereConditions.push(
         ilike(vessels.subscriptionPlan, `%${query.subscriptionPlan}%`)
       );
+    }
+
+    // For non-system users, only show active vessels
+    if (reqObject.user) {
+      const isSystemUser = await hasSystemRole(reqObject.user.id);
+      if (!isSystemUser) {
+        whereConditions.push(eq(vessels.isActive, true));
+      }
     }
 
     // For non-admin users, only show vessels from permitted vessel groups

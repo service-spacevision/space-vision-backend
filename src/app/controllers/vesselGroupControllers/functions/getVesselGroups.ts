@@ -3,6 +3,7 @@ import { vesselGroups } from "../../../models/VesselGroup";
 import { eq, count, desc, like, and } from "drizzle-orm";
 import { IPagination } from "../../../utils/types";
 import { withVesselGroupFilter } from "../../../../utils/permissionUtils";
+import { hasSystemRole } from "../../../utils/roleHelpers";
 
 interface GetVesselGroupsParams {
   reqObject: {
@@ -21,12 +22,20 @@ export async function getVesselGroups_func({
 }: GetVesselGroupsParams) {
   try {
     const whereConditions = [];
-    
+
     // Add group name filter if provided
     if (query?.groupName) {
       whereConditions.push(like(vesselGroups.groupName, `%${query.groupName}%`));
     }
-    
+
+    // For non-system users, only show active vessel groups
+    if (reqObject.user) {
+      const isSystemUser = await hasSystemRole(reqObject.user.id);
+      if (!isSystemUser) {
+        whereConditions.push(eq(vesselGroups.isActive, true));
+      }
+    }
+
     // Apply vessel group filter based on user permissions
     const whereCondition = withVesselGroupFilter(reqObject?.user, whereConditions, vesselGroups.id);
 

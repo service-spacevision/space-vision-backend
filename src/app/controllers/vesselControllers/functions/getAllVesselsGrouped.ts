@@ -2,6 +2,7 @@ import { db } from '../../../db/connection';
 import { vesselGroups, vessels } from '../../../db/schema';
 import { eq, ilike, or, and, inArray } from 'drizzle-orm';
 import { isAdmin } from '../../../../utils/permissionUtils';
+import { hasSystemRole } from '../../../utils/roleHelpers';
 
 interface GetAllVesselsGroupedParams {
   reqObject: {
@@ -55,6 +56,15 @@ export async function getAllVesselsGrouped_func({
         }
       }
 
+      // For non-system users, only show active vessels
+      let vesselCondition = undefined;
+      if (reqObject.user) {
+        const isSystemUser = await hasSystemRole(reqObject.user.id);
+        if (!isSystemUser) {
+          vesselCondition = eq(vessels.isActive, true);
+        }
+      }
+
       // Get groups that match search OR have vessels that match search, filtered by permitted groups
       let groupWhereCondition = or(groupSearchCondition, vesselSearchCondition);
 
@@ -99,7 +109,10 @@ export async function getAllVesselsGrouped_func({
             const groupVessels = await db
               .select()
               .from(vessels)
-              .where(condition)
+              .where(and(
+                eq(vessels.groupId, Number(group.id)),
+                vesselCondition
+              ))
               .orderBy(vessels.name);
 
             return {
@@ -145,7 +158,10 @@ export async function getAllVesselsGrouped_func({
                 const groupVessels = await db
                   .select()
                   .from(vessels)
-                  .where(condition)
+                  .where(and(
+                    eq(vessels.groupId, group.id),
+                    vesselCondition
+                  ))
                   .orderBy(vessels.name);
 
                 return {
@@ -185,6 +201,15 @@ export async function getAllVesselsGrouped_func({
         };
       }
     } else {
+      // For non-system users, only show active vessels
+      let vesselCondition = undefined;
+      if (reqObject.user) {
+        const isSystemUser = await hasSystemRole(reqObject.user.id);
+        if (!isSystemUser) {
+          vesselCondition = eq(vessels.isActive, true);
+        }
+      }
+
       // Check if user has permitted vessel groups
       if (!isAdmin(reqObject.user)) {
         if (!reqObject.user?.role?.permittedVesselGroups?.length) {
@@ -226,7 +251,10 @@ export async function getAllVesselsGrouped_func({
             const groupVessels = await db
               .select()
               .from(vessels)
-              .where(eq(vessels.groupId, group.id))
+              .where(and(
+                eq(vessels.groupId, group.id),
+                vesselCondition
+              ))
               .orderBy(vessels.name);
 
             return {
@@ -261,7 +289,10 @@ export async function getAllVesselsGrouped_func({
                 const groupVessels = await db
                   .select()
                   .from(vessels)
-                  .where(eq(vessels.groupId, group.id))
+                  .where(and(
+                    eq(vessels.groupId, group.id),
+                    vesselCondition
+                  ))
                   .orderBy(vessels.name);
 
                 return {

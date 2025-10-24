@@ -91,8 +91,15 @@ export async function getStarlinkUsage_func({
     // If pagination.all is set, return all records without pagination
     if (pagination?.all === "true" || pagination?.all === "1") {
       const result = await db
-        .select()
+        .select({
+          starlinkUsage,
+          subscriptionPlan: vessels.subscriptionPlan
+        })
         .from(starlinkUsage)
+        .leftJoin(vessels, and(
+          eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber),
+          eq(starlinkUsage.vesselName, vessels.name)
+        ))
         .where(whereCondition)
         .orderBy(desc(starlinkUsage.createdAt));
 
@@ -123,8 +130,15 @@ export async function getStarlinkUsage_func({
 
     // Get paginated data
     const result = await db
-      .select()
+      .select({
+        starlinkUsage,
+        subscriptionPlan: vessels.subscriptionPlan
+      })
       .from(starlinkUsage)
+      .leftJoin(vessels, and(
+        eq(starlinkUsage.kitNumber, vessels.vesselsKitNumber),
+        eq(starlinkUsage.vesselName, vessels.name)
+      ))
       .where(whereCondition)
       .orderBy(desc(starlinkUsage.createdAt))
       .limit(pageSize)

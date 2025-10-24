@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection'
 import { vessels } from '../../../db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and, SQL } from 'drizzle-orm'
+import { hasSystemRole } from '../../../utils/roleHelpers'
 
 export const getVesselsByGroupId_func = async ({
   groupId,
@@ -17,10 +18,22 @@ export const getVesselsByGroupId_func = async ({
       }
     }
 
+    // For non-system users, only show active vessels
+    let whereCondition: SQL | undefined = eq(vessels.groupId, groupId)
+    if (user) {
+      const isSystemUser = await hasSystemRole(user.id)
+      if (!isSystemUser) {
+        whereCondition = and(
+          eq(vessels.groupId, groupId),
+          eq(vessels.isActive, true)
+        )
+      }
+    }
+
     const vesselsList = await db
       .select()
       .from(vessels)
-      .where(eq(vessels.groupId, groupId))
+      .where(whereCondition)
 
     return {
       success: true,
