@@ -1,7 +1,9 @@
 import { generatePin_func } from './functions/createPin';
 import { getPins_func } from './functions/getPin';
+import { listMikrotikUsers_func, testMikrotikConnection_func } from './functions/listMikrotikUsers';
 import { PinType } from '../../../types/pin.types';
 import { CustomContext } from '../../utils/types';
+
 export class PinManagementController {
   static async generatePin(ctx: CustomContext) {
     try {
@@ -82,13 +84,11 @@ export class PinManagementController {
 
   static async getPins(ctx: CustomContext) {
     try {
-      const { query } = ctx as {
-        query: {
-          page?: string;
-          pageSize?: string;
-          type?: string;
-          vessel_id?: string;
-        };
+      const query = ctx.query as unknown as {
+        page?: string;
+        pageSize?: string;
+        type?: string;
+        vessel_id?: string;
       };
 
       // Convert query params to proper types
@@ -111,6 +111,94 @@ export class PinManagementController {
       return {
         success: false,
         message: 'Failed to retrieve pins',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  static async listMikrotikUsers(ctx: CustomContext) {
+    try {
+      const query = ctx.query as unknown as {
+        vessel_id: string;
+        server_name?: string;
+        profile?: string;
+        limit?: string;
+      };
+      const { user } = ctx;
+
+      if (!user) {
+        ctx.set.status = 401;
+        return {
+          success: false,
+          message: 'Unauthorized',
+        };
+      }
+
+      const vessel_id = parseInt(query.vessel_id, 10);
+      if (!vessel_id) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: 'vessel_id is required',
+        };
+      }
+
+      const result = await listMikrotikUsers_func({
+        vessel_id,
+        server_name: query.server_name,
+        profile: query.profile,
+        limit: query.limit ? parseInt(query.limit, 10) : 200,
+      });
+
+      ctx.set.status = result.success ? 200 : 400;
+      return result;
+    } catch (error) {
+      console.error('Error in listMikrotikUsers controller:', error);
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  static async testMikrotikConnection(ctx: CustomContext) {
+    try {
+      const query = ctx.query as unknown as {
+        vessel_id: string;
+      };
+      const { user } = ctx;
+
+      if (!user) {
+        ctx.set.status = 401;
+        return {
+          success: false,
+          message: 'Unauthorized',
+        };
+      }
+
+      const vessel_id = parseInt(query.vessel_id, 10);
+      if (!vessel_id) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: 'vessel_id is required',
+        };
+      }
+
+      const result = await testMikrotikConnection_func({
+        vessel_id,
+      });
+
+      ctx.set.status = result.success ? 200 : 400;
+      return result;
+    } catch (error) {
+      console.error('Error in testMikrotikConnection controller:', error);
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Internal server error',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

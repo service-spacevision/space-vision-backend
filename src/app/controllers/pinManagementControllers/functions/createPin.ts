@@ -1,4 +1,5 @@
 import { generateRandomString } from '../../../../utils/stringHelpers';
+import { createMikrotikConnection, MikrotikAPI } from '../../../utils/mikrotikAPI';
 import { db } from '../../../db/connection';
 import { pins, type NewPin } from '../../../models/Pin';
 import { mikrotikPermissions } from '../../../models/MikrotikPermission';
@@ -119,7 +120,7 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
 
     for (let i = 0; i < number_of_pins_to_generate; i++) {
       const username = generateRandomString(5, true, true);
-      const password = generateRandomString(5, true, true);
+      const password = generateRandomString(4, false, true); // 4-digit numeric password
 
       // Encode to base64 for storage
       const encodedUsername = Buffer.from(username).toString('base64');
@@ -230,6 +231,66 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
               throw new Error('Mikrotik vessel not found');
             }
 
+            // Create MikroTik connection and push users to router
+            let mikrotikSuccess = true;
+            let createdUsers: Array<{username: string, password: string}> = [];
+
+            try {
+              if (mikrotikVessel.routerIp && mikrotikVessel.apiPort) {
+                console.log(`🔌 Connecting to MikroTik router at ${mikrotikVessel.routerIp}:${mikrotikVessel.apiPort}`);
+
+                // Import here to avoid issues if router is not available
+                const { createMikrotikConnection } = await import('../../../utils/mikrotikAPI');
+                const mikrotikAPI = await createMikrotikConnection(mikrotikVessel.routerIp, mikrotikVessel.apiPort, false, 'api');
+
+                if (await mikrotikAPI.connect()) {
+                  // Ensure hotspot servers exist
+                  const servers = await mikrotikAPI.getHotspotServers();
+                  const defaultServer = servers.length > 0 ? servers[0].name : 'hotspot1';
+
+                  // Ensure user profile exists
+                  const profile = 'General';
+                  await mikrotikAPI.createHotspotUserProfile(profile);
+
+                  // Push each user to MikroTik
+                  for (const pin of generatedPins) {
+                    const username = Buffer.from(pin.username, 'base64').toString();
+                    const password = Buffer.from(pin.password, 'base64').toString();
+
+                    const success = await mikrotikAPI.createHotspotUser({
+                      name: username,
+                      password: password,
+                      profile: profile,
+                      server: defaultServer,
+                      dataLimitBytes: undefined // No data limit for now
+                    });
+
+                    if (success) {
+                      createdUsers.push({ username, password });
+                      console.log(`✅ Pushed user ${username} to MikroTik router`);
+                    } else {
+                      console.error(`❌ Failed to push user ${username} to MikroTik router`);
+                    }
+                  }
+
+                  await mikrotikAPI.disconnect();
+                  console.log(`✅ Successfully pushed ${createdUsers.length}/${generatedPins.length} users to MikroTik router`);
+                } else {
+                  // Try to get more detailed connection information
+                  const connectionTest = await mikrotikAPI.testConnection();
+                  console.warn(`⚠️ Could not connect to MikroTik router at ${mikrotikVessel.routerIp}:${mikrotikVessel.apiPort}`);
+                  console.warn(`📊 Connection test results:`, connectionTest);
+                  mikrotikSuccess = false;
+                }
+              } else {
+                console.warn(`⚠️ MikroTik vessel ${vessel_id} missing router configuration`);
+                mikrotikSuccess = false;
+              }
+            } catch (error) {
+              console.error(`❌ Error pushing users to MikroTik router:`, error);
+              mikrotikSuccess = false;
+            }
+
             const permissions = generatedPins.map((pin) => ({
               vesselId: vessel_id,
               vesselName: vessel_name || 'Unknown Vessel',
@@ -244,6 +305,13 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
 
             if (permissions.length > 0) {
               await tx.insert(mikrotikPermissions).values(permissions);
+            }
+
+            // Update response message to include MikroTik status
+            if (mikrotikSuccess) {
+              console.log(`✅ MikroTik integration successful: ${createdUsers.length} users pushed to router`);
+            } else {
+              console.warn(`⚠️ Database storage successful but MikroTik integration failed`);
             }
           }
         });

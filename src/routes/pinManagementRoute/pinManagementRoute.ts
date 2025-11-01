@@ -6,6 +6,8 @@ import { cookie } from '@elysiajs/cookie';
 const permission = {
   'POST_/api/pin-management/generate': 'generate_pins',
   'GET_/api/pin-management/pins': 'view_pins',
+  'GET_/api/pin-management/mikrotik-users': 'view_mikrotik_users',
+  'GET_/api/pin-management/test-connection': 'test_mikrotik_connection',
 };
 
 const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
@@ -123,6 +125,62 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
         'Generates random usernames and passwords, stores them in the database, and returns the generated credentials. ' +
         'Supports both MikroTik and non-MikroTik pins.',
       operationId: 'generatePins',
+    },
+  })
+
+  // Get MikroTik hotspot users
+  .get('/mikrotik-users', PinManagementController.listMikrotikUsers, {
+    beforeHandle: [checkUser(permission['GET_/api/pin-management/mikrotik-users'])],
+    query: t.Object({
+      vessel_id: t.String({
+        description: 'ID of the MikroTik vessel',
+        examples: ['1', '2', '3'],
+      }),
+      server_name: t.Optional(
+        t.String({
+          description: 'Filter by hotspot server name',
+          examples: ['hotspot1', 'hotspot2'],
+        })
+      ),
+      profile: t.Optional(
+        t.String({
+          description: 'Filter by user profile',
+          examples: ['General', 'General 30d'],
+        })
+      ),
+      limit: t.Optional(
+        t.String({
+          description: 'Maximum number of users to retrieve',
+          default: '200',
+        })
+      ),
+    }),
+    tags: ['Pin Management'],
+    detail: {
+      summary: 'Get MikroTik hotspot users',
+      description:
+        'Retrieves hotspot users directly from the MikroTik router for a specific vessel. ' +
+        'Can be filtered by server name, profile, and limited by count.',
+      operationId: 'listMikrotikUsers',
+    },
+  })
+
+  // Test MikroTik connection
+  .get('/test-connection', PinManagementController.testMikrotikConnection, {
+    beforeHandle: [checkUser(permission['GET_/api/pin-management/test-connection'])],
+    query: t.Object({
+      vessel_id: t.String({
+        description: 'ID of the MikroTik vessel to test',
+        examples: ['1', '2', '3'],
+      }),
+    }),
+    tags: ['Pin Management'],
+    detail: {
+      summary: 'Test MikroTik router connection',
+      description:
+        'Tests connectivity to a MikroTik router and validates API functionality. ' +
+        'Useful for diagnosing connection issues and verifying router configuration.',
+      operationId: 'testMikrotikConnection',
     },
   });
 
