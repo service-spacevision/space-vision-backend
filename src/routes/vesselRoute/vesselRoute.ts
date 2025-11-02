@@ -99,6 +99,16 @@ const vesselRoute = new Elysia({ prefix: '/api/vessels' })
           description: 'Filter by subscription plan',
         })
       ),
+      mikrotikFilter: t.Optional(
+        t.Union(
+          [t.Literal('all'), t.Literal('mikrotik'), t.Literal('non-mikrotik')],
+          {
+            description:
+              'Filter vessels by Mikrotik status (all, mikrotik, non-mikrotik)',
+            default: 'all',
+          }
+        )
+      ),
       currentPage: t.Optional(
         t.String({
           description: 'Current Page number',

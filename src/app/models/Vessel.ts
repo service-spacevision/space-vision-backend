@@ -17,6 +17,8 @@ export const vessels = pgTable('vessels', {
   subscriptionPlan: text('subscription_plan'),
   groupId: integer('group_id').references(() => vesselGroups.id),
   deviceId: text('device_id'),
+  apiPort: integer('api_port'),
+  isMikrotik: boolean('is_mikrotik').default(false),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -54,6 +56,21 @@ export const CreateVesselSchema = t.Object({
       description: 'Device ID',
     })
   ),
+  apiPort: t.Optional(
+    t.Number({
+      description: 'API port number',
+    })
+  ),
+  routerIp: t.Optional(
+    t.String({
+      description: 'Router IP address for Mikrotik vessels',
+    })
+  ),
+  isMikrotik: t.Optional(
+    t.Boolean({
+      description: 'Is vessel a Mikrotik vessel',
+    })
+  ),
 });
 
 export const UpdateVesselSchema = t.Object({
@@ -87,6 +104,21 @@ export const UpdateVesselSchema = t.Object({
       description: 'Device ID',
     })
   ),
+  apiPort: t.Optional(
+    t.Number({
+      description: 'API port number',
+    })
+  ),
+  routerIp: t.Optional(
+    t.String({
+      description: 'Router IP address for Mikrotik vessels',
+    })
+  ),
+  isMikrotik: t.Optional(
+    t.Boolean({
+      description: 'Is vessel a Mikrotik vessel',
+    })
+  ),
 });
 
 export const VesselResponseSchema = t.Object({
@@ -97,6 +129,8 @@ export const VesselResponseSchema = t.Object({
   groupId: t.Optional(t.Number()),
   deviceId: t.Optional(t.String()),
   isActive: t.Optional(t.Boolean()),
+  apiPort: t.Optional(t.Number()),
+  isMikrotik: t.Optional(t.Boolean()),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 });

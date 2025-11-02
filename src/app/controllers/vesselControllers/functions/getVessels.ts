@@ -14,6 +14,7 @@ interface GetVesselsParams {
     deviceId?: string;
     groupId?: string;
     subscriptionPlan?: string;
+    mikrotikFilter?: 'mikrotik' | 'non-mikrotik' | 'all';
   };
   pagination: {
     currentPage: number;
@@ -53,6 +54,14 @@ export async function getVessels_func({
       whereConditions.push(
         ilike(vessels.subscriptionPlan, `%${query.subscriptionPlan}%`)
       );
+    }
+
+    if (query?.mikrotikFilter) {
+      if (query.mikrotikFilter === 'mikrotik') {
+        whereConditions.push(eq(vessels.isMikrotik, true));
+      } else if (query.mikrotikFilter === 'non-mikrotik') {
+        whereConditions.push(eq(vessels.isMikrotik, false));
+      }
     }
 
     // For non-system users, only show active vessels
@@ -100,6 +109,8 @@ export async function getVessels_func({
           groupId: vessels.groupId,
           deviceId: vessels.deviceId,
           isActive: vessels.isActive,
+          isMikrotik: vessels.isMikrotik,
+          api_port: vessels.apiPort,
           createdAt: vessels.createdAt,
           updatedAt: vessels.updatedAt,
           groupName: vesselGroups.groupName,
@@ -133,6 +144,8 @@ export async function getVessels_func({
             subscriptionPlan: vessels.subscriptionPlan,
             groupId: vessels.groupId,
             deviceId: vessels.deviceId,
+            isMikrotik: vessels.isMikrotik,
+            apiPort: vessels.apiPort,
             isActive: vessels.isActive,
             createdAt: vessels.createdAt,
             updatedAt: vessels.updatedAt,

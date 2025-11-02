@@ -28,6 +28,10 @@ export const userRoles = pgTable('user_roles', {
     .array()
     .default(sql`ARRAY[]::integer[]`)
     .notNull(),
+  permittedMikrotikVessels: integer('permitted_mikrotik_vessels')
+    .array()
+    .default(sql`ARRAY[]::integer[]`)
+    .notNull(),
   organizationId: integer('organization_id'),
 });
 
@@ -42,13 +46,18 @@ export type CreateUserRoleData = Pick<
   | 'displayName'
   | 'description'
   | 'permittedVesselGroups'
+  | 'permittedMikrotikVessels'
   | 'organizationId'
 >;
 
 export type UpdateUserRoleData = Partial<
   Pick<
     UserRole,
-    'displayName' | 'description' | 'isActive' | 'permittedVesselGroups'
+    | 'displayName'
+    | 'description'
+    | 'isActive'
+    | 'permittedVesselGroups'
+    | 'permittedMikrotikVessels'
   >
 >;
 
@@ -136,4 +145,5 @@ export const UserRoleResponseSchema = t.Object({
   createdBy: t.Optional(t.String()),
   organizationName: t.Optional(t.String()),
   permittedVesselGroups: t.Array(t.Number()),
+  permittedMikrotikVessels: t.Array(t.Number()),
 });
