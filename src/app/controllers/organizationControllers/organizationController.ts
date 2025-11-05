@@ -5,6 +5,7 @@ import { getOrganizationByName_func } from './functions/getOrganizationByName';
 import { updateOrganization_func } from './functions/updateOrganization';
 import { updateOrganizationByAdmin_func } from './functions/updateOrganizationByAdmin';
 import { deleteOrganization_func } from './functions/deleteOrganization';
+import { generateAccessToken_func } from './functions/generateAccessToken';
 
 export class OrganizationController {
   static async create(ctx: CustomContext) {
@@ -113,6 +114,21 @@ export class OrganizationController {
       return {
         success: false,
         message: 'Internal server error while deleting organization',
+      };
+    }
+  }
+
+  static async generateAccessToken(ctx: CustomContext) {
+    try {
+      const { userId, organizationId } = ctx.body as any;
+      const result = await generateAccessToken_func({ userId, organizationId });
+      ctx.set.status = result?.success ? 200 : 400;
+      return result;
+    } catch (err) {
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Internal server error while generating access token',
       };
     }
   }

@@ -1,9 +1,25 @@
 import { Context } from 'elysia';
-import { authMiddleware } from './auth';
+import { authMiddleware, orgAccessToken } from './auth';
 
 export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
-    // First check authentication
+    // Check for "x-space-context" header first
+    const spaceContextToken = ctx.headers['x-space-context'];
+    
+    if (spaceContextToken) {
+      console.log('Using x-space-context');
+      const orgAuthResult = await orgAccessToken(spaceContextToken);
+      console.log('org auth', orgAuthResult);
+
+      if (!orgAuthResult || !orgAuthResult.success) {
+        ctx.set.status = 401;
+        return orgAuthResult;
+      }
+
+      (ctx as any).user = orgAuthResult.data;
+      return;
+    }
+
     // console.log("ctx->data", ctx.cookie.jwt_token);
     let contextToken =
       ctx.cookie.jwt_token.value || ctx.cookie['auth-token'].value;

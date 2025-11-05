@@ -25,6 +25,11 @@ export const SESSION_CONFIG = {
   EXPIRES_IN: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 }
 
+export const ENCRYPTION_CONFIG = {
+  KEY: process.env.ENCRYPTION_KEY || 'your-32-character-encryption-key-here-change-this',
+  ALGORITHM: 'aes-256-gcm'
+}
+
 export const authTypes = {
   local: 'local',
   oauth: 'oauth',
