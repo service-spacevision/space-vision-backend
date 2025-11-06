@@ -15,6 +15,7 @@ const permission = {
   'PUT_/api/organizations/update': 'update_organization',
   'PUT_/api/organizations/admin/:id': 'admin_update_organization',
   'DELETE_/api/organizations/delete': 'delete_organization',
+  'POST_/api/organizations/generate-org-access-token': 'generate_org_access_token',
 };
 
 const organizationRoute = new Elysia({ prefix: '/api/organizations' })
@@ -112,6 +113,19 @@ const organizationRoute = new Elysia({ prefix: '/api/organizations' })
       summary: 'Delete organization',
       description: 'Delete an organization by name',
       operationId: 'deleteOrganization',
+    },
+  })
+  .post('/generate-org-access-token', OrganizationController.generateAccessToken, {
+    beforeHandle: [checkUser(permission['POST_/api/organizations/generate-org-access-token'])],
+    body: t.Object({
+      userId: t.Number({ description: 'User ID that the token will act as' }),
+      organizationId: t.Number({ description: 'Organization ID to generate token for' }),
+    }),
+    tags: ['Organization'],
+    detail: {
+      summary: 'Generate organization access token',
+      description: 'Generate an encrypted access token for organization API access',
+      operationId: 'generateOrganizationAccessToken',
     },
   });
 

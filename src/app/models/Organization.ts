@@ -10,6 +10,7 @@ export const organizations = pgTable('organizations', {
   subscription_id: text('subscription_id'),
   parent_org_name: text('parent_org_name'),
   permittedVesselGroups: integer('permitted_vessel_groups').array(),
+  accessToken: text('access_token'), // Encrypted token for org access
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
