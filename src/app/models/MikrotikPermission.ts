@@ -13,8 +13,6 @@ export const mikrotikPermissions = pgTable('mikrotik_permissions', {
   id: serial('id').primaryKey(),
   vesselId: integer('vessel_id').notNull(),
   vesselName: text('vessel_name').notNull(),
-  mikrotikVesselId: text('mikrotik_vessel_id'),
-  mikrotikVesselName: text('mikrotik_vessel_name'),
   mikrotikUserName: text('mikrotik_user_name').notNull(),
   routerIp: text('router_ip').notNull(),
   routerPort: integer('router_port').notNull(),
@@ -26,6 +24,7 @@ export const mikrotikPermissions = pgTable('mikrotik_permissions', {
   assignedById: integer('assigned_by')
     .notNull()
     .references(() => users.id),
+  type: text('type').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -63,17 +62,9 @@ export const CreateMikrotikPermissionSchema = t.Object({
   assignedById: t.Number({
     description: 'ID of the user who assigned this permission',
   }),
-
-  mikrotikVesselId: t.Optional(
-    t.String({
-      description: 'ID of the Mikrotik vessel',
-    })
-  ),
-  mikrotikVesselName: t.Optional(
-    t.String({
-      description: 'Name of the Mikrotik vessel',
-    })
-  ),
+  type: t.String({
+    description: 'Type of the permission',
+  }),
 });
 
 export const UpdateMikrotikPermissionSchema = t.Object({
@@ -122,15 +113,9 @@ export const UpdateMikrotikPermissionSchema = t.Object({
       description: 'ID of the user who assigned this permission',
     })
   ),
-
-  mikrotikVesselId: t.Optional(
+  type: t.Optional(
     t.String({
-      description: 'ID of the Mikrotik vessel',
-    })
-  ),
-  mikrotikVesselName: t.Optional(
-    t.String({
-      description: 'Name of the Mikrotik vessel',
+      description: 'Type of the permission',
     })
   ),
 });
@@ -139,14 +124,13 @@ export const MikrotikPermissionResponseSchema = t.Object({
   id: t.Number(),
   vesselId: t.Number(),
   vesselName: t.String(),
-  mikrotikVesselId: t.String(),
-  mikrotikVesselName: t.String(),
   mikrotikUserName: t.String(),
   routerIp: t.String(),
   routerPort: t.Number(),
   organizationId: t.Number(),
   username: t.String(),
   assignedById: t.Number(),
+  type: t.String(),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 });

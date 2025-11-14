@@ -1,24 +1,30 @@
-import { db } from "../../../db/connection";
-import { eq, and } from "drizzle-orm";
-import { mikrotikPermissions } from "../../../models/MikrotikPermission";
-import { getMikrotikUsageByVesselId } from "./getMikrotikUsageByVesselId";
+import { db } from '../../../db/connection';
+import { eq, and } from 'drizzle-orm';
+import { mikrotikPermissions } from '../../../models/MikrotikPermission';
+import { getMikrotikUsageByVesselId } from './getMikrotikUsageByVesselId';
 
 export async function crewLogin({
   username,
   password,
+  type,
 }: {
   username: string;
   password: string;
+  type?: 'crew' | 'system';
 }) {
   try {
     // Find the user in mikrotik_permissions
+    console.log('username', username);
+    console.log('password', password);
+    console.log('type', type);
     const [permission] = await db
       .select()
       .from(mikrotikPermissions)
       .where(
         and(
           eq(mikrotikPermissions.username, username),
-          eq(mikrotikPermissions.password, password)
+          eq(mikrotikPermissions.password, password),
+          type ? eq(mikrotikPermissions.type, type) : undefined
         )
       )
       .limit(1);
@@ -27,12 +33,11 @@ export async function crewLogin({
       return {
         success: false,
         status: 401,
-        message: "Invalid credentials",
+        message: 'Invalid credentials',
       };
     }
 
-    // If mikrotik_user_name is set, filter by it, otherwise return all data for the vessel
-    const usernameFilter = permission.mikrotikUserName || undefined;
+    const usernameFilter = type === 'crew' ? username : undefined;
 
     // Get current session data
     const currentSession = await getMikrotikUsageByVesselId({
@@ -67,11 +72,11 @@ export async function crewLogin({
       },
     };
   } catch (error) {
-    console.error("Error in crew login:", error);
+    console.error('Error in crew login:', error);
     return {
       success: false,
       status: 500,
-      message: "Failed to process login",
+      message: 'Failed to process login',
       error: error instanceof Error ? error.message : String(error),
     };
   }

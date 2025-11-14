@@ -1,6 +1,6 @@
-import { and, inArray, SQL } from "drizzle-orm";
+import { and, inArray, SQL } from 'drizzle-orm';
 // We'll use a type-only import to avoid circular dependencies
-import type { vesselGroups } from "../app/models/VesselGroup";
+import type { vesselGroups } from '../app/models/VesselGroup';
 
 interface User {
   role?: {
@@ -41,6 +41,9 @@ export function createVesselGroupFilter(
 export function isAdmin(user: User | undefined): boolean {
   return user?.role?.name === 'admin';
 }
+export function isSystem(user: User | undefined): boolean {
+  return user?.role?.name === 'system';
+}
 
 /**
  * Creates a WHERE condition that combines existing conditions with vessel group filtering
@@ -55,7 +58,7 @@ export function withVesselGroupFilter(
   vesselGroupColumn: any
 ): SQL | undefined {
   const vesselGroupCondition = createVesselGroupFilter(user, vesselGroupColumn);
-  
+
   if (vesselGroupCondition) {
     existingConditions.push(vesselGroupCondition);
   }

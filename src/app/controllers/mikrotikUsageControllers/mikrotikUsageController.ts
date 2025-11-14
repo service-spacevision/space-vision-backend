@@ -1,8 +1,8 @@
-import { Elysia } from "elysia";
-import { getMikrotikUsage } from "./functions/getMikrotikUsage";
-import { getMikrotikUsageByVesselId } from "./functions/getMikrotikUsageByVesselId";
-import { syncMikrotikUsage } from "./functions/syncMikrotikUsage";
-import { crewLogin as crewLoginFunction } from "./functions/crewLogin";
+import { Elysia } from 'elysia';
+import { getMikrotikUsage } from './functions/getMikrotikUsage';
+import { getMikrotikUsageByVesselId } from './functions/getMikrotikUsageByVesselId';
+import { syncMikrotikUsage } from './functions/syncMikrotikUsage';
+import { crewLogin as crewLoginFunction } from './functions/crewLogin';
 
 export class MikrotikUsageController {
   static getMikrotikUsage = async ({
@@ -33,11 +33,11 @@ export class MikrotikUsageController {
         pagination,
       };
     } catch (error) {
-      console.error("Error fetching Mikrotik usage:", error);
+      console.error('Error fetching Mikrotik usage:', error);
       set.status = 500;
       return {
         success: false,
-        message: "Failed to fetch Mikrotik usage data",
+        message: 'Failed to fetch Mikrotik usage data',
         error: error instanceof Error ? error.message : String(error),
       };
     }
@@ -51,11 +51,11 @@ export class MikrotikUsageController {
         ...result,
       };
     } catch (error) {
-      console.error("Error starting Mikrotik sync:", error);
+      console.error('Error starting Mikrotik sync:', error);
       set.status = 500;
       return {
         success: false,
-        message: "Failed to start Mikrotik sync",
+        message: 'Failed to start Mikrotik sync',
         error: error instanceof Error ? error.message : String(error),
       };
     }
@@ -114,6 +114,7 @@ export class MikrotikUsageController {
       const result = await crewLoginFunction({
         username: body.username,
         password: body.password,
+        type: 'crew', // Always set type to 'crew' for this endpoint
       });
 
       if (!result.success) {
@@ -122,11 +123,44 @@ export class MikrotikUsageController {
 
       return result;
     } catch (error) {
-      console.error("Error in crew login:", error);
+      console.error('Error in crew login:', error);
       set.status = 500;
       return {
         success: false,
-        message: "Failed to process login",
+        message: 'Failed to process login',
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+
+  static systemLogin = async ({
+    body,
+    set,
+  }: {
+    body: {
+      username: string;
+      password: string;
+    };
+    set: any;
+  }) => {
+    try {
+      const result = await crewLoginFunction({
+        username: body.username,
+        password: body.password,
+        type: 'system', // Always set type to 'system' for this endpoint
+      });
+
+      if (!result.success) {
+        set.status = result.status || 500;
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in system login:', error);
+      set.status = 500;
+      return {
+        success: false,
+        message: 'Failed to process login',
         error: error instanceof Error ? error.message : String(error),
       };
     }

@@ -1,21 +1,20 @@
-// MikrotikService.ts
-import * as net from "net";
-import { and, eq, sql } from "drizzle-orm";
-import { db } from "../db/connection";
-import { mikrotikVessels } from "../models/MikrotikVessel";
-import { mikrotikUsageSession } from "../models/MikrotikUsageSession";
+import * as net from 'net';
+import { and, eq, sql, desc } from 'drizzle-orm';
+import { db } from '../db/connection';
+import { mikrotikVessels } from '../models/MikrotikVessel';
+import { mikrotikUsageSession } from '../models/MikrotikUsageSession';
 import {
   mikrotikUsageAlltime,
   type MikrotikUsageAlltime,
   type NewMikrotikUsageAlltime,
-} from "../models/MikrotikUsageAlltime";
-import { RouterOSClient } from "mikro-routeros";
+} from '../models/MikrotikUsageAlltime';
+import { RouterOSClient } from 'mikro-routeros';
 
 // ---- helper for safe logging
 function mask(val?: string, revealAll = false) {
-  if (!val) return "(empty)";
+  if (!val) return '(empty)';
   if (revealAll) return val;
-  if (val.length <= 4) return val[0] + "***";
+  if (val.length <= 4) return val[0] + '***';
   return `${val.slice(0, 2)}***${val.slice(-2)}`;
 }
 
@@ -38,9 +37,9 @@ export class MikrotikService {
         }
       };
       socket.setTimeout(timeout);
-      socket.once("connect", () => done(true));
-      socket.once("timeout", () => done(false));
-      socket.once("error", () => done(false));
+      socket.once('connect', () => done(true));
+      socket.once('timeout', () => done(false));
+      socket.once('error', () => done(false));
       try {
         socket.connect(port, host);
       } catch {
@@ -83,18 +82,20 @@ export class MikrotikService {
 
   /**
    * Updates the all-time usage statistics for a user
+   * Calculates delta from existing all-time (last known total) and adds to cumulative
+   * This prevents data loss if the router resets
    */
   private static async updateAlltimeUsage(
     vesselName: string,
     username: string,
     vesselId: number,
-    newRxMb: number,
-    newTxMb: number,
+    currRxMb: number,
+    currTxMb: number,
     uptime: string,
     totalAllowedMb: number
   ): Promise<void> {
     try {
-      // Try to find existing all-time record
+      // ---- fetch existing all-time to use as prev ----
       const existing = await db
         .select()
         .from(mikrotikUsageAlltime)
@@ -106,19 +107,41 @@ export class MikrotikService {
         )
         .limit(1);
 
+      const prevRxMb = existing.length > 0 ? existing[0].rxMb || 0 : 0;
+      const prevTxMb = existing.length > 0 ? existing[0].txMb || 0 : 0;
+
+      // ---- compute delta from existing all-time ----
+      let deltaRxMb: number;
+      let deltaTxMb: number;
+      let isReset = false;
+
+      if (currRxMb < prevRxMb || currTxMb < prevTxMb) {
+        // router reset / wrap: treat current as fresh usage
+        deltaRxMb = currRxMb;
+        deltaTxMb = currTxMb;
+        isReset = true;
+      } else {
+        // normal monotonic increase (equality => 0)
+        deltaRxMb = currRxMb - prevRxMb;
+        deltaTxMb = currTxMb - prevTxMb;
+      }
+
+      // ---- upsert all-time by adding deltas ----
       const now = new Date();
+      const totalUsedMb = prevRxMb + prevTxMb + deltaRxMb + deltaTxMb;
+
+      // keep semantics consistent (percent; 2 decimals here)
       const percentageUsed =
         totalAllowedMb > 0
-          ? Math.round(((newRxMb + newTxMb) / totalAllowedMb) * 1000) / 10
+          ? Math.round((totalUsedMb / totalAllowedMb) * 100)
           : 0;
 
       if (existing.length > 0) {
-        // Update existing record
         await db
           .update(mikrotikUsageAlltime)
           .set({
-            rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${newRxMb}`,
-            txMb: sql`${mikrotikUsageAlltime.txMb} + ${newTxMb}`,
+            rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${deltaRxMb}`,
+            txMb: sql`${mikrotikUsageAlltime.txMb} + ${deltaTxMb}`,
             totalAllowedMb,
             percentageUsed: percentageUsed.toString(),
             uptime,
@@ -132,13 +155,12 @@ export class MikrotikService {
             )
           );
       } else {
-        // Insert new record
         const newRecord: NewMikrotikUsageAlltime = {
           vesselName,
           username,
           vesselId,
-          rxMb: newRxMb,
-          txMb: newTxMb,
+          rxMb: deltaRxMb,
+          txMb: deltaTxMb,
           totalAllowedMb,
           percentageUsed: percentageUsed.toString(),
           uptime,
@@ -146,7 +168,19 @@ export class MikrotikService {
         };
         await db.insert(mikrotikUsageAlltime).values(newRecord);
       }
-      console.log(`[${vesselName}] Updated all-time usage for ${username}`);
+
+      // optional focused logging
+
+      console.log(`[${vesselName}] all-time update for ${username}`, {
+        prevRxMb,
+        prevTxMb,
+        currRxMb,
+        currTxMb,
+        deltaRxMb,
+        deltaTxMb,
+        isReset,
+        totalAllowedMb,
+      });
     } catch (error) {
       console.error(
         `[${vesselName}] Error updating all-time usage for ${username}:`,
@@ -195,16 +229,11 @@ export class MikrotikService {
     const port = vessel.apiPort;
 
     // Prefer env; fallback to your provided creds (with apostrophe)
-    const user = process.env.MT_USER || "svcoreadmin";
-    const pass = process.env.MT_PASS || "V3ss3l@dmin#2025";
+    const user = process.env.MT_USER || 'svcoreadmin';
+    const pass = process.env.MT_PASS || 'V3ss3l@dmin#2025';
 
     // Construct client (timeout in ms)
     const client = new RouterOSClient(host, port, 30000);
-
-    // Optional: event hooks for deeper debugging
-    // client.on('close', () => console.log(`[${vessel.vesselName}] <close>`));
-    // client.on('error', (e) => console.error(`[${vessel.vesselName}] <error>`, e));
-    // client.on('trap',  (t) => console.error(`[${vessel.vesselName}] <trap>`, t));
 
     const REVEAL_FULL_PASSWORD = false;
 
@@ -223,8 +252,20 @@ export class MikrotikService {
       console.log(`[${vessel.vesselName}] Connected & authenticated`);
 
       // Fetch data
-      const sessions: any[] = await client.runQuery("/ip/hotspot/active/print");
-      const users: any[] = await client.runQuery("/ip/hotspot/user/print");
+      // Fetch data with full logging
+      console.log(`[${vessel.vesselName}] Fetching active sessions...`);
+      const sessions: any[] = await client.runQuery('/ip/hotspot/active/print');
+      console.log(
+        `[${vessel.vesselName}] Raw sessions response:`,
+        JSON.stringify(sessions, null, 2)
+      );
+
+      console.log(`[${vessel.vesselName}] Fetching users...`);
+      const users: any[] = await client.runQuery('/ip/hotspot/user/print');
+      console.log(
+        `[${vessel.vesselName}] Raw users response:`,
+        JSON.stringify(users, null, 2)
+      );
 
       console.log(
         `[${vessel.vesselName}] Active sessions: ${sessions.length}, users: ${users.length}`
@@ -232,38 +273,112 @@ export class MikrotikService {
       console.dir(sessions.slice(0, 3), { depth: 5 });
       console.dir(users.slice(0, 3), { depth: 5 });
 
-      // Map users by name for limits
+      // Build active map by username
+      const activeMap: Record<string, any> = {};
+      for (const s of sessions) {
+        const username = s?.user as string;
+        if (username) activeMap[username] = s;
+      }
+
+      // Map users by name for limits (unchanged)
       const userMap: Record<string, any> = {};
       for (const u of users) if (u?.name) userMap[u.name] = u;
 
-      // DB write
+      // Collect update tasks for all-time (unified for all users)
+      const updateTasks: Array<{
+        username: string;
+        currRxMb: number;
+        currTxMb: number;
+        uptime: string;
+        allowedMb: number;
+      }> = [];
+
+      for (const u of users) {
+        const username = u?.name as string;
+        if (!username) continue;
+
+        // Get active session if exists
+        const active = activeMap[username];
+
+        // Profile totals (past sessions)
+        const profileRxBytes =
+          parseInt(String(u?.['bytes-in'] ?? '0'), 10) || 0;
+        const profileTxBytes =
+          parseInt(String(u?.['bytes-out'] ?? '0'), 10) || 0;
+
+        // Current session bytes (0 if inactive)
+        const sessionRxBytes = active
+          ? parseInt(String(active?.['bytes-in'] ?? '0'), 10) || 0
+          : 0;
+        const sessionTxBytes = active
+          ? parseInt(String(active?.['bytes-out'] ?? '0'), 10) || 0
+          : 0;
+
+        // Current TOTAL usage
+        const totalRxBytes = profileRxBytes + sessionRxBytes;
+        const totalTxBytes = profileTxBytes + sessionTxBytes;
+        const currRxMb = Math.round(totalRxBytes / 1048576);
+        const currTxMb = Math.round(totalTxBytes / 1048576);
+
+        const limitBytes =
+          parseInt(String(u?.['limit-bytes-total'] ?? '0'), 10) || 0;
+        const allowedMb =
+          limitBytes > 0 ? Math.floor(limitBytes / 1048576) : 5000;
+
+        const uptime = active?.uptime || u?.uptime || '';
+
+        console.log(
+          `[${username}] Total calc: profileRx=${profileRxBytes}, sessionRx=${sessionRxBytes}, totalRx=${totalRxBytes}, allowedMb=${allowedMb}`
+        ); // Optional debug
+
+        updateTasks.push({
+          username,
+          currRxMb,
+          currTxMb,
+          uptime,
+          allowedMb,
+        });
+      }
+
+      // Handle session storage (only for active users)
       await db.transaction(async (tx) => {
         await tx
           .delete(mikrotikUsageSession)
           .where(eq(mikrotikUsageSession.vesselName, vessel.vesselName));
 
         for (const s of sessions) {
-          const username = (s?.user as string) || "";
+          const username = (s?.user as string) || '';
           if (!username) continue;
 
-          const ipAddr = (s?.address as string) || "";
-          const mac = (s?.["mac-address"] as string) || "";
-          const uptime = (s?.uptime as string) || "";
+          const ipAddr = (s?.address as string) || '';
+          const mac = (s?.['mac-address'] as string) || '';
+          const uptime = (s?.uptime as string) || '';
 
-          const rxBytes = parseInt(String(s?.["bytes-in"] ?? "0"), 10) || 0;
-          const txBytes = parseInt(String(s?.["bytes-out"] ?? "0"), 10) || 0;
-          const rxMb = Math.floor(rxBytes / 1048576);
-          const txMb = Math.floor(txBytes / 1048576);
+          const rxBytes = parseInt(String(s?.['bytes-in'] ?? '0'), 10) || 0;
+          const txBytes = parseInt(String(s?.['bytes-out'] ?? '0'), 10) || 0;
+          const rxMb = Math.round(rxBytes / 1048576);
+          const txMb = Math.round(txBytes / 1048576);
 
           const profile = userMap[username] || {};
           const limitBytes =
-            parseInt(String(profile?.["limit-bytes-total"] ?? "0"), 10) || 0;
+            parseInt(String(profile?.['limit-bytes-total'] ?? '0'), 10) || 0;
           const allowedMb =
             limitBytes > 0 ? Math.floor(limitBytes / 1048576) : 5000;
 
-          const totalUsedMb = (rxBytes + txBytes) / 1048576;
+          // OPTIONAL FIX: Use total used for percentage (consistent with all-time)
+          // If you want session-only percentage, revert to (rxBytes + txBytes)
+          const u = profile; // User profile
+          const profileRxBytes =
+            parseInt(String(u?.['bytes-in'] ?? '0'), 10) || 0;
+          const profileTxBytes =
+            parseInt(String(u?.['bytes-out'] ?? '0'), 10) || 0;
+          const totalUsedBytes =
+            profileRxBytes + profileTxBytes + rxBytes + txBytes;
+          const totalUsedMb = totalUsedBytes / 1048576;
           const percentageUsed =
-            allowedMb > 0 ? Math.round((totalUsedMb / allowedMb) * 10) / 10 : 0;
+            allowedMb > 0
+              ? Math.round((totalUsedMb / allowedMb) * 100) / 100
+              : 0;
 
           await tx.insert(mikrotikUsageSession).values({
             vesselName: vessel.vesselName,
@@ -278,19 +393,26 @@ export class MikrotikService {
             percentageUsed: String(percentageUsed),
             lastUpdated: new Date(),
           });
-
-          // Update all-time usage in the background
-          this.updateAlltimeUsage(
-            vessel.vesselName,
-            username,
-            vessel.id,
-            rxMb,
-            txMb,
-            uptime,
-            allowedMb
-          ).catch(console.error);
         }
       });
+
+      // Execute all-time usage updates AFTER transaction
+      await Promise.all(
+        updateTasks.map((t) =>
+          this.updateAlltimeUsage(
+            vessel.vesselName,
+            t.username,
+            vessel.id,
+            t.currRxMb,
+            t.currTxMb,
+            t.uptime,
+            t.allowedMb
+          )
+        )
+      );
+
+      // Wait for all background all-time usage updates to complete
+      await new Promise((r) => setTimeout(r, 1000));
     } finally {
       try {
         await client.close();

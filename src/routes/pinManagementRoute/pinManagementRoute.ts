@@ -8,6 +8,9 @@ const permission = {
   'GET_/api/pin-management/pins': 'view_pins',
   'GET_/api/pin-management/mikrotik-users': 'view_mikrotik_users',
   'GET_/api/pin-management/test-connection': 'test_mikrotik_connection',
+  'GET_/api/pin-management/sync-mikrotik-users': 'sync_mikrotik_users',
+  'POST_/api/pin-management/crew-login': 'crew_login',
+  'POST_/api/pin-management/system-login': 'system_login',
 };
 
 const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
@@ -32,17 +35,27 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
       type: t.Optional(
         t.Enum(
           {
-            MIKROTIK: 'mikrotik',
-            OTHER: 'other',
+            CREW: 'crew',
+            SYSTEM: 'system',
           },
           {
-            description: 'Filter by pin type',
+            description: 'Filter by permission type (crew or system)',
           }
         )
       ),
       vessel_id: t.Optional(
         t.String({
           description: 'Filter by vessel ID',
+        })
+      ),
+      username: t.Optional(
+        t.String({
+          description: 'Filter by username (case insensitive partial match)',
+        })
+      ),
+      vessel_name: t.Optional(
+        t.String({
+          description: 'Filter by vessel name (case insensitive partial match)',
         })
       ),
     }),
@@ -84,6 +97,16 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
             maximum: 50,
             examples: [5],
           }),
+          access_type: t.Enum(
+            {
+              CREW: 'crew',
+              SYSTEM: 'system',
+            },
+            {
+              description: 'Access type for the pin',
+              default: 'crew',
+            }
+          ),
         },
         {
           title: 'Non-MikroTik pin request',
@@ -114,6 +137,16 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
             maximum: 50,
             examples: [5],
           }),
+          access_type: t.Enum(
+            {
+              CREW: 'crew',
+              SYSTEM: 'system',
+            },
+            {
+              description: 'Access type for the pin',
+              default: 'crew',
+            }
+          ),
         },
         { title: 'MikroTik pin request' }
       ),
@@ -130,7 +163,9 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
 
   // Get MikroTik hotspot users
   .get('/mikrotik-users', PinManagementController.listMikrotikUsers, {
-    beforeHandle: [checkUser(permission['GET_/api/pin-management/mikrotik-users'])],
+    beforeHandle: [
+      checkUser(permission['GET_/api/pin-management/mikrotik-users']),
+    ],
     query: t.Object({
       vessel_id: t.String({
         description: 'ID of the MikroTik vessel',
@@ -167,7 +202,9 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
 
   // Test MikroTik connection
   .get('/test-connection', PinManagementController.testMikrotikConnection, {
-    beforeHandle: [checkUser(permission['GET_/api/pin-management/test-connection'])],
+    beforeHandle: [
+      checkUser(permission['GET_/api/pin-management/test-connection']),
+    ],
     query: t.Object({
       vessel_id: t.String({
         description: 'ID of the MikroTik vessel to test',
@@ -181,6 +218,20 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
         'Tests connectivity to a MikroTik router and validates API functionality. ' +
         'Useful for diagnosing connection issues and verifying router configuration.',
       operationId: 'testMikrotikConnection',
+    },
+  })
+
+  // Sync MikroTik users
+  .get('/sync-mikrotik-users', PinManagementController.syncMikrotikUsers, {
+    beforeHandle: [
+      checkUser(permission['GET_/api/pin-management/sync-mikrotik-users']),
+    ],
+    tags: ['Pin Management'],
+    detail: {
+      summary: 'Sync MikroTik users',
+      description:
+        'Syncs MikroTik users from all vessels and stores them in the database.',
+      operationId: 'syncMikrotikUsers',
     },
   });
 

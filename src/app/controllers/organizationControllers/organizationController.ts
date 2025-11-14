@@ -6,6 +6,7 @@ import { updateOrganization_func } from './functions/updateOrganization';
 import { updateOrganizationByAdmin_func } from './functions/updateOrganizationByAdmin';
 import { deleteOrganization_func } from './functions/deleteOrganization';
 import { generateAccessToken_func } from './functions/generateAccessToken';
+import getOrganizationUsers_func from './functions/getOrganizationUsers';
 
 export class OrganizationController {
   static async create(ctx: CustomContext) {
@@ -39,6 +40,37 @@ export class OrganizationController {
       return {
         success: false,
         message: 'Internal server error while fetching organizations',
+      };
+    }
+  }
+
+  static async getUsers(ctx: CustomContext) {
+    try {
+      const organizationId = Number(ctx.params?.id);
+      if (isNaN(organizationId)) {
+        ctx.set.status = 400;
+        return { success: false, message: 'Invalid organization ID' };
+      }
+
+      const { currentPage, pageSize, all, search } = ctx.query;
+      const result = await getOrganizationUsers_func({
+        organizationId,
+        pagination: {
+          currentPage: currentPage ? Number(currentPage) : 1,
+          pageSize: pageSize ? Number(pageSize) : 10,
+          all: all || 'false',
+        },
+        search: search || '',
+      });
+
+      ctx.set.status = result.success ? 200 : 400;
+      return result;
+    } catch (error) {
+      console.error('Error in getUsers:', error);
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Internal server error while fetching organization users',
       };
     }
   }

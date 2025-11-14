@@ -1,8 +1,7 @@
 import { db } from '../../../db/connection';
-import { pins } from '../../../models/Pin';
+import { mikrotikPermissions } from '../../../models/MikrotikPermission';
 import { users } from '../../../models/User';
-import { vessels } from '../../../models/Vessel';
-import { eq, sql, and } from 'drizzle-orm';
+import { eq, sql, and, or } from 'drizzle-orm';
 import { PinType } from '../../../../types/pin.types';
 
 interface GetPinsParams {
@@ -10,6 +9,8 @@ interface GetPinsParams {
   pageSize?: number;
   type?: PinType;
   vessel_id?: number;
+  username?: string;
+  vessel_name?: string;
 }
 
 export async function getPins_func(params: GetPinsParams = {}) {
@@ -19,23 +20,44 @@ export async function getPins_func(params: GetPinsParams = {}) {
       pageSize = 10,
       type,
       vessel_id,
+      username,
+      vessel_name,
     } = params;
 
     const offset = (page - 1) * pageSize;
 
     // Build where conditions
-    const conditions = [];
+    const conditions = [
+      or(
+        eq(mikrotikPermissions.type, 'crew'),
+        eq(mikrotikPermissions.type, 'system')
+      ),
+    ];
     if (type) {
-      conditions.push(eq(pins.type, type));
+      conditions.push(eq(mikrotikPermissions.type, type));
     }
     if (vessel_id) {
-      conditions.push(eq(pins.vessel_id, vessel_id));
+      conditions.push(eq(mikrotikPermissions.vesselId, vessel_id));
+    }
+    if (username) {
+      conditions.push(
+        sql`LOWER(${
+          mikrotikPermissions.username
+        }) LIKE LOWER(${`%${username}%`})`
+      );
+    }
+    if (vessel_name) {
+      conditions.push(
+        sql`LOWER(${
+          mikrotikPermissions.vesselName
+        }) LIKE LOWER(${`%${vessel_name}%`})`
+      );
     }
 
     // Get total count
     const totalResult = await db
       .select({ count: sql<number>`count(*)` })
-      .from(pins)
+      .from(mikrotikPermissions)
       .where(conditions.length ? and(...conditions) : undefined)
       .then((res) => ({ count: Number(res[0]?.count || 0) }));
 
@@ -44,18 +66,18 @@ export async function getPins_func(params: GetPinsParams = {}) {
     // Base query
     let query = db
       .select({
-        id: pins.id,
-        type: pins.type,
-        username: pins.username,
-        password: pins.password,
-        kitp: pins.kitp,
-        vessel_id: pins.vessel_id,
-        vessel_name: pins.vessel_name,
+        id: mikrotikPermissions.id,
+        type: mikrotikPermissions.type,
+        username: mikrotikPermissions.username,
+        password: mikrotikPermissions.password,
+        kitp: sql<string>`''`,
+        vessel_id: mikrotikPermissions.vesselId,
+        vessel_name: mikrotikPermissions.vesselName,
         generated_by: users.email,
-        created_at: pins.created_at,
+        created_at: mikrotikPermissions.createdAt,
       })
-      .from(pins)
-      .leftJoin(users, eq(pins.generated_by, users.id))
+      .from(mikrotikPermissions)
+      .leftJoin(users, eq(mikrotikPermissions.assignedById, users.id))
       .$dynamic();
 
     // Apply conditions if any
@@ -65,22 +87,14 @@ export async function getPins_func(params: GetPinsParams = {}) {
 
     // Get paginated results
     const allPins = await query
-      .orderBy(pins.created_at)
+      .orderBy(mikrotikPermissions.createdAt)
       .limit(pageSize)
       .offset(offset);
-
-    // Decode the usernames and passwords
-    const decodedPins = allPins.map((pin) => ({
-      ...pin,
-      username: Buffer.from(pin.username, 'base64').toString('utf-8'),
-      password: Buffer.from(pin.password, 'base64').toString('utf-8'),
-      
-    }));
 
     return {
       success: true,
       message: 'Pins retrieved successfully',
-      data: decodedPins,
+      data: allPins,
       pagination: {
         total,
         page,
