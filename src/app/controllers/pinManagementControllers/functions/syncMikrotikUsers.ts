@@ -3,6 +3,7 @@ import { createMikrotikConnection } from '../../../utils/mikrotikAPI';
 import { mikrotikPermissions } from '../../../models/MikrotikPermission';
 import { mikrotikVessels } from '../../../models/MikrotikVessel';
 import { db } from '../../../db/connection';
+import { numeric } from 'drizzle-orm/pg-core';
 
 export interface SyncMikrotikUsersResult {
   success: boolean;
@@ -14,6 +15,8 @@ export interface SyncMikrotikUsersResult {
   }[];
   error?: string;
 }
+
+
 
 export async function syncMikrotikUsers_func(): Promise<SyncMikrotikUsersResult> {
   try {
@@ -95,7 +98,12 @@ export async function syncMikrotikUsers_func(): Promise<SyncMikrotikUsersResult>
             type: 'crew',
             username: user.name || '',
             password: user.password || '',
-            assignedById: 1,
+            profile: user.profile || '',
+            server: user.server || '',
+            limitBytesTotal: user['limit-bytes-total']
+              ? user['limit-bytes-total']
+              : 0,
+            assignedById: user.assignedById || 1,
           }));
 
         // Insert new permissions if any

@@ -23,6 +23,9 @@ export interface GeneratePinParams {
     mikrotik_user_name?: string;
     number_of_pins_to_generate: number;
     access_type?: 'crew' | 'system'; // New field for access type
+    profile?: string; // Add this line
+    server?: string; // Add this line
+    limitBytesTotal?: number; // Add this line for data limit in bytes
   };
 }
 
@@ -36,6 +39,9 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
       mikrotik_user_name,
       number_of_pins_to_generate,
       access_type = 'crew', // Default to 'crew' for backward compatibility
+      profile,
+      server,
+      limitBytesTotal,
     } = data;
 
     const generated_by = reqObject.user.id;
@@ -114,10 +120,18 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
       vessel_id?: number;
       vessel_name?: string;
       kitp?: string;
+      mikrotik_user_name?: string;
+      router_ip?: string;
+      router_port?: number;
+      organization_id?: number;
+      assigned_by?: number;
+      profile?: string;
+      server?: string;
+      limit_bytes_total?: number;
     }> = [];
 
     // Get organization ID from user
-    const userOrgId = reqObject.user.role.organizationId;
+    const userOrgId = reqObject.user.organizationId;
     console.log(reqObject.user);
     if (!userOrgId && !isSystemAdmin) {
       return {
@@ -126,12 +140,12 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
       };
     }
 
-    if (!isSystemAdmin || !isAdmin) {
-      return {
-        success: false,
-        message: 'User is not authorized to generate pins',
-      };
-    }
+    // if (!isSystemAdmin || !isAdmin) {
+    //   return {
+    //     success: false,
+    //     message: 'User is not authorized to generate pins',
+    //   };
+    // }
 
     for (let i = 0; i < number_of_pins_to_generate; i++) {
       // For system type, generate 6-character alphanumeric username/password
@@ -187,6 +201,11 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
               vessel_id,
               vessel_name,
             }),
+        mikrotik_user_name,
+        profile,
+        server,
+        limit_bytes_total: limitBytesTotal,
+        assigned_by: generated_by,
       });
     }
     if (generatedPins.length > 0) {
@@ -244,6 +263,7 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
                 organizationId: userOrgId,
                 username: Buffer.from(pin.username, 'base64').toString(),
                 password: Buffer.from(pin.password, 'base64').toString(),
+
                 assignedById: generated_by,
               }));
 
@@ -328,13 +348,21 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
                       pin.password,
                       'base64'
                     ).toString();
+                    console.log(
+                      'payload',
+                      username,
+                      password,
+                      data.profile,
+                      data.server,
+                      data.limitBytesTotal
+                    );
 
                     const success = await mikrotikAPI.createHotspotUser({
                       name: username,
                       password: password,
-                      profile: profile,
-                      server: defaultServer,
-                      dataLimitBytes: undefined, // No data limit for now
+                      profile: data.profile || 'General',
+                      server: data.server || defaultServer,
+                      dataLimitBytes: data.limitBytesTotal || undefined, // No data limit for now
                     });
 
                     if (success) {
@@ -387,6 +415,11 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
               password: Buffer.from(pin.password, 'base64').toString(),
               type: access_type, // Set the type based on access_type
               assignedById: generated_by,
+              profile: data.profile || 'General',
+              server: data.server || 'hotspot1',
+              limitBytesTotal: data.limitBytesTotal
+                ? data.limitBytesTotal.toString()
+                : null,
             }));
 
             if (permissions.length > 0) {

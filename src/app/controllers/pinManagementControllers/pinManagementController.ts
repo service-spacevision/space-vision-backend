@@ -8,6 +8,7 @@ import {
 import { PinType } from '../../../types/pin.types';
 import { CustomContext } from '../../utils/types';
 import { syncMikrotikUsers_func } from './functions/syncMikrotikUsers';
+import { syncSingleMikrotikVesselUsers } from './functions/syncSingleMikrotikVesselUsers';
 
 export class PinManagementController {
   static async generatePin(ctx: CustomContext) {
@@ -21,6 +22,9 @@ export class PinManagementController {
           vessel_name?: string;
           number_of_pins_to_generate: number;
           access_type?: 'crew' | 'system'; // New parameter
+          profile?: string;
+          server?: string;
+          limitBytesTotal?: number;
         };
       };
       const { user } = ctx;
@@ -73,6 +77,9 @@ export class PinManagementController {
           vessel_name: body.vessel_name,
           number_of_pins_to_generate: body.number_of_pins_to_generate,
           access_type: body.access_type || 'crew', // Default to 'crew' for backward compatibility
+          profile: body.profile,
+          server: body.server,
+          limitBytesTotal: body.limitBytesTotal,
         },
       });
 
@@ -196,6 +203,63 @@ export class PinManagementController {
       return {
         success: false,
         message: 'Failed to sync MikroTik users',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Sync MikroTik users from a specific vessel and store them in the database
+   */
+  static async syncSingleVesselMikrotikUsers(ctx: CustomContext) {
+    try {
+      const { user } = ctx;
+      const { vesselId } = ctx.query as { vesselId?: string };
+      console.log('Syncing MikroTik users for vessel:', vesselId);
+
+      if (!user) {
+        ctx.set.status = 401;
+        return {
+          success: false,
+          message: 'Unauthorized',
+        };
+      }
+
+      if (!vesselId) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: 'vesselId is required',
+        };
+      }
+
+      const vesselIdNum = parseInt(vesselId, 10);
+      if (isNaN(vesselIdNum)) {
+        ctx.set.status = 400;
+        return {
+          success: false,
+          message: 'vesselId must be a valid number',
+        };
+      }
+
+      console.log(
+        `🔄 Starting MikroTik users sync for vessel ${vesselIdNum} initiated by user ${user.id}`
+      );
+
+      // Call the sync function for a single vessel
+      const result = await syncSingleMikrotikVesselUsers(vesselIdNum);
+
+      ctx.set.status = result.success ? 200 : 400;
+      return result;
+    } catch (error) {
+      console.error(
+        'Error in syncSingleVesselMikrotikUsers controller:',
+        error
+      );
+      ctx.set.status = 500;
+      return {
+        success: false,
+        message: 'Failed to sync MikroTik users for vessel',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

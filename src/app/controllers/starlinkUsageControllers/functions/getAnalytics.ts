@@ -1,7 +1,7 @@
 import { db } from '../../../db/connection';
 import { sql, and } from 'drizzle-orm';
 import { AuthUser } from '../../../utils/types';
-import { isAdmin } from '../../../../utils/permissionUtils';
+import { isAdmin, isSystem } from '../../../../utils/permissionUtils';
 
 interface GetAnalyticsParams {
   reqObject: {
@@ -17,7 +17,10 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
     const whereConditions = [];
 
     // Add vessel group filter for non-admin users
-    if (!isAdmin(user) && user.role?.permittedVesselGroups?.length) {
+    if (
+      (!isAdmin(user) || !isSystem(user)) &&
+      user.role?.permittedVesselGroups?.length
+    ) {
       whereConditions.push(
         sql`vg.id = ANY(${user.role.permittedVesselGroups})`
       );
@@ -151,10 +154,19 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
       `);
 
       // Get groups metrics - vessel groups don't have is_active, only vessel group filtering
-      const groupsWhereConditions: string | any[] = [];
+      const groupsWhereConditions = [] as any[];
 
-      // Note: For analytics, we'll skip vessel group filtering to avoid complex array parameter issues
-      // The analytics are meant to show overall system usage, not user-specific filtered data
+      if (!isAdmin(user) || !isSystem(user)) {
+        const permittedGroups = user.role?.permittedVesselGroups ?? [];
+        if (permittedGroups.length > 0) {
+          const idChunks = permittedGroups.map((id) => sql`${id}`);
+          groupsWhereConditions.push(
+            sql`vg.id IN (${sql.join(idChunks, sql`, `)})`
+          );
+        } else {
+          groupsWhereConditions.push(sql`1 = 0`);
+        }
+      }
 
       const groupsWhereSql =
         groupsWhereConditions.length > 0
@@ -170,10 +182,19 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
       `);
 
       // Get vessels metrics - vessels don't have is_active, only vessel group filtering
-      const vesselsWhereConditions = [] as string | any[];
+      const vesselsWhereConditions = [] as any[];
 
-      // Note: For analytics, we'll skip vessel group filtering to avoid complex array parameter issues
-      // The analytics are meant to show overall system usage, not user-specific filtered data
+      if (!isAdmin(user) || !isSystem(user)) {
+        const permittedGroups = user.role?.permittedVesselGroups ?? [];
+        if (permittedGroups.length > 0) {
+          const idChunks = permittedGroups.map((id) => sql`${id}`);
+          vesselsWhereConditions.push(
+            sql`vg.id IN (${sql.join(idChunks, sql`, `)})`
+          );
+        } else {
+          vesselsWhereConditions.push(sql`1 = 0`);
+        }
+      }
 
       const vesselsWhereSql =
         vesselsWhereConditions.length > 0
@@ -214,14 +235,21 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
       const labels = getDateLabels(period);
 
       // Build where conditions for this function
-      const whereConditions = [] as string | any[];
+      const whereConditions = [] as any[];
 
-      // Note: For analytics, we'll skip vessel group filtering to avoid complex array parameter issues
-      // The analytics are meant to show overall system usage, not user-specific filtered data
+      if (!isAdmin(user) || !isSystem(user)) {
+        const permittedGroups = user.role?.permittedVesselGroups ?? [];
+        if (permittedGroups.length > 0) {
+          const idChunks = permittedGroups.map((id) => sql`${id}`);
+          whereConditions.push(sql`vg.id IN (${sql.join(idChunks, sql`, `)})`);
+        } else {
+          whereConditions.push(sql`1 = 0`);
+        }
+      }
 
       const whereSql =
         whereConditions.length > 0
-          ? sql`WHERE ${and(...whereConditions)}`
+          ? sql`AND ${and(...whereConditions)}`
           : sql``;
 
       // Get daily/weekly/monthly usage data
@@ -230,16 +258,17 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
 
       switch (period) {
         case 'week':
-          groupByFormat = 'EXTRACT(DOW FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
-          dateFormat = 'EXTRACT(DOW FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
+          groupByFormat = "EXTRACT(DOW FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
+          dateFormat = "EXTRACT(DOW FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
           break;
         case 'month':
-          groupByFormat = 'EXTRACT(DAY FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
-          dateFormat = 'EXTRACT(DAY FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
+          groupByFormat = "EXTRACT(DAY FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
+          dateFormat = "EXTRACT(DAY FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
           break;
         case 'year':
-          groupByFormat = 'EXTRACT(MONTH FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
-          dateFormat = 'EXTRACT(MONTH FROM TO_DATE(su.date_key, \'YYYYMMDD\'))';
+          groupByFormat =
+            "EXTRACT(MONTH FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
+          dateFormat = "EXTRACT(MONTH FROM TO_DATE(su.date_key, 'YYYYMMDD'))";
           break;
       }
 
@@ -249,7 +278,10 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
           SUM(COALESCE(su.mobile_priority_gb, 0)) as priority_usage,
           SUM(COALESCE(su.standard_gb, 0)) as standard_usage
         FROM starlink_usage su
+        INNER JOIN vessels v ON su.kit_number = v.vesselskit_number
+        INNER JOIN vessel_groups vg ON v.group_id = vg.id
         WHERE su.date_key >= ${startKey} AND su.date_key <= ${endKey}
+        ${whereSql}
         GROUP BY ${sql.raw(groupByFormat)}
         ORDER BY ${sql.raw(groupByFormat)}
       `);
@@ -293,7 +325,10 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
           SUM(COALESCE(su.mobile_priority_gb, 0)) as total_priority,
           SUM(COALESCE(su.standard_gb, 0)) as total_standard
         FROM starlink_usage su
+        INNER JOIN vessels v ON su.kit_number = v.vesselskit_number
+        INNER JOIN vessel_groups vg ON v.group_id = vg.id
         WHERE su.date_key >= ${startKey} AND su.date_key <= ${endKey}
+        ${whereSql}
       `);
 
       return {
@@ -316,6 +351,17 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
       const { start, end } = getDateRange(period);
       const { startKey, endKey } = getDateKeyRange(start, end);
 
+      let userFilterSql = sql``;
+      if (!isAdmin(user)) {
+        const permittedGroups = user.role?.permittedVesselGroups ?? [];
+        if (permittedGroups.length > 0) {
+          const idChunks = permittedGroups.map((id) => sql`${id}`);
+          userFilterSql = sql`AND vg.id IN (${sql.join(idChunks, sql`, `)})`;
+        } else {
+          userFilterSql = sql`AND 1 = 0`;
+        }
+      }
+
       const orgUsageQuery = await db.execute(sql`
         SELECT
           o.name as org_name,
@@ -331,6 +377,7 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
           AND su.date_key >= ${startKey} AND su.date_key <= ${endKey}
         WHERE o.permitted_vessel_groups IS NOT NULL
           AND array_length(o.permitted_vessel_groups, 1) > 0
+        ${userFilterSql}
         GROUP BY o.id, o.name
         HAVING SUM(COALESCE(su.mobile_priority_gb, 0) + COALESCE(su.standard_gb, 0)) > 0
         ORDER BY total_usage DESC
@@ -356,10 +403,17 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
       const { startKey, endKey } = getDateKeyRange(start, end);
 
       // Build where conditions for this function
-      const whereConditions = [] as string | any[];
+      const whereConditions = [] as any[];
 
-      // Note: For analytics, we'll skip vessel group filtering to avoid complex array parameter issues
-      // The analytics are meant to show overall system usage, not user-specific filtered data
+      if (!isAdmin(user) || !isSystem(user)) {
+        const permittedGroups = user.role?.permittedVesselGroups ?? [];
+        if (permittedGroups.length > 0) {
+          const idChunks = permittedGroups.map((id) => sql`${id}`);
+          whereConditions.push(sql`vg.id IN (${sql.join(idChunks, sql`, `)})`);
+        } else {
+          whereConditions.push(sql`1 = 0`);
+        }
+      }
 
       const whereSql =
         whereConditions.length > 0
@@ -376,6 +430,7 @@ export async function getAnalytics_func({ reqObject }: GetAnalyticsParams) {
         LEFT JOIN vessel_groups vg ON v.group_id = vg.id
         LEFT JOIN starlink_usage su ON su.kit_number = v.vesselskit_number
           AND su.date_key >= ${startKey} AND su.date_key <= ${endKey}
+        ${whereSql}
         GROUP BY v.id, v.name, v.vesselskit_number
         HAVING SUM(COALESCE(su.mobile_priority_gb, 0) + COALESCE(su.standard_gb, 0)) > 0
         ORDER BY (SUM(COALESCE(su.mobile_priority_gb, 0)) + SUM(COALESCE(su.standard_gb, 0))) DESC

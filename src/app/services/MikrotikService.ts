@@ -116,6 +116,7 @@ export class MikrotikService {
       let isReset = false;
 
       if (currRxMb < prevRxMb || currTxMb < prevTxMb) {
+        console.log('reset here');
         // router reset / wrap: treat current as fresh usage
         deltaRxMb = currRxMb;
         deltaTxMb = currTxMb;
@@ -123,7 +124,9 @@ export class MikrotikService {
       } else {
         // normal monotonic increase (equality => 0)
         deltaRxMb = currRxMb - prevRxMb;
+        console.log('deltaRxMb', deltaRxMb);
         deltaTxMb = currTxMb - prevTxMb;
+        console.log('deltaTxMb', deltaTxMb);
       }
 
       // ---- upsert all-time by adding deltas ----
@@ -155,12 +158,13 @@ export class MikrotikService {
             )
           );
       } else {
+        console.log('gg here');
         const newRecord: NewMikrotikUsageAlltime = {
           vesselName,
           username,
           vesselId,
-          rxMb: deltaRxMb,
-          txMb: deltaTxMb,
+          rxMb: currRxMb,
+          txMb: currTxMb,
           totalAllowedMb,
           percentageUsed: percentageUsed.toString(),
           uptime,
@@ -170,17 +174,6 @@ export class MikrotikService {
       }
 
       // optional focused logging
-
-      console.log(`[${vesselName}] all-time update for ${username}`, {
-        prevRxMb,
-        prevTxMb,
-        currRxMb,
-        currTxMb,
-        deltaRxMb,
-        deltaTxMb,
-        isReset,
-        totalAllowedMb,
-      });
     } catch (error) {
       console.error(
         `[${vesselName}] Error updating all-time usage for ${username}:`,
@@ -285,6 +278,7 @@ export class MikrotikService {
       for (const u of users) if (u?.name) userMap[u.name] = u;
 
       // Collect update tasks for all-time (unified for all users)
+      console.log(`[${vessel.vesselName}] Collecting update tasks...`);
       const updateTasks: Array<{
         username: string;
         currRxMb: number;
@@ -295,10 +289,15 @@ export class MikrotikService {
 
       for (const u of users) {
         const username = u?.name as string;
+
         if (!username) continue;
 
         // Get active session if exists
         const active = activeMap[username];
+        console.log(
+          `[${vessel.vesselName}] Active session for ${username}:`,
+          active
+        );
 
         // Profile totals (past sessions)
         const profileRxBytes =
@@ -315,8 +314,8 @@ export class MikrotikService {
           : 0;
 
         // Current TOTAL usage
-        const totalRxBytes = profileRxBytes + sessionRxBytes;
-        const totalTxBytes = profileTxBytes + sessionTxBytes;
+        const totalRxBytes = profileRxBytes;
+        const totalTxBytes = profileTxBytes;
         const currRxMb = Math.round(totalRxBytes / 1048576);
         const currTxMb = Math.round(totalTxBytes / 1048576);
 
@@ -397,6 +396,7 @@ export class MikrotikService {
       });
 
       // Execute all-time usage updates AFTER transaction
+
       await Promise.all(
         updateTasks.map((t) =>
           this.updateAlltimeUsage(

@@ -97,6 +97,7 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
             maximum: 50,
             examples: [5],
           }),
+
           access_type: t.Enum(
             {
               CREW: 'crew',
@@ -146,6 +147,24 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
               description: 'Access type for the pin',
               default: 'crew',
             }
+          ),
+          profile: t.Optional(
+            t.String({
+              description: 'Profile for the pin',
+              examples: ['General', 'General 30d'],
+            })
+          ),
+          server: t.Optional(
+            t.String({
+              description: 'Server for the pin',
+              examples: ['hotspot1', 'hotspot2'],
+            })
+          ),
+          limitBytesTotal: t.Optional(
+            t.Number({
+              description: 'Limit bytes total for the pin',
+              examples: [1024, 2048],
+            })
           ),
         },
         { title: 'MikroTik pin request' }
@@ -221,14 +240,40 @@ const pinManagementRoute = new Elysia({ prefix: '/api/pin-management' })
     },
   })
 
-  // Sync MikroTik users
+  // Sync MikroTik users from a specific vessel
+  .get(
+    '/sync-specific-mikrotik-users',
+    PinManagementController.syncSingleVesselMikrotikUsers,
+    {
+      beforeHandle: [
+        checkUser(permission['GET_/api/pin-management/sync-mikrotik-users']),
+      ],
+      query: t.Object({
+        vesselId: t.String({
+          description: 'ID of the vessel to sync users from',
+        }),
+      }),
+      config: {
+        // Set timeout to 5 minutes (300,000 ms)
+        timeout: 300000,
+      },
+      tags: ['Pin Management'],
+      detail: {
+        summary: 'Sync MikroTik users from a specific vessel',
+        description:
+          'Syncs MikroTik users from a specific vessel and stores them in the database. This operation may take some time.',
+        operationId: 'syncSingleVesselMikrotikUsers',
+      },
+    }
+  )
+  // Sync MikroTik users from all vessels
   .get('/sync-mikrotik-users', PinManagementController.syncMikrotikUsers, {
     beforeHandle: [
       checkUser(permission['GET_/api/pin-management/sync-mikrotik-users']),
     ],
     tags: ['Pin Management'],
     detail: {
-      summary: 'Sync MikroTik users',
+      summary: 'Sync MikroTik users from all vessels',
       description:
         'Syncs MikroTik users from all vessels and stores them in the database.',
       operationId: 'syncMikrotikUsers',

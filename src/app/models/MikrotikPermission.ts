@@ -25,6 +25,9 @@ export const mikrotikPermissions = pgTable('mikrotik_permissions', {
     .notNull()
     .references(() => users.id),
   type: text('type').notNull(),
+  profile: text('profile'),
+  server: text('server'),
+  limitBytesTotal: numeric('limit_bytes_total'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -65,6 +68,11 @@ export const CreateMikrotikPermissionSchema = t.Object({
   type: t.String({
     description: 'Type of the permission',
   }),
+  profile: t.Optional(t.String({ description: 'Profile for the permission' })),
+  server: t.Optional(t.String({ description: 'Server for the permission' })),
+  limitBytesTotal: t.Optional(
+    t.Number({ description: 'Limit bytes total for the permission' })
+  ),
 });
 
 export const UpdateMikrotikPermissionSchema = t.Object({
@@ -118,6 +126,21 @@ export const UpdateMikrotikPermissionSchema = t.Object({
       description: 'Type of the permission',
     })
   ),
+  profile: t.Optional(
+    t.String({
+      description: 'Profile for the permission',
+    })
+  ),
+  server: t.Optional(
+    t.String({
+      description: 'Server for the permission',
+    })
+  ),
+  limitBytesTotal: t.Optional(
+    t.Number({
+      description: 'Limit bytes total for the permission',
+    })
+  ),
 });
 
 export const MikrotikPermissionResponseSchema = t.Object({
@@ -131,6 +154,9 @@ export const MikrotikPermissionResponseSchema = t.Object({
   username: t.String(),
   assignedById: t.Number(),
   type: t.String(),
+  profile: t.Optional(t.String()),
+  server: t.Optional(t.String()),
+  limitBytesTotal: t.Optional(t.Number()),
   createdAt: t.Date(),
   updatedAt: t.Date(),
 });

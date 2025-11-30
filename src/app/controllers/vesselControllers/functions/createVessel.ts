@@ -1,6 +1,7 @@
 import { db } from '../../../db/connection';
 import { vessels, vesselGroups, mikrotikVessels } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { syncMikrotikUsers_func } from '../../pinManagementControllers/functions/syncMikrotikUsers';
 
 const DEFAULT_ROUTER_IP = '0.0.0.0';
 

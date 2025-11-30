@@ -11,6 +11,10 @@ interface GetPinsParams {
   vessel_id?: number;
   username?: string;
   vessel_name?: string;
+  limit_bytes_total?: string;
+  assigned_by?: number;
+  profile?: string;
+  server?: string;
 }
 
 export async function getPins_func(params: GetPinsParams = {}) {
@@ -22,6 +26,10 @@ export async function getPins_func(params: GetPinsParams = {}) {
       vessel_id,
       username,
       vessel_name,
+      limit_bytes_total,
+      assigned_by,
+      profile,
+      server,
     } = params;
 
     const offset = (page - 1) * pageSize;
@@ -53,6 +61,20 @@ export async function getPins_func(params: GetPinsParams = {}) {
         }) LIKE LOWER(${`%${vessel_name}%`})`
       );
     }
+    if (limit_bytes_total) {
+      conditions.push(
+        eq(mikrotikPermissions.limitBytesTotal, limit_bytes_total)
+      );
+    }
+    if (assigned_by) {
+      conditions.push(eq(mikrotikPermissions.assignedById, assigned_by));
+    }
+    if (profile) {
+      conditions.push(eq(mikrotikPermissions.profile, profile));
+    }
+    if (server) {
+      conditions.push(eq(mikrotikPermissions.server, server));
+    }
 
     // Get total count
     const totalResult = await db
@@ -74,6 +96,10 @@ export async function getPins_func(params: GetPinsParams = {}) {
         vessel_id: mikrotikPermissions.vesselId,
         vessel_name: mikrotikPermissions.vesselName,
         generated_by: users.email,
+        limit_bytes_total: mikrotikPermissions.limitBytesTotal,
+        assigned_by: mikrotikPermissions.assignedById,
+        profile: mikrotikPermissions.profile,
+        server: mikrotikPermissions.server,
         created_at: mikrotikPermissions.createdAt,
       })
       .from(mikrotikPermissions)

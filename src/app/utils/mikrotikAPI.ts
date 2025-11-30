@@ -154,35 +154,123 @@ export class MikrotikAPI {
     return await client.runQuery(command, params);
   }
 
-  async getHotspotServers(): Promise<HotspotServer[]> {
-    try {
-      const response = await this.runQuery('/ip/hotspot/print');
-      return response
-        .filter((item: any) => item && item.name)
-        .map((item: any) => ({
-          name: item.name,
-          '.id': item['.id'] || '',
-        }));
-    } catch (error) {
-      console.error(`❌ Failed to get hotspot servers:`, error);
-      return [];
+  async getHotspotServers(
+    maxRetries: number = 5,
+    retryDelayMs: number = 2000
+  ): Promise<HotspotServer[]> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `🔍 Fetching hotspot servers (attempt ${attempt}/${maxRetries})`
+        );
+        const response = await this.runQuery('/ip/hotspot/print');
+
+        if (!Array.isArray(response)) {
+          throw new Error('Invalid response from router - expected an array');
+        }
+
+        const servers = response
+          .filter((item: any) => item && item.name)
+          .map((item: any) => ({
+            name: item.name,
+            '.id': item['.id'] || '',
+          }));
+
+        // Validation: Assume at least one server; adjust if needed
+        if (servers.length === 0) {
+          throw new Error('No hotspot servers found - expected at least one');
+        }
+
+        console.log(
+          `✅ Found ${servers.length} hotspot servers:`,
+          servers.map((s) => s.name).join(', ')
+        );
+        return servers;
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(
+          `⚠️ Attempt ${attempt} failed to get hotspot servers:`,
+          error
+        );
+
+        if (attempt < maxRetries) {
+          console.log(`⏳ Retrying in ${retryDelayMs}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
     }
+
+    console.error(
+      `❌ Failed to get hotspot servers after ${maxRetries} attempts:`,
+      lastError
+    );
+    return [];
   }
 
-  async getHotspotUserProfiles(): Promise<HotspotProfile[]> {
-    try {
-      const response = await this.runQuery('/ip/hotspot/user/profile/print');
-      return response
-        .filter((item: any) => item && item.name)
-        .map((item: any) => ({
-          name: item.name,
-          'on-login': item['on-login'] || '',
-          '.id': item['.id'] || '',
-        }));
-    } catch (error) {
-      console.error(`❌ Failed to get hotspot user profiles:`, error);
-      return [];
+  async getHotspotUserProfiles(
+    maxRetries: number = 5,
+    retryDelayMs: number = 2000
+  ): Promise<HotspotProfile[]> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `🔍 Fetching hotspot user profiles (attempt ${attempt}/${maxRetries})`
+        );
+        const response = await this.runQuery('/ip/hotspot/user/profile/print');
+
+        if (!Array.isArray(response)) {
+          throw new Error('Invalid response from router - expected an array');
+        }
+
+        let profiles = response
+          .filter((item: any) => item && item.name)
+          .map((item: any) => ({
+            name: item.name,
+            'on-login': item['on-login'] || '',
+            '.id': item['.id'] || '',
+          }));
+
+        // Manually append expected profiles if missing, like in the Python code
+        // In getHotspotUserProfiles function
+        const defaultProfiles = ['General', 'General-30d']; // Note the space in "General 30d"
+        for (const dp of defaultProfiles) {
+          if (!profiles.some((p) => p.name === dp)) {
+            profiles.push({
+              name: dp,
+              'on-login': '',
+              '.id': '',
+            });
+          }
+        }
+
+        console.log(
+          `✅ Found ${profiles.length} hotspot profiles:`,
+          profiles.map((p) => p.name).join(', ')
+        );
+        return profiles;
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(
+          `⚠️ Attempt ${attempt} failed to get hotspot profiles:`,
+          error
+        );
+
+        if (attempt < maxRetries) {
+          console.log(`⏳ Retrying in ${retryDelayMs}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
     }
+
+    console.error(
+      `❌ Failed to get hotspot user profiles after ${maxRetries} attempts:`,
+      lastError
+    );
+    return [];
   }
 
   async createHotspotUserProfile(
@@ -190,21 +278,38 @@ export class MikrotikAPI {
     onLoginScript?: string
   ): Promise<boolean> {
     try {
-      // Check if profile already exists
-      const existingProfiles = await this.getHotspotUserProfiles();
-      if (existingProfiles.some((p) => p.name === profileName)) {
-        console.log(`ℹ️ Profile '${profileName}' already exists`);
-        return true;
+      // Fetch existing profiles directly (without manual append) for accurate existence check
+      const response = await this.runQuery('/ip/hotspot/user/profile/print');
+      const existingProfiles = response
+        .filter((item: any) => item && item.name)
+        .map((item: any) => item.name);
+
+      console.log(`Existing profiles: ${existingProfiles.join(', ')}`);
+
+      const profileExists = existingProfiles.includes(profileName);
+
+      if (!profileExists) {
+        console.log(`ℹ️ Profile '${profileName}' does not exist, creating...`);
+        // Create the profile if it doesn't exist
+        await this.runQuery('/ip/hotspot/user/profile/add', {
+          name: profileName,
+          'on-login': 'hotspot-on-login',
+        });
       }
 
-      // Add the profile
-      await this.runQuery('/ip/hotspot/user/profile/add', {
-        name: profileName,
-      });
-
       if (onLoginScript) {
-        // Find the .id of the new profile
-        const profiles = await this.getHotspotUserProfiles();
+        // Fetch updated profiles to find the .id
+        const updatedResponse = await this.runQuery(
+          '/ip/hotspot/user/profile/print'
+        );
+        const profiles = updatedResponse
+          .filter((item: any) => item && item.name)
+          .map((item: any) => ({
+            name: item.name,
+            'on-login': item['on-login'] || '',
+            '.id': item['.id'] || '',
+          }));
+
         const newProfile = profiles.find((p) => p.name === profileName);
         if (!newProfile) {
           throw new Error('Profile not found after creation');
@@ -259,7 +364,7 @@ export class MikrotikAPI {
   /system script add name="$date-|-$time-|-$user-|-1-|- $address-|- $mac-|-30d-|-General-30d-|- $comment" owner="$month$year" source="$date" comment="mikhmon"
 }}`;
 
-    return await this.createHotspotUserProfile('General 30d', script30d);
+    return await this.createHotspotUserProfile('General-30d', script30d);
   }
 
   async createHotspotUser(params: {
