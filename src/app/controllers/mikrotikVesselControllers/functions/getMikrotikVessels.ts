@@ -1,7 +1,7 @@
 import { db } from '../../../db/connection';
-import { vessels } from '../../../models/Vessel';
+import { mikrotikVessels } from '../../../models/MikrotikVessel';
 import { userRoles } from '../../../models/UserRole';
-import { eq, and, count, desc, SQL, inArray, like, sql } from 'drizzle-orm';
+import { eq, and, count, desc, SQL, inArray, sql } from 'drizzle-orm';
 import { IPagination } from '../../../utils/types';
 
 interface GetMikrotikVesselsParams {
@@ -26,17 +26,15 @@ export async function getMikrotikVessels_func({
 
     // Add search conditions
     if (query?.vesselName) {
-      // Add case-insensitive search using ilike
       conditions.push(
-        sql`LOWER(${vessels.name}) LIKE LOWER(${'%' + query.vesselName + '%'})`
+        sql`LOWER(${mikrotikVessels.vesselName}) LIKE LOWER(${
+          '%' + query.vesselName + '%'
+        })`
       );
     }
     if (query?.routerIp) {
-      conditions.push(eq(vessels.deviceId, query.routerIp));
+      conditions.push(eq(mikrotikVessels.routerIp, query.routerIp));
     }
-
-    // Add condition to only show Mikrotik vessels
-    conditions.push(eq(vessels.isMikrotik, true));
 
     // Check if user is a system user
     const userWithRole = await db.query.users.findFirst({
@@ -46,14 +44,13 @@ export async function getMikrotikVessels_func({
       },
     });
 
-    // If user is not a system user, filter by permitted vessel groups
+    // If user is not a system user, filter by permitted_mikrotik_vessels
     if (userWithRole?.role && !userWithRole.role.isSystem) {
-      const permittedVesselGroups =
-        userWithRole.role.permittedVesselGroups || [];
-      if (permittedVesselGroups.length > 0) {
-        conditions.push(inArray(vessels.groupId, permittedVesselGroups));
+      const permittedVessels = userWithRole.role.permittedMikrotikVessels || [];
+      if (permittedVessels.length > 0) {
+        conditions.push(inArray(mikrotikVessels.id, permittedVessels));
       } else {
-        // If no vessel groups are permitted, return empty result
+        // If no vessels are permitted, return empty result
         return {
           success: true,
           message: 'No mikrotik vessels accessible to this user',
@@ -74,9 +71,9 @@ export async function getMikrotikVessels_func({
     if (pagination?.all === 'true' || pagination?.all === '1') {
       const result = await db
         .select()
-        .from(vessels)
+        .from(mikrotikVessels)
         .where(whereCondition)
-        .orderBy(desc(vessels.createdAt));
+        .orderBy(desc(mikrotikVessels.createdAt));
 
       return {
         success: true,
@@ -98,7 +95,7 @@ export async function getMikrotikVessels_func({
     // Get total count
     const [totalResult] = await db
       .select({ count: count() })
-      .from(vessels)
+      .from(mikrotikVessels)
       .where(whereCondition);
 
     const total = totalResult.count;
@@ -106,9 +103,9 @@ export async function getMikrotikVessels_func({
     // Get paginated data
     const result = await db
       .select()
-      .from(vessels)
+      .from(mikrotikVessels)
       .where(whereCondition)
-      .orderBy(desc(vessels.createdAt))
+      .orderBy(desc(mikrotikVessels.createdAt))
       .limit(pageSize)
       .offset(offset);
 

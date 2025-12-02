@@ -1,4 +1,4 @@
-import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import {
   pgTable,
   serial,
@@ -7,29 +7,31 @@ import {
   numeric,
   timestamp,
   uniqueIndex,
-} from "drizzle-orm/pg-core";
-import { t } from "elysia";
+} from 'drizzle-orm/pg-core';
+import { t } from 'elysia';
 
 export const mikrotikUsageAlltime = pgTable(
-  "mikrotik_usage_alltime",
+  'mikrotik_usage_alltime',
   {
-    id: serial("id").primaryKey(),
-    vesselName: text("vessel_name").notNull(),
-    vesselId: integer("vessel_id").notNull(),
-    username: text("username").notNull(),
-    uptime: text("uptime"),
-    rxMb: integer("rx_mb").default(0).notNull(),
-    txMb: integer("tx_mb").default(0).notNull(),
-    totalAllowedMb: integer("total_allowed_mb").default(5000).notNull(),
-    percentageUsed: numeric("percentage_used", { precision: 5, scale: 1 })
-      .default("0.0")
+    id: serial('id').primaryKey(),
+    vesselName: text('vessel_name').notNull(),
+    vesselId: integer('vessel_id').notNull(),
+    username: text('username').notNull(),
+    uptime: text('uptime'),
+    rxMb: integer('rx_mb').default(0).notNull(),
+    txMb: integer('tx_mb').default(0).notNull(),
+    totalAllowedMb: integer('total_allowed_mb').default(5000).notNull(),
+    percentageUsed: numeric('percentage_used', { precision: 5, scale: 1 })
+      .default('0.0')
       .notNull(),
-    lastUpdated: timestamp("last_updated").defaultNow(),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
+    lastUpdated: timestamp('last_updated').defaultNow(),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+    lastRouterRxMb: integer('last_router_rx_mb').default(0).notNull(),
+    lastRouterTxMb: integer('last_router_tx_mb').default(0).notNull(),
   },
   (table) => ({
-    unqVesselUsername: uniqueIndex("unq_vessel_username").on(
+    unqVesselUsername: uniqueIndex('unq_vessel_username').on(
       table.vesselName,
       table.username
     ),
@@ -56,4 +58,6 @@ export const MikrotikUsageAlltimeResponseSchema = t.Object({
   lastUpdated: t.Optional(t.Union([t.Date(), t.String()])),
   createdAt: t.Optional(t.Union([t.Date(), t.String()])),
   updatedAt: t.Optional(t.Union([t.Date(), t.String()])),
+  lastRouterRxMb: t.Number(),
+  lastRouterTxMb: t.Number(),
 });

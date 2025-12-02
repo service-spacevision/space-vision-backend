@@ -85,6 +85,102 @@ export class MikrotikService {
    * Calculates delta from existing all-time (last known total) and adds to cumulative
    * This prevents data loss if the router resets
    */
+  // private static async updateAlltimeUsage(
+  //   vesselName: string,
+  //   username: string,
+  //   vesselId: number,
+  //   currRxMb: number,
+  //   currTxMb: number,
+  //   uptime: string,
+  //   totalAllowedMb: number
+  // ): Promise<void> {
+  //   try {
+  //     // ---- fetch existing all-time to use as prev ----
+  //     const existing = await db
+  //       .select()
+  //       .from(mikrotikUsageAlltime)
+  //       .where(
+  //         and(
+  //           eq(mikrotikUsageAlltime.vesselName, vesselName),
+  //           eq(mikrotikUsageAlltime.username, username)
+  //         )
+  //       )
+  //       .limit(1);
+
+  //     const prevRxMb = existing.length > 0 ? existing[0].rxMb || 0 : 0;
+  //     const prevTxMb = existing.length > 0 ? existing[0].txMb || 0 : 0;
+
+  //     // ---- compute delta from existing all-time ----
+  //     let deltaRxMb: number;
+  //     let deltaTxMb: number;
+  //     let isReset = false;
+
+  //     if (currRxMb < prevRxMb || currTxMb < prevTxMb) {
+  //       console.log('reset here');
+  //       // router reset / wrap: treat current as fresh usage
+  //       deltaRxMb = currRxMb;
+  //       deltaTxMb = currTxMb;
+  //       isReset = true;
+  //     } else {
+  //       // normal monotonic increase (equality => 0)
+  //       deltaRxMb = currRxMb - prevRxMb;
+  //       console.log('deltaRxMb', deltaRxMb);
+  //       deltaTxMb = currTxMb - prevTxMb;
+  //       console.log('deltaTxMb', deltaTxMb);
+  //     }
+
+  //     // ---- upsert all-time by adding deltas ----
+  //     const now = new Date();
+  //     const totalUsedMb = prevRxMb + prevTxMb + deltaRxMb + deltaTxMb;
+
+  //     // keep semantics consistent (percent; 2 decimals here)
+  //     const percentageUsed =
+  //       totalAllowedMb > 0
+  //         ? Math.round((totalUsedMb / totalAllowedMb) * 100)
+  //         : 0;
+
+  //     if (existing.length > 0) {
+  //       await db
+  //         .update(mikrotikUsageAlltime)
+  //         .set({
+  //           rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${deltaRxMb}`,
+  //           txMb: sql`${mikrotikUsageAlltime.txMb} + ${deltaTxMb}`,
+  //           totalAllowedMb,
+  //           percentageUsed: percentageUsed.toString(),
+  //           uptime,
+  //           lastUpdated: now,
+  //           updatedAt: now,
+  //         })
+  //         .where(
+  //           and(
+  //             eq(mikrotikUsageAlltime.vesselName, vesselName),
+  //             eq(mikrotikUsageAlltime.username, username)
+  //           )
+  //         );
+  //     } else {
+  //       console.log('gg here');
+  //       const newRecord: NewMikrotikUsageAlltime = {
+  //         vesselName,
+  //         username,
+  //         vesselId,
+  //         rxMb: currRxMb,
+  //         txMb: currTxMb,
+  //         totalAllowedMb,
+  //         percentageUsed: percentageUsed.toString(),
+  //         uptime,
+  //         lastUpdated: now,
+  //       };
+  //       await db.insert(mikrotikUsageAlltime).values(newRecord);
+  //     }
+
+  //     // optional focused logging
+  //   } catch (error) {
+  //     console.error(
+  //       `[${vesselName}] Error updating all-time usage for ${username}:`,
+  //       error
+  //     );
+  //   }
+  // }
   private static async updateAlltimeUsage(
     vesselName: string,
     username: string,
@@ -95,7 +191,6 @@ export class MikrotikService {
     totalAllowedMb: number
   ): Promise<void> {
     try {
-      // ---- fetch existing all-time to use as prev ----
       const existing = await db
         .select()
         .from(mikrotikUsageAlltime)
@@ -107,73 +202,101 @@ export class MikrotikService {
         )
         .limit(1);
 
-      const prevRxMb = existing.length > 0 ? existing[0].rxMb || 0 : 0;
-      const prevTxMb = existing.length > 0 ? existing[0].txMb || 0 : 0;
-
-      // ---- compute delta from existing all-time ----
-      let deltaRxMb: number;
-      let deltaTxMb: number;
-      let isReset = false;
-
-      if (currRxMb < prevRxMb || currTxMb < prevTxMb) {
-        console.log('reset here');
-        // router reset / wrap: treat current as fresh usage
-        deltaRxMb = currRxMb;
-        deltaTxMb = currTxMb;
-        isReset = true;
-      } else {
-        // normal monotonic increase (equality => 0)
-        deltaRxMb = currRxMb - prevRxMb;
-        console.log('deltaRxMb', deltaRxMb);
-        deltaTxMb = currTxMb - prevTxMb;
-        console.log('deltaTxMb', deltaTxMb);
-      }
-
-      // ---- upsert all-time by adding deltas ----
+      const row = existing[0];
       const now = new Date();
-      const totalUsedMb = prevRxMb + prevTxMb + deltaRxMb + deltaTxMb;
 
-      // keep semantics consistent (percent; 2 decimals here)
-      const percentageUsed =
-        totalAllowedMb > 0
-          ? Math.round((totalUsedMb / totalAllowedMb) * 100)
-          : 0;
+      // --- No row yet: first time ever, just mirror router counters ---
+      if (!row) {
+        const totalUsedMb = currRxMb + currTxMb;
+        const percentageUsed =
+          totalAllowedMb > 0
+            ? Math.round((totalUsedMb / totalAllowedMb) * 100)
+            : 0;
 
-      if (existing.length > 0) {
-        await db
-          .update(mikrotikUsageAlltime)
-          .set({
-            rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${deltaRxMb}`,
-            txMb: sql`${mikrotikUsageAlltime.txMb} + ${deltaTxMb}`,
-            totalAllowedMb,
-            percentageUsed: percentageUsed.toString(),
-            uptime,
-            lastUpdated: now,
-            updatedAt: now,
-          })
-          .where(
-            and(
-              eq(mikrotikUsageAlltime.vesselName, vesselName),
-              eq(mikrotikUsageAlltime.username, username)
-            )
-          );
-      } else {
-        console.log('gg here');
         const newRecord: NewMikrotikUsageAlltime = {
           vesselName,
           username,
           vesselId,
-          rxMb: currRxMb,
+          rxMb: currRxMb, // all-time == current router
           txMb: currTxMb,
+          lastRouterRxMb: currRxMb,
+          lastRouterTxMb: currTxMb,
           totalAllowedMb,
           percentageUsed: percentageUsed.toString(),
           uptime,
           lastUpdated: now,
         };
+
         await db.insert(mikrotikUsageAlltime).values(newRecord);
+        return;
       }
 
-      // optional focused logging
+      const prevAllRx = row.rxMb ?? 0;
+      const prevAllTx = row.txMb ?? 0;
+
+      const prevSnapRx = row.lastRouterRxMb ?? 0;
+      const prevSnapTx = row.lastRouterTxMb ?? 0;
+
+      // "Missing snapshot" bootstrap case:
+      // old data exists (prevAll > 0) but snapshot is still 0 (new column just added).
+      const missingSnapshot =
+        prevSnapRx === 0 &&
+        prevSnapTx === 0 &&
+        (prevAllRx > 0 || prevAllTx > 0);
+
+      let newAllRx: number;
+      let newAllTx: number;
+
+      if (missingSnapshot) {
+        // First run after adding snapshot columns:
+        // Don't add any delta here, just keep existing all-time
+        // and initialize the snapshot from current router values.
+        newAllRx = prevAllRx;
+        newAllTx = prevAllTx;
+      } else {
+        // Normal delta logic
+        let deltaRxMb: number;
+        let deltaTxMb: number;
+
+        if (currRxMb < prevSnapRx || currTxMb < prevSnapTx) {
+          // router reset: current counters are "fresh usage"
+          deltaRxMb = currRxMb;
+          deltaTxMb = currTxMb;
+        } else {
+          // monotonic growth
+          deltaRxMb = currRxMb - prevSnapRx;
+          deltaTxMb = currTxMb - prevSnapTx;
+        }
+
+        newAllRx = prevAllRx + deltaRxMb;
+        newAllTx = prevAllTx + deltaTxMb;
+      }
+
+      const totalUsedMb = newAllRx + newAllTx;
+      const percentageUsed =
+        totalAllowedMb > 0
+          ? Math.round((totalUsedMb / totalAllowedMb) * 100)
+          : 0;
+
+      await db
+        .update(mikrotikUsageAlltime)
+        .set({
+          rxMb: newAllRx,
+          txMb: newAllTx,
+          lastRouterRxMb: currRxMb, // snapshot always updated
+          lastRouterTxMb: currTxMb,
+          totalAllowedMb,
+          percentageUsed: percentageUsed.toString(),
+          uptime,
+          lastUpdated: now,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(mikrotikUsageAlltime.vesselName, vesselName),
+            eq(mikrotikUsageAlltime.username, username)
+          )
+        );
     } catch (error) {
       console.error(
         `[${vesselName}] Error updating all-time usage for ${username}:`,
