@@ -15,7 +15,9 @@ export interface TestMikrotikConnectionParams {
   vessel_id: number;
 }
 
-export async function testMikrotikConnection_func({ vessel_id }: TestMikrotikConnectionParams) {
+export async function testMikrotikConnection_func({
+  vessel_id,
+}: TestMikrotikConnectionParams) {
   try {
     // Get vessel details
     const [vessel] = await db
@@ -43,10 +45,17 @@ export async function testMikrotikConnection_func({ vessel_id }: TestMikrotikCon
       };
     }
 
-    console.log(`🔍 Testing connection to MikroTik router at ${vessel.routerIp}:${vessel.apiPort} for vessel ${vessel.vesselName}`);
+    console.log(
+      `🔍 Testing connection to MikroTik router at ${vessel.routerIp}:${vessel.apiPort} for vessel ${vessel.vesselName}`
+    );
 
     // Test connection with detailed diagnostics
-    const mikrotikAPI = await createMikrotikConnection(vessel.routerIp, vessel.apiPort, false, 'api');
+    const mikrotikAPI = await createMikrotikConnection(
+      vessel.routerIp,
+      vessel.apiPort,
+      false,
+      'api'
+    );
     const connectionTest = await mikrotikAPI.testConnection();
 
     let connectionDetails: any = {
@@ -68,11 +77,11 @@ export async function testMikrotikConnection_func({ vessel_id }: TestMikrotikCon
         connectionDetails = {
           ...connectionDetails,
           hotspot: {
-            servers: servers.map(s => ({ name: s.name, id: s['.id'] })),
-            profiles: profiles.map(p => ({ name: p.name, id: p['.id'] })),
+            servers: servers.map((s) => ({ name: s.name, id: s['.id'] })),
+            profiles: profiles.map((p) => ({ name: p.name, id: p['.id'] })),
             serverCount: servers.length,
             profileCount: profiles.length,
-          }
+          },
         };
 
         return {
@@ -107,7 +116,12 @@ export async function testMikrotikConnection_func({ vessel_id }: TestMikrotikCon
   }
 }
 
-export async function listMikrotikUsers_func({ vessel_id, server_name, profile, limit = 200 }: ListMikrotikUsersParams) {
+export async function listMikrotikUsers_func({
+  vessel_id,
+  server_name,
+  profile,
+  limit = 1000,
+}: ListMikrotikUsersParams) {
   try {
     // Get vessel details
     const [vessel] = await db
@@ -135,10 +149,17 @@ export async function listMikrotikUsers_func({ vessel_id, server_name, profile, 
       };
     }
 
-    console.log(`🔌 Connecting to MikroTik router at ${vessel.routerIp}:${vessel.apiPort} for vessel ${vessel.vesselName}`);
+    console.log(
+      `🔌 Connecting to MikroTik router at ${vessel.routerIp}:${vessel.apiPort} for vessel ${vessel.vesselName}`
+    );
 
     // Connect to MikroTik router
-    const mikrotikAPI = await createMikrotikConnection(vessel.routerIp, vessel.apiPort, false, 'api');
+    const mikrotikAPI = await createMikrotikConnection(
+      vessel.routerIp,
+      vessel.apiPort,
+      false,
+      'api'
+    );
 
     if (!(await mikrotikAPI.connect())) {
       return {
@@ -148,16 +169,22 @@ export async function listMikrotikUsers_func({ vessel_id, server_name, profile, 
     }
 
     // Get hotspot users
-    const users: HotspotUser[] = await mikrotikAPI.getHotspotUsers(server_name, profile, limit);
+    const users: HotspotUser[] = await mikrotikAPI.getHotspotUsers(
+      server_name,
+      profile,
+      limit
+    );
 
     // Also get user profiles and servers for context
     const profiles = await mikrotikAPI.getHotspotUserProfiles();
     const servers = await mikrotikAPI.getHotspotServers();
 
     // Close connection
-    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay before disconnect
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay before disconnect
 
-    console.log(`✅ Retrieved ${users.length} hotspot users from ${vessel.vesselName}`);
+    console.log(
+      `✅ Retrieved ${users.length} hotspot users from ${vessel.vesselName}`
+    );
 
     return {
       success: true,
@@ -171,8 +198,8 @@ export async function listMikrotikUsers_func({ vessel_id, server_name, profile, 
         },
         users,
         metadata: {
-          profiles: profiles.map(p => ({ name: p.name, id: p['.id'] })),
-          servers: servers.map(s => ({ name: s.name, id: s['.id'] })),
+          profiles: profiles.map((p) => ({ name: p.name, id: p['.id'] })),
+          servers: servers.map((s) => ({ name: s.name, id: s['.id'] })),
           totalCount: users.length,
         },
       },

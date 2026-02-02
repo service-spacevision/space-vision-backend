@@ -80,107 +80,6 @@ export class MikrotikService {
     }
   }
 
-  /**
-   * Updates the all-time usage statistics for a user
-   * Calculates delta from existing all-time (last known total) and adds to cumulative
-   * This prevents data loss if the router resets
-   */
-  // private static async updateAlltimeUsage(
-  //   vesselName: string,
-  //   username: string,
-  //   vesselId: number,
-  //   currRxMb: number,
-  //   currTxMb: number,
-  //   uptime: string,
-  //   totalAllowedMb: number
-  // ): Promise<void> {
-  //   try {
-  //     // ---- fetch existing all-time to use as prev ----
-  //     const existing = await db
-  //       .select()
-  //       .from(mikrotikUsageAlltime)
-  //       .where(
-  //         and(
-  //           eq(mikrotikUsageAlltime.vesselName, vesselName),
-  //           eq(mikrotikUsageAlltime.username, username)
-  //         )
-  //       )
-  //       .limit(1);
-
-  //     const prevRxMb = existing.length > 0 ? existing[0].rxMb || 0 : 0;
-  //     const prevTxMb = existing.length > 0 ? existing[0].txMb || 0 : 0;
-
-  //     // ---- compute delta from existing all-time ----
-  //     let deltaRxMb: number;
-  //     let deltaTxMb: number;
-  //     let isReset = false;
-
-  //     if (currRxMb < prevRxMb || currTxMb < prevTxMb) {
-  //       console.log('reset here');
-  //       // router reset / wrap: treat current as fresh usage
-  //       deltaRxMb = currRxMb;
-  //       deltaTxMb = currTxMb;
-  //       isReset = true;
-  //     } else {
-  //       // normal monotonic increase (equality => 0)
-  //       deltaRxMb = currRxMb - prevRxMb;
-  //       console.log('deltaRxMb', deltaRxMb);
-  //       deltaTxMb = currTxMb - prevTxMb;
-  //       console.log('deltaTxMb', deltaTxMb);
-  //     }
-
-  //     // ---- upsert all-time by adding deltas ----
-  //     const now = new Date();
-  //     const totalUsedMb = prevRxMb + prevTxMb + deltaRxMb + deltaTxMb;
-
-  //     // keep semantics consistent (percent; 2 decimals here)
-  //     const percentageUsed =
-  //       totalAllowedMb > 0
-  //         ? Math.round((totalUsedMb / totalAllowedMb) * 100)
-  //         : 0;
-
-  //     if (existing.length > 0) {
-  //       await db
-  //         .update(mikrotikUsageAlltime)
-  //         .set({
-  //           rxMb: sql`${mikrotikUsageAlltime.rxMb} + ${deltaRxMb}`,
-  //           txMb: sql`${mikrotikUsageAlltime.txMb} + ${deltaTxMb}`,
-  //           totalAllowedMb,
-  //           percentageUsed: percentageUsed.toString(),
-  //           uptime,
-  //           lastUpdated: now,
-  //           updatedAt: now,
-  //         })
-  //         .where(
-  //           and(
-  //             eq(mikrotikUsageAlltime.vesselName, vesselName),
-  //             eq(mikrotikUsageAlltime.username, username)
-  //           )
-  //         );
-  //     } else {
-  //       console.log('gg here');
-  //       const newRecord: NewMikrotikUsageAlltime = {
-  //         vesselName,
-  //         username,
-  //         vesselId,
-  //         rxMb: currRxMb,
-  //         txMb: currTxMb,
-  //         totalAllowedMb,
-  //         percentageUsed: percentageUsed.toString(),
-  //         uptime,
-  //         lastUpdated: now,
-  //       };
-  //       await db.insert(mikrotikUsageAlltime).values(newRecord);
-  //     }
-
-  //     // optional focused logging
-  //   } catch (error) {
-  //     console.error(
-  //       `[${vesselName}] Error updating all-time usage for ${username}:`,
-  //       error
-  //     );
-  //   }
-  // }
   private static async updateAlltimeUsage(
     vesselName: string,
     username: string,
@@ -205,22 +104,31 @@ export class MikrotikService {
       const row = existing[0];
       const now = new Date();
 
-      // --- No row yet: first time ever, just mirror router counters ---
+      // ---------- No row yet: first time ever ----------
       if (!row) {
-        const totalUsedMb = currRxMb + currTxMb;
+        const currentTotalMb = currRxMb + currTxMb;
         const percentageUsed =
           totalAllowedMb > 0
-            ? Math.round((totalUsedMb / totalAllowedMb) * 100)
+            ? Math.round((currentTotalMb / totalAllowedMb) * 100)
             : 0;
 
         const newRecord: NewMikrotikUsageAlltime = {
           vesselName,
           username,
           vesselId,
-          rxMb: currRxMb, // all-time == current router
+
+          // Current snapshot from router (NOT lifetime):
+          rxMb: currRxMb,
           txMb: currTxMb,
+
+          // Lifetime starts equal to current usage:
+          lifetimeRxMb: currRxMb,
+          lifetimeTxMb: currTxMb,
+
+          // Snapshot for next delta computation:
           lastRouterRxMb: currRxMb,
           lastRouterTxMb: currTxMb,
+
           totalAllowedMb,
           percentageUsed: percentageUsed.toString(),
           uptime,
@@ -231,60 +139,72 @@ export class MikrotikService {
         return;
       }
 
-      const prevAllRx = row.rxMb ?? 0;
-      const prevAllTx = row.txMb ?? 0;
+      // ---------- Existing row: update ----------
 
-      const prevSnapRx = row.lastRouterRxMb ?? 0;
-      const prevSnapTx = row.lastRouterTxMb ?? 0;
+      // Previous lifetime totals (fallback to rx/tx for older rows that don't have lifetime yet)
+      const prevLifetimeRx = row.lifetimeRxMb ?? row.rxMb ?? 0;
+      const prevLifetimeTx = row.lifetimeTxMb ?? row.txMb ?? 0;
 
-      // "Missing snapshot" bootstrap case:
-      // old data exists (prevAll > 0) but snapshot is still 0 (new column just added).
+      // Previous router snapshot (fallback to rx/tx for very old data)
+      const prevSnapRx = row.lastRouterRxMb ?? row.rxMb ?? 0;
+      const prevSnapTx = row.lastRouterTxMb ?? row.txMb ?? 0;
+
+      // If both snapshots are 0 but lifetime/overall usage > 0,
+      // it's probably first run after adding these columns.
       const missingSnapshot =
-        prevSnapRx === 0 &&
-        prevSnapTx === 0 &&
-        (prevAllRx > 0 || prevAllTx > 0);
+        (row.lastRouterRxMb == null && row.lastRouterTxMb == null) ||
+        (row.lastRouterRxMb === 0 &&
+          row.lastRouterTxMb === 0 &&
+          (prevLifetimeRx > 0 || prevLifetimeTx > 0));
 
-      let newAllRx: number;
-      let newAllTx: number;
+      let deltaRxMb = 0;
+      let deltaTxMb = 0;
 
-      if (missingSnapshot) {
-        // First run after adding snapshot columns:
-        // Don't add any delta here, just keep existing all-time
-        // and initialize the snapshot from current router values.
-        newAllRx = prevAllRx;
-        newAllTx = prevAllTx;
-      } else {
-        // Normal delta logic
-        let deltaRxMb: number;
-        let deltaTxMb: number;
+      if (!missingSnapshot) {
+        // Normal case: we have a valid previous snapshot.
 
         if (currRxMb < prevSnapRx || currTxMb < prevSnapTx) {
-          // router reset: current counters are "fresh usage"
+          // Router reset: treat current counters as fresh usage since reset.
           deltaRxMb = currRxMb;
           deltaTxMb = currTxMb;
         } else {
-          // monotonic growth
+          // Monotonic growth: simple delta.
           deltaRxMb = currRxMb - prevSnapRx;
           deltaTxMb = currTxMb - prevSnapTx;
         }
-
-        newAllRx = prevAllRx + deltaRxMb;
-        newAllTx = prevAllTx + deltaTxMb;
+      } else {
+        // Bootstrap case after adding snapshot columns:
+        // Don't add any delta (to avoid double-counting old values).
+        // We just start using lifetime from what we already have.
+        deltaRxMb = 0;
+        deltaTxMb = 0;
       }
 
-      const totalUsedMb = newAllRx + newAllTx;
+      const newLifetimeRx = prevLifetimeRx + deltaRxMb;
+      const newLifetimeTx = prevLifetimeTx + deltaTxMb;
+
+      // For percentage/quota, use CURRENT usage, not lifetime:
+      const currentTotalMb = currRxMb + currTxMb;
       const percentageUsed =
         totalAllowedMb > 0
-          ? Math.round((totalUsedMb / totalAllowedMb) * 100)
+          ? Math.round((currentTotalMb / totalAllowedMb) * 100)
           : 0;
 
       await db
         .update(mikrotikUsageAlltime)
         .set({
-          rxMb: newAllRx,
-          txMb: newAllTx,
-          lastRouterRxMb: currRxMb, // snapshot always updated
+          // 👇 current router counters (NOT lifetime)
+          rxMb: currRxMb,
+          txMb: currTxMb,
+
+          // 👇 lifetime cumulative usage
+          lifetimeRxMb: newLifetimeRx,
+          lifetimeTxMb: newLifetimeTx,
+
+          // 👇 snapshot for next run
+          lastRouterRxMb: currRxMb,
           lastRouterTxMb: currTxMb,
+
           totalAllowedMb,
           percentageUsed: percentageUsed.toString(),
           uptime,

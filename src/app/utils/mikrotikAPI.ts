@@ -404,7 +404,7 @@ export class MikrotikAPI {
   async getHotspotUsers(
     serverName?: string,
     profile?: string,
-    limit: number = 200
+    limit: number = 1000
   ): Promise<HotspotUser[]> {
     try {
       const response = await this.runQuery('/ip/hotspot/user/print');

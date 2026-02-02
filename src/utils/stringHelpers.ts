@@ -1,6 +1,5 @@
 export function generateRandomString(
   length: number,
-  includeUppercase = true,
   numbersOnly = false
 ): string {
   if (numbersOnly) {
@@ -14,10 +13,8 @@ export function generateRandomString(
 
   // For alphanumeric strings
   let chars = 'abcdefghijklmnopqrstuvwxyz';
-  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const numbers = '0123456789';
 
-  if (includeUppercase) chars += uppercase;
   chars += numbers; // Always include numbers for alphanumeric generation
 
   let result = '';

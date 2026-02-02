@@ -36,6 +36,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   }),
 }));
 
+
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
@@ -186,6 +187,7 @@ export { mikrotikPermissions } from '../models/MikrotikPermission';
 export { rolesPermission } from '../models/RolePermission';
 export { telephonyDids } from '../models/TelephonyDid';
 export { pins } from '../models/Pin';
+export {permissions} from '../models/Permission';
 export { syncState } from '../models/SyncState';
 export { mikrotikUsageAlltime } from '../models/MikrotikUsageAlltime';
 

@@ -152,12 +152,12 @@ export async function generatePin_func({ reqObject, data }: GeneratePinParams) {
       // For MikroTik pins with crew access type
       const isSystem = access_type === 'system';
       const username = isSystem
-        ? generateRandomString(6, true, true) // 6 alphanumeric for system
-        : generateRandomString(4, true, false); // 4 letters for crew
+        ? generateRandomString(6, true) // 6 alphanumeric for system
+        : generateRandomString(4, false); // 4 letters for crew
 
       const password = isSystem
-        ? generateRandomString(6, true, true) // 6 alphanumeric for system
-        : generateRandomString(4, false, true); // 4 numbers for crew
+        ? generateRandomString(6, true) // 6 alphanumeric for system
+        : generateRandomString(4, true); // 4 numbers for crew
 
       // Encode to base64 for storage
       const encodedUsername = Buffer.from(username).toString('base64');

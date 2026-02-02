@@ -29,6 +29,8 @@ export const mikrotikUsageAlltime = pgTable(
     updatedAt: timestamp('updated_at').defaultNow(),
     lastRouterRxMb: integer('last_router_rx_mb').default(0).notNull(),
     lastRouterTxMb: integer('last_router_tx_mb').default(0).notNull(),
+    lifetimeRxMb: integer('lifetime_rx_mb').notNull().default(0),
+    lifetimeTxMb: integer('lifetime_tx_mb').notNull().default(0),
   },
   (table) => ({
     unqVesselUsername: uniqueIndex('unq_vessel_username').on(
@@ -60,4 +62,6 @@ export const MikrotikUsageAlltimeResponseSchema = t.Object({
   updatedAt: t.Optional(t.Union([t.Date(), t.String()])),
   lastRouterRxMb: t.Number(),
   lastRouterTxMb: t.Number(),
+  lifetimeRxMb: t.Number(),
+  lifetimeTxMb: t.Number(),
 });
