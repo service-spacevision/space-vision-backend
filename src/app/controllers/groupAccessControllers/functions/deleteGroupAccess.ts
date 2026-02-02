@@ -1,52 +1,74 @@
-import { db } from '../../../db/connection'
-import { groupAccess } from '../../../models/GroupAccess'
-import { eq, and } from 'drizzle-orm'
+import { db } from "../../../db/connection";
+import { userRoles } from "../../../models/UserRole";
+import { eq } from "drizzle-orm";
+import { users } from "../../../models/User";
 
 interface DeleteGroupAccessParams {
   reqObject: {
-    user: any
-  }
+    user: any;
+  };
   query: {
-    role: string
-    groupId: string
-  }
+    role: string;
+  };
 }
 
-export async function deleteGroupAccess_func({ reqObject, query }: DeleteGroupAccessParams) {
+export async function deleteGroupAccess_func({
+  reqObject,
+  query,
+}: DeleteGroupAccessParams) {
   try {
-    if (!query.role || !query.groupId) {
+    const { user } = reqObject;
+
+    // Get the user with their role
+    const userWithRole = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.id, user.id),
+      with: {
+        role: true,
+      },
+    });
+
+    // Check if user has admin role
+    if (!userWithRole?.role || userWithRole.role.name !== "admin") {
       return {
         success: false,
-        message: 'Role and group ID are required'
-      }
+        message: "Unauthorized: Only admin users can delete group access",
+      };
     }
 
-    const result = await db
-      .delete(groupAccess)
-      .where(and(
-        eq(groupAccess.role, query.role),
-        eq(groupAccess.groupId, parseInt(query.groupId))
-      ))
-      .returning()
-
-    if (result.length === 0) {
+    if (!query.role) {
       return {
         success: false,
-        message: 'Group access not found'
-      }
+        message: "Role ID is required",
+      };
     }
+
+    const roleId = parseInt(query.role);
+    if (isNaN(roleId)) {
+      return {
+        success: false,
+        message: "Invalid role ID",
+      };
+    }
+
+    // Clear the permitted_vessel_groups array for this role
+    await db
+      .update(userRoles)
+      .set({
+        permittedVesselGroups: [],
+        updatedAt: new Date(),
+      })
+      .where(eq(userRoles.id, roleId));
 
     return {
       success: true,
-      data: result[0],
-      message: 'Group access deleted successfully'
-    }
+      message: `Successfully cleared permitted vessel groups for role ${roleId}`,
+    };
   } catch (error: any) {
-    console.error('Error deleting group access:', error)
+    console.error("Error deleting group access:", error);
     return {
       success: false,
-      message: 'Failed to delete group access',
-      error: error.message
-    }
+      message: "Failed to delete group access",
+      error: error.message,
+    };
   }
 }

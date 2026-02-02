@@ -9,16 +9,23 @@ export class TelephonyDidController {
     try {
       const { query } = ctx
       const user = ctx.user!
-      
+
       const pagination = {
         currentPage: Number(query?.currentPage) || 1,
         pageSize: Number(query?.pageSize) || 10,
         all: query?.all || "false"
       }
 
+      // Parse boolean query parameters
+      const parsedQuery = {
+        ...query,
+        blocked: query?.blocked ? query.blocked.toLowerCase() === 'true' : undefined,
+        terminated: query?.terminated ? query.terminated.toLowerCase() === 'true' : undefined
+      }
+
       const result = await getTelephonyDids_func({
         reqObject: { user },
-        query: query as any,
+        query: parsedQuery,
         pagination
       })
 

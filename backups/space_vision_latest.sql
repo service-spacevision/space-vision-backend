@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UcMNDl7wUMXdePUInPE5DB88SeTbEnwp695j6Q4teC2KdVYF82sLX8LDC7ro93C
+\restrict 2aBKetNrqkRON3dk3QbLYpAGBgmNRfyFIJqEG9HK55LHFUO4QqGTgtHJSjfH5YC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -28,9 +28,9 @@ CREATE DATABASE space_vision WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_
 
 ALTER DATABASE space_vision OWNER TO root;
 
-\unrestrict UcMNDl7wUMXdePUInPE5DB88SeTbEnwp695j6Q4teC2KdVYF82sLX8LDC7ro93C
+\unrestrict 2aBKetNrqkRON3dk3QbLYpAGBgmNRfyFIJqEG9HK55LHFUO4QqGTgtHJSjfH5YC
 \connect space_vision
-\restrict UcMNDl7wUMXdePUInPE5DB88SeTbEnwp695j6Q4teC2KdVYF82sLX8LDC7ro93C
+\restrict 2aBKetNrqkRON3dk3QbLYpAGBgmNRfyFIJqEG9HK55LHFUO4QqGTgtHJSjfH5YC
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -207,6 +207,46 @@ ALTER SEQUENCE public.mikrotik_vessels_id_seq OWNED BY public.mikrotik_vessels.i
 
 
 --
+-- Name: pins; Type: TABLE; Schema: public; Owner: root
+--
+
+CREATE TABLE public.pins (
+    id integer NOT NULL,
+    vessel_id integer NOT NULL,
+    kitp text NOT NULL,
+    username text NOT NULL,
+    password text NOT NULL,
+    generated_by integer NOT NULL,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.pins OWNER TO root;
+
+--
+-- Name: pins_id_seq; Type: SEQUENCE; Schema: public; Owner: root
+--
+
+CREATE SEQUENCE public.pins_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.pins_id_seq OWNER TO root;
+
+--
+-- Name: pins_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: root
+--
+
+ALTER SEQUENCE public.pins_id_seq OWNED BY public.pins.id;
+
+
+--
 -- Name: sessions; Type: TABLE; Schema: public; Owner: root
 --
 
@@ -220,7 +260,8 @@ CREATE TABLE public.sessions (
     is_active boolean DEFAULT true,
     expires_at timestamp without time zone NOT NULL,
     created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now()
+    updated_at timestamp without time zone DEFAULT now(),
+    token character varying(255)
 );
 
 
@@ -261,7 +302,9 @@ CREATE TABLE public.starlink_usage (
     standard_gb real,
     chargebee_subscription_id text,
     created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now()
+    updated_at timestamp without time zone DEFAULT now(),
+    usage_limit_gb real,
+    public_ip_enabled boolean
 );
 
 
@@ -530,6 +573,13 @@ ALTER TABLE ONLY public.mikrotik_vessels ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: pins id; Type: DEFAULT; Schema: public; Owner: root
+--
+
+ALTER TABLE ONLY public.pins ALTER COLUMN id SET DEFAULT nextval('public.pins_id_seq'::regclass);
+
+
+--
 -- Name: sessions id; Type: DEFAULT; Schema: public; Owner: root
 --
 
@@ -585,6 +635,9 @@ ALTER TABLE ONLY public.vessels ALTER COLUMN id SET DEFAULT nextval('public.vess
 COPY drizzle.__drizzle_migrations (id, hash, created_at) FROM stdin;
 1	903ee411aba04918dd0cebbb76fe1165acca3327d630f9283fd0efce527f2c13	1756820900000
 2	279721ef15b06510bcb1b6e093fb4517563d4efe94e7fe13d7fee1f85d3f0d7b	1756822467814
+3	cba50075fadb41846b08814569f6392c8d6fa5df1c313ff459c9dbfbabbbd514	1757003259770
+4	7c37c2e2e0d88c57446a38c241535d8aa0db8bca6da9ca4640bbba680382f438	1757003443177
+5	2cf06399c1ef9346d2dd666129756a5e6e60e9099816b8fe03ee6479e49836ac	1757096062061
 \.
 
 
@@ -613,11 +666,19 @@ COPY public.mikrotik_vessels (id, vessel_name, router_ip, api_port, created_at, 
 
 
 --
+-- Data for Name: pins; Type: TABLE DATA; Schema: public; Owner: root
+--
+
+COPY public.pins (id, vessel_id, kitp, username, password, generated_by, created_at, updated_at) FROM stdin;
+\.
+
+
+--
 -- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: root
 --
 
-COPY public.sessions (id, user_id, current_db, session_data, ip_address, user_agent, is_active, expires_at, created_at, updated_at) FROM stdin;
-1	1	default	{"loginTime": "2025-09-02T14:02:18.286Z"}	\N	\N	t	2025-09-03 14:02:18.286	2025-09-02 14:02:18.287205	2025-09-02 14:02:18.287205
+COPY public.sessions (id, user_id, current_db, session_data, ip_address, user_agent, is_active, expires_at, created_at, updated_at, token) FROM stdin;
+7	1	default	{"loginTime": "2025-09-04T11:22:31.588Z"}	\N	\N	t	2025-09-05 11:22:31.588	2025-09-04 11:22:31.595671	2025-09-04 11:22:31.595671	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhZG1pbkBhZG1pbi5jb20iLCJmdWxsTmFtZSI6IlN5c3RlbSBBZG1pbmlzdHJhdG9yIiwidXNlcm5hbWUiOiJhZG1pbiIsImlhdCI6MTc1Njk4NDk1MX0.QKB3c2Q_b_8zfWYzotpedzWY9w58IKkkUbvcWnlU45Q
 \.
 
 
@@ -625,7 +686,79 @@ COPY public.sessions (id, user_id, current_db, session_data, ip_address, user_ag
 -- Data for Name: starlink_usage; Type: TABLE DATA; Schema: public; Owner: root
 --
 
-COPY public.starlink_usage (id, date_key, kit_number, vessel_name, mobile_priority_gb, standard_gb, chargebee_subscription_id, created_at, updated_at) FROM stdin;
+COPY public.starlink_usage (id, date_key, kit_number, vessel_name, mobile_priority_gb, standard_gb, chargebee_subscription_id, created_at, updated_at, usage_limit_gb, public_ip_enabled) FROM stdin;
+1	20250903	KIT403124357KNT	\N	4.26	0	BTLkQuUnp0KIV3XpX	2025-09-03 17:30:59.223	2025-09-03 17:30:59.223	250	f
+2	20250903	KITP00348377	\N	21.86	0	BTcNMQUr381w93wfV	2025-09-03 17:30:59.225	2025-09-03 17:30:59.225	1500	f
+3	20250903	KITP00429879	\N	4.96	0	773p6Uqe7MtE36wf	2025-09-03 17:30:59.227	2025-09-03 17:30:59.227	250	f
+4	20250903	KITP00428193	\N	40.11	0	BTcOGcUqubCAn1ZVf	2025-09-03 17:30:59.228	2025-09-03 17:30:59.228	750	f
+5	20250903	KITP00408827	\N	16.25	0	BTUQi9UmmwK3u57vh	2025-09-03 17:30:59.229	2025-09-03 17:30:59.229	250	f
+6	20250903	KITP00429769	\N	21.36	0	BTM9N3UphsEf5eDW	2025-09-03 17:30:59.231	2025-09-03 17:30:59.231	500	f
+7	20250903	KITP00236747	\N	0.4	0	199VtVUpuq1isC5I4	2025-09-03 17:30:59.233	2025-09-03 17:30:59.233	250	f
+8	20250903	KIT403296830ZVH	\N	3.91	0	BTcMPXUpsbILWBjU8	2025-09-03 17:30:59.234	2025-09-03 17:30:59.234	250	f
+9	20250903	KITP00427531	\N	6.31	0	BTUXRLUpnXXe82ylR	2025-09-03 17:30:59.239	2025-09-03 17:30:59.237	250	f
+10	20250903	KITP00170284	\N	0.02	0	BTciEgUsw6Ael4gXY	2025-09-03 17:30:59.241	2025-09-03 17:30:59.241	750	f
+11	20250903	KITP00195247	\N	0.05	0	199WtNUsvQ1V03xCI	2025-09-03 17:30:59.243	2025-09-03 17:30:59.243	750	f
+12	20250903	KITP00191377	\N	1.04	0	BTciEgUsvubBB4Ulz	2025-09-03 17:30:59.245	2025-09-03 17:30:59.245	750	f
+13	20250903	KITP00191362	\N	0.13	0	BTciEgUsvzDhL4ZhR	2025-09-03 17:30:59.246	2025-09-03 17:30:59.246	750	f
+14	20250903	KITP00191364	\N	1.89	0	BTUP6tUsw2fkD4ckS	2025-09-03 17:30:59.248	2025-09-03 17:30:59.248	750	f
+15	20250903	KITP00195241	\N	0.03	0	BTTuYyUsvO4LG3t06	2025-09-03 17:30:59.249	2025-09-03 17:30:59.249	250	f
+16	20250903	KITP00170274	\N	0.39	0	198dquUsvHh4a3nd6	2025-09-03 17:30:59.25	2025-09-03 17:30:59.25	750	f
+17	20250903	KITP00195240	\N	0.06	0	BTTuYyUsvJsZK3oDh	2025-09-03 17:30:59.252	2025-09-03 17:30:59.252	250	f
+18	20250903	KITP00191378	\N	49.76	0	19AKSqUswAp464lyG	2025-09-03 17:30:59.255	2025-09-03 17:30:59.255	2000	t
+19	20250903	KITP00170282	\N	25.62	0	199WtNUswHZx74qE7	2025-09-03 17:30:59.256	2025-09-03 17:30:59.256	2000	t
+20	20250903	KITP00414265	\N	6.24	0	7738FUuUWT4514xE	2025-09-03 17:30:59.258	2025-09-03 17:30:59.258	250	f
+21	20250903	KITP00348370	\N	1.51	0	BTLWx2UuWwHSG3fKC	2025-09-03 17:30:59.26	2025-09-03 17:30:59.26	250	f
+22	20250903	KITP00194895	\N	3.54	0	BTLY1lUuhynQ57GT8	2025-09-03 17:30:59.261	2025-09-03 17:30:59.261	250	f
+23	20250903	KITP00194894	\N	5.08	0	BTceQLUuJdZyY1xWt	2025-09-03 17:30:59.262	2025-09-03 17:30:59.262	250	f
+24	20250903	KITP00414260	\N	0.1	0	19AKL0UunAgBDAj8N	2025-09-03 17:30:59.264	2025-09-03 17:30:59.264	250	f
+25	20250903	KITP00428241	\N	4.54	0	199CNfUuxd9tcufa	2025-09-03 17:30:59.265	2025-09-03 17:30:59.265	1000	f
+26	20250903	KITP00422620	\N	70.53	0	BTcf9TUvfSaUbBe4z	2025-09-03 17:30:59.266	2025-09-03 17:30:59.266	1500	t
+27	20250903	KITP00289826	\N	25.09	0	77E3TUv3zPcc1YUL	2025-09-03 17:30:59.267	2025-09-03 17:30:59.267	500	f
+28	20250903	KITP00428171	\N	0.23	0	779ZfUtfHtj62OKY	2025-09-03 17:30:59.271	2025-09-03 17:30:59.271	500	f
+29	20250903	KITP00443623	\N	38.32	0	BTcXgyUu2SXvGBfTl	2025-09-03 17:30:59.273	2025-09-03 17:30:59.272	500	f
+30	20250903	KITP00121387	\N	57.09	0	BTUQi9UmqOnVx6nLb	2025-09-03 17:30:59.274	2025-09-03 17:30:59.274	2250	f
+31	20250903	KITP00427532	\N	11.38	0	77CiMUtZy5mD36yn	2025-09-03 17:30:59.276	2025-09-03 17:30:59.276	250	f
+32	20250903	KITP00428243	\N	30.43	0	77CiMUtZ7dUE28tT	2025-09-03 17:30:59.278	2025-09-03 17:30:59.278	1000	f
+33	20250903	KITP00414259	\N	2.12	0	BTcjedUv6U9z84fiR	2025-09-03 17:30:59.279	2025-09-03 17:30:59.279	250	f
+34	20250903	KITP00428217	\N	0.21	0	19AHkFUsd6YQr2lBz	2025-09-03 17:30:59.281	2025-09-03 17:30:59.281	1000	f
+35	20250903	KITP00141545	\N	23.24	0	198LtbUsazb9JRzW	2025-09-03 17:30:59.282	2025-09-03 17:30:59.282	1000	f
+36	20250903	KITP00367708	\N	18.51	0	19AAwSUsRIlZu2UTx	2025-09-03 17:30:59.283	2025-09-03 17:30:59.283	1500	f
+37	20250903	KITP00429880	\N	10.45	0	BTTxaQUsRe1xk2reZ	2025-09-03 17:30:59.284	2025-09-03 17:30:59.284	250	f
+38	20250903	KITP00408831	\N	6.01	0	BTcum7UnK5bkJ1IcN	2025-09-03 17:30:59.288	2025-09-03 17:30:59.288	250	f
+39	20250903	KITP00288410	\N	33.52	0	BTLb1uUjjhzuDUr6	2025-09-03 17:30:59.29	2025-09-03 17:30:59.29	1000	f
+40	20250903	KITP00422628	\N	14.88	0	BTU30nUvemuJU91Ek	2025-09-03 17:30:59.292	2025-09-03 17:30:59.292	1000	t
+41	20250903	KITP00427534	\N	7.27	0	BTURcoUnAzppH3PkU	2025-09-03 17:30:59.294	2025-09-03 17:30:59.294	500	f
+42	20250903	KITP00263466	\N	8.35	0	19AAwSUsRHmVL2TNr	2025-09-03 17:30:59.295	2025-09-03 17:30:59.295	1500	f
+43	20250903	KITP00263465	\N	8.77	0	BTLsksUsRHXJh2TDy	2025-09-03 17:30:59.296	2025-09-03 17:30:59.296	1000	f
+44	20250903	KITP00332624	\N	12.71	0	777o6UsM4GZE3Bov	2025-09-03 17:30:59.297	2025-09-03 17:30:59.297	750	f
+45	20250903	KITP00188991	\N	24.9	0	BTcciLUsRGaIj2Q15	2025-09-03 17:30:59.299	2025-09-03 17:30:59.299	1000	f
+46	20250903	KITP00422610	\N	7.01	0	198QziUvemIur94P9	2025-09-03 17:30:59.3	2025-09-03 17:30:59.3	500	f
+47	20250903	KITP00348369	\N	24.37	0	BTURzZUrh8MnJ325E	2025-09-03 17:30:59.305	2025-09-03 17:30:59.305	1500	f
+48	20250903	KITP00268384	\N	13.8	0	BTccm4UrbaqCG3PTv	2025-09-03 17:30:59.307	2025-09-03 17:30:59.307	250	f
+49	20250903	KITP00428186	\N	13.02	0	i6cwUrmwMrK2zvS	2025-09-03 17:30:59.309	2025-09-03 17:30:59.309	1000	f
+50	20250903	KITP00443765	\N	10.13	0	BTM0R5UrwEOz0Wax	2025-09-03 17:30:59.31	2025-09-03 17:30:59.31	500	f
+51	20250903	KITP00427535	\N	2.35	0	BTcVw2Us9pFSaAgJj	2025-09-03 17:30:59.312	2025-09-03 17:30:59.312	500	f
+52	20250903	KITP00414096	\N	12.88	0	BTcVLLUvKvt2r6QSL	2025-09-03 17:30:59.313	2025-09-03 17:30:59.313	500	f
+53	20250903	KITP00289831	\N	2.85	0	BTU3ToUvZIUfg4pRj	2025-09-03 17:30:59.314	2025-09-03 17:30:59.314	50	f
+54	20250903	KITP00429771	\N	15.14	0	198hNzUpdZlZx2HQy	2025-09-03 17:30:59.315	2025-09-03 17:30:59.315	500	f
+55	20250903	KITP00443493	\N	12.41	0	BTcqHvUpKH4Vn9nAU	2025-09-03 17:30:59.316	2025-09-03 17:30:59.316	500	f
+56	20250903	KITP00443495	\N	12.87	0	BTLigBUoXsQRzdwC	2025-09-03 17:30:59.32	2025-09-03 17:30:59.319	500	f
+57	20250903	KITP00427530	\N	3.96	0	BTU8XUUp13NYSoct	2025-09-03 17:30:59.321	2025-09-03 17:30:59.321	250	f
+58	20250903	KITP00235492	\N	0.89	0	BTUSpwUo0FuSV34SQ	2025-09-03 17:30:59.323	2025-09-03 17:30:59.323	250	f
+59	20250903	KITP00422629	\N	8.22	0	BTU30nUvfSwnVBcZ2	2025-09-03 17:30:59.324	2025-09-03 17:30:59.324	1000	t
+60	20250903	KITP00408945	\N	20.89	0	19A8KbUliv9Sirvf	2025-09-03 17:30:59.325	2025-09-03 17:30:59.325	1000	f
+61	20250903	KITP00408836	\N	34.19	0	BTUQeqUlY5qNz8cys	2025-09-03 17:30:59.326	2025-09-03 17:30:59.326	1000	f
+62	20250903	KIT401827122BGD	\N	9.97	0	777r7UmUdBAi56LS	2025-09-03 17:30:59.327	2025-09-03 17:30:59.327	250	f
+63	20250903	KITP00137073	\N	4.04	0	BTLb3HUmR7qLy3mn1	2025-09-03 17:30:59.328	2025-09-03 17:30:59.328	1000	f
+64	20250903	KITP00308529	\N	36.54	0	77CdGUmUjDNN5Ebg	2025-09-03 17:30:59.329	2025-09-03 17:30:59.329	1000	f
+65	20250903	KITP00118430	\N	1.19	0	777r7UmUhViC5BmF	2025-09-03 17:30:59.331	2025-09-03 17:30:59.331	1000	f
+66	20250903	KITP00124148	\N	1.72	0	199Gb0UmR8ua43ipZ	2025-09-03 17:30:59.332	2025-09-03 17:30:59.332	1000	f
+67	20250903	KITP00235475	\N	2.81	0	BTLb3HUmR8Sbo3nHC	2025-09-03 17:30:59.334	2025-09-03 17:30:59.334	1000	f
+68	20250903	KITP00305602	\N	0.46	0	777r7UmUh5le5BRV	2025-09-03 17:30:59.336	2025-09-03 17:30:59.336	250	f
+69	20250903	KITP00305435	\N	3.46	0	BTcNQMUmQKmhm3GNs	2025-09-03 17:30:59.337	2025-09-03 17:30:59.337	1000	f
+70	20250903	KITP00118628	\N	2.11	0	BTLb3HUmR6sfI3lcr	2025-09-03 17:30:59.338	2025-09-03 17:30:59.338	1000	f
+71	20250903	KITP00422618	\N	9.21	0	BTcIp6UvjuoOT36qY	2025-09-03 17:30:59.34	2025-09-03 17:30:59.34	2000	f
+72	20250903	KITP00422615	\N	5.8	0	198O1lUvjv4zg37k3	2025-09-03 17:30:59.341	2025-09-03 17:30:59.341	1000	f
 \.
 
 
@@ -654,7 +787,7 @@ COPY public.user_roles (id, name, display_name, description, permissions, is_act
 --
 
 COPY public.users (id, email, password, full_name, username, role_id, is_active, is_email_verified, email_verification_token, password_reset_token, password_reset_expires, mfa_enabled, mfa_secret, last_login_at, profile_picture, bio, preferences, created_at, updated_at) FROM stdin;
-1	admin@admin.com	$2b$12$MdrRJpOM22qwyikPKHTyx.s8LjBy2GdMi9uV2cez7Z8at2zx3Ieu6	System Administrator	admin	4	t	t	\N	\N	\N	f	\N	2025-09-02 14:02:18.267	\N	\N	\N	2025-09-02 13:48:59.292236	2025-09-02 13:48:59.292236
+1	admin@admin.com	$2b$12$MdrRJpOM22qwyikPKHTyx.s8LjBy2GdMi9uV2cez7Z8at2zx3Ieu6	System Administrator	admin	4	t	t	\N	\N	\N	f	\N	2025-09-04 11:22:31.556	\N	\N	\N	2025-09-02 13:48:59.292236	2025-09-02 13:48:59.292236
 \.
 
 
@@ -675,6 +808,7 @@ COPY public.vessels (id, vesselskit_number, name, subscription_plan, group_id, d
 2	AB11	AB11		1	AB11-1	2025-09-02 14:09:40.307423	2025-09-02 14:09:40.307423
 4	AB12	AB12		1	AB11-2	2025-09-02 14:09:57.536532	2025-09-02 14:09:57.536532
 5	AB112	AB112		1	AB112	2025-09-02 14:28:37.28323	2025-09-02 14:28:37.28323
+6	KITP00118628	KITP001	PROD	1	KKLO	2025-09-03 17:49:37.274699	2025-09-03 17:49:37.274699
 \.
 
 
@@ -682,7 +816,7 @@ COPY public.vessels (id, vesselskit_number, name, subscription_plan, group_id, d
 -- Name: __drizzle_migrations_id_seq; Type: SEQUENCE SET; Schema: drizzle; Owner: root
 --
 
-SELECT pg_catalog.setval('drizzle.__drizzle_migrations_id_seq', 2, true);
+SELECT pg_catalog.setval('drizzle.__drizzle_migrations_id_seq', 5, true);
 
 
 --
@@ -707,17 +841,24 @@ SELECT pg_catalog.setval('public.mikrotik_vessels_id_seq', 1, false);
 
 
 --
+-- Name: pins_id_seq; Type: SEQUENCE SET; Schema: public; Owner: root
+--
+
+SELECT pg_catalog.setval('public.pins_id_seq', 1, false);
+
+
+--
 -- Name: sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: root
 --
 
-SELECT pg_catalog.setval('public.sessions_id_seq', 1, true);
+SELECT pg_catalog.setval('public.sessions_id_seq', 7, true);
 
 
 --
 -- Name: starlink_usage_id_seq; Type: SEQUENCE SET; Schema: public; Owner: root
 --
 
-SELECT pg_catalog.setval('public.starlink_usage_id_seq', 1, false);
+SELECT pg_catalog.setval('public.starlink_usage_id_seq', 72, true);
 
 
 --
@@ -731,7 +872,7 @@ SELECT pg_catalog.setval('public.telephony_dids_id_seq', 1, false);
 -- Name: user_roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: root
 --
 
-SELECT pg_catalog.setval('public.user_roles_id_seq', 47, true);
+SELECT pg_catalog.setval('public.user_roles_id_seq', 269, true);
 
 
 --
@@ -752,7 +893,7 @@ SELECT pg_catalog.setval('public.vessel_groups_id_seq', 1, true);
 -- Name: vessels_id_seq; Type: SEQUENCE SET; Schema: public; Owner: root
 --
 
-SELECT pg_catalog.setval('public.vessels_id_seq', 5, true);
+SELECT pg_catalog.setval('public.vessels_id_seq', 6, true);
 
 
 --
@@ -804,11 +945,11 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: starlink_usage starlink_usage_pkey; Type: CONSTRAINT; Schema: public; Owner: root
+-- Name: starlink_usage starlink_usage_date_key_kit_number_pk; Type: CONSTRAINT; Schema: public; Owner: root
 --
 
 ALTER TABLE ONLY public.starlink_usage
-    ADD CONSTRAINT starlink_usage_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT starlink_usage_date_key_kit_number_pk PRIMARY KEY (date_key, kit_number);
 
 
 --
@@ -919,5 +1060,5 @@ ALTER TABLE ONLY public.vessels
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UcMNDl7wUMXdePUInPE5DB88SeTbEnwp695j6Q4teC2KdVYF82sLX8LDC7ro93C
+\unrestrict 2aBKetNrqkRON3dk3QbLYpAGBgmNRfyFIJqEG9HK55LHFUO4QqGTgtHJSjfH5YC
 

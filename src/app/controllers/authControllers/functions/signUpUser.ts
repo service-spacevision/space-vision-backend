@@ -3,14 +3,16 @@ import { users } from '../../../models/User'
 import { userRoles } from '../../../models/UserRole'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { ReqObjectType } from '../../../utils/types'
 import { CreateUserData } from '../../../models/User'
+import { AuthUser } from '../../../utils/types'
 
 export const signUpUser_func = async (
   {
-    data
+    data,
+    user
   }: {
     data: CreateUserData
+    user: AuthUser
   }
 ) => {
   try {
@@ -30,7 +32,7 @@ export const signUpUser_func = async (
         message: 'User with this email already exists'
       }
     }
-
+    // 
     // Get default user role
     const [defaultRole] = await db
       .select()
@@ -52,18 +54,21 @@ export const signUpUser_func = async (
       hashedPassword = await bcrypt.hash(password, saltRounds)
     }
 
+    const userData = {
+      email,
+      password: hashedPassword,
+      fullName,
+      username,
+      isActive: true,
+      isEmailVerified: false,
+      roleId: data.roleId || defaultRole.id,
+      organizationId: user?.organizationId || data?.organizationId || null
+    }
+
     // Create new user
     const [newUser] = await db
       .insert(users)
-      .values({
-        email,
-        password: hashedPassword,
-        fullName,
-        username,
-        isActive: true,
-        isEmailVerified: false,
-        roleId: defaultRole.id
-      })
+      .values(userData)
       .returning({
         id: users.id,
         email: users.email,
@@ -74,6 +79,7 @@ export const signUpUser_func = async (
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
         profilePicture: users.profilePicture,
+        organizationId: users.organizationId || null,
         bio: users.bio,
         preferences: users.preferences,
         createdAt: users.createdAt,

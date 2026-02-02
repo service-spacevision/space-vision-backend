@@ -1,5 +1,7 @@
 import { db } from './connection'
 import { userRoles } from '../models/UserRole'
+import { rolesPermission } from '../models/RolePermission'
+import { eq } from 'drizzle-orm'
 
 export async function seedUserRoles() {
   try {
@@ -10,51 +12,45 @@ export async function seedUserRoles() {
         name: 'admin',
         displayName: 'Administrator',
         description: 'Full system access with all permissions',
-        permissions: [
-          'create_user_role',
-          'read_user_roles',
-          'read_user_role',
-          'update_user_role',
-          'delete_user_role',
-          'read_user_profile',
-          'update_user_profile',
-          'change_password',
-          'delete_user_account'
-        ],
-        isSystem: true
+        isSystem: true,
+        created_by: 'system'
       },
       {
         name: 'user',
         displayName: 'User',
         description: 'Standard user with basic permissions',
-        permissions: [
-          'read_user_profile',
-          'update_user_profile',
-          'change_password'
-        ],
-        isSystem: true
+        isSystem: true,
+        created_by: 'system'
       },
       {
         name: 'moderator',
         displayName: 'Moderator',
         description: 'Moderator with limited administrative permissions',
-        permissions: [
-          'read_user_roles',
-          'read_user_role',
-          'read_user_profile',
-          'update_user_profile',
-          'change_password'
-        ],
-        isSystem: false
+        isSystem: false,
+        created_by: 'system'
       }
     ]
 
     for (const role of defaultRoles) {
       try {
-        await db.insert(userRoles).values(role).onConflictDoNothing()
+        await db.insert(userRoles).values(role as any).onConflictDoNothing()
         console.log(`✓ Created role: ${role.name}`)
       } catch (error) {
         console.log(`- Role ${role.name} already exists`)
+      }
+      // Ensure roles_permission row exists
+      const [roleRow] = await db.select({ id: userRoles.id }).from(userRoles).where(eq(userRoles.name, role.name)).limit(1)
+      if (roleRow?.id) {
+        try {
+          await db.insert(rolesPermission).values({
+            roleId: roleRow.id,
+            api_permissions: JSON.stringify([]),
+            component_permissions: JSON.stringify([]),
+            navigation_permissions: JSON.stringify([])
+          }).onConflictDoNothing()
+        } catch (e) {
+          // ignore if exists
+        }
       }
     }
 

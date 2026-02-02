@@ -10,6 +10,11 @@ export const DATABASE_CONFIG = {
   DATABASE_URL: process.env.DATABASE_URL || 'postgresql://localhost:5432/elysia_db'
 }
 
+export const STARLINK_API = {
+  API_KEY: process.env.STARLINK_API_KEY,
+  URL: process.env.STARLINK_API_URL,
+};
+
 export const JWT_CONFIG = {
   SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
   EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h'
@@ -18,6 +23,11 @@ export const JWT_CONFIG = {
 export const SESSION_CONFIG = {
   SECRET: process.env.SESSION_SECRET || 'your-session-secret',
   EXPIRES_IN: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+}
+
+export const ENCRYPTION_CONFIG = {
+  KEY: process.env.ENCRYPTION_KEY || 'your-32-character-encryption-key-here-change-this',
+  ALGORITHM: 'aes-256-gcm'
 }
 
 export const authTypes = {

@@ -1,16 +1,41 @@
-import { Context } from 'elysia'
-import { authMiddleware } from './auth'
-import { UserRole } from '../utils/types'
+import { Context } from 'elysia';
+import { authMiddleware, orgAccessToken } from './auth';
 
-
-export const checkUser = (permission) => {
+export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
-    // First check authentication
-    const authResult = await authMiddleware(ctx)
+    // Check for "x-space-context" header first
+    const spaceContextToken = ctx.headers['x-space-context'];
+    
+    if (spaceContextToken) {
+      console.log('Using x-space-context');
+      const orgAuthResult = await orgAccessToken(spaceContextToken);
+      console.log('org auth', orgAuthResult);
 
-    if(!authResult || !authResult.success){
-      ctx.set.status = 401
-      return authResult
+      if (!orgAuthResult || !orgAuthResult.success) {
+        ctx.set.status = 401;
+        return orgAuthResult;
+      }
+
+      (ctx as any).user = orgAuthResult.data;
+      return;
+    }
+
+    // console.log("ctx->data", ctx.cookie.jwt_token);
+    let contextToken =
+      ctx.cookie.jwt_token.value || ctx.cookie['auth-token'].value;
+    if (!contextToken) {
+      contextToken = ctx.headers.authorization?.split(' ')[1];
+    }
+    console.log('contextToken', contextToken);
+    const authResult = await authMiddleware({
+      cookieToken: contextToken!,
+      permission: permission,
+    });
+    console.log('auth result', authResult);
+
+    if (!authResult || !authResult.success) {
+      ctx.set.status = 401;
+      return authResult;
     }
     // if (!authResult.success) {
     //   ctx.set.status = authResult.status || 401
@@ -23,31 +48,31 @@ export const checkUser = (permission) => {
 
     // if (!userRole || !allowedRoles.includes(userRole)) {
     //   ctx.set.status = 403
-    //   return { 
-    //     success: false, 
+    //   return {
+    //     success: false,
     //     message: "Access denied"
     //   }
     // }
-    (ctx as any).user = authResult.data
-    return
-  }
-}
+    (ctx as any).user = authResult.data;
+    return;
+  };
+};
 
 // export const requireRole = (roles: UserRole[]) => {
 //   return async (ctx: Context) => {
 //     const authResult = await authMiddleware(ctx)
-    
+
 //     if (!authResult.success) {
 //       ctx.set.status = authResult.status || 401
 //       return { success: false, error: authResult.error }
 //     }
 
 //     const userRole = ctx.user?.role as UserRole
-    
+
 //     if (!userRole || !roles.includes(userRole)) {
 //       ctx.set.status = 403
-//       return { 
-//         success: false, 
+//       return {
+//         success: false,
 //         error: 'Access denied',
 //         required: roles,
 //         current: userRole
@@ -65,7 +90,7 @@ export const checkUser = (permission) => {
 // export const checkResourceAccess = (resourceType: 'user' | 'system') => {
 //   return async (ctx: Context) => {
 //     const authResult = await authMiddleware(ctx)
-    
+
 //     if (!authResult.success) {
 //       ctx.set.status = authResult.status || 401
 //       return { success: false, error: authResult.error }
@@ -82,9 +107,9 @@ export const checkUser = (permission) => {
 //     // Users can only access their own resources
 //     if (resourceType === 'user' && targetUserId && user.id !== targetUserId) {
 //       ctx.set.status = 403
-//       return { 
-//         success: false, 
-//         error: 'Access denied to this resource' 
+//       return {
+//         success: false,
+//         error: 'Access denied to this resource'
 //       }
 //     }
 

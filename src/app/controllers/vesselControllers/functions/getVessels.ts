@@ -1,43 +1,104 @@
-import { db } from '../../../db/connection'
-import { vessels, vesselGroups } from '../../../db/schema'
-import { eq, ilike, and } from 'drizzle-orm'
+import { db } from '../../../db/connection';
+import { vessels, vesselGroups } from '../../../db/schema';
+import { eq, ilike, and, inArray, SQL } from 'drizzle-orm';
+import { isAdmin } from '../../../../utils/permissionUtils';
+import { hasSystemRole } from '../../../utils/roleHelpers';
 
 interface GetVesselsParams {
   reqObject: {
-    user: any
-  }
+    user: any;
+  };
   query?: {
-    name?: string
-    groupId?: string
-    subscriptionPlan?: string
-  }
+    name?: string;
+    kitpNumber?: string;
+    deviceId?: string;
+    groupId?: string;
+    subscriptionPlan?: string;
+    mikrotikFilter?: 'mikrotik' | 'non-mikrotik' | 'all';
+  };
   pagination: {
-    currentPage: number
-    pageSize: number
-    all: string
-  }
+    currentPage: number;
+    pageSize: number;
+    all: string;
+  };
 }
 
-export async function getVessels_func({ reqObject, query, pagination }: GetVesselsParams) {
+export async function getVessels_func({
+  reqObject,
+  query,
+  pagination,
+}: GetVesselsParams) {
   try {
-    let whereConditions: any[] = []
+    let whereConditions: SQL[] = [];
 
     // Add filters based on query parameters
     if (query?.name) {
-      whereConditions.push(ilike(vessels.name, `%${query.name}%`))
+      whereConditions.push(ilike(vessels.name, `%${query.name}%`));
+    }
+
+    if (query?.kitpNumber) {
+      whereConditions.push(
+        ilike(vessels.vesselsKitNumber, `%${query.kitpNumber}%`)
+      );
+    }
+
+    if (query?.deviceId) {
+      whereConditions.push(ilike(vessels.deviceId, `%${query.deviceId}%`));
     }
 
     if (query?.groupId) {
-      whereConditions.push(eq(vessels.groupId, parseInt(query.groupId)))
+      whereConditions.push(eq(vessels.groupId, parseInt(query.groupId)));
     }
 
     if (query?.subscriptionPlan) {
-      whereConditions.push(ilike(vessels.subscriptionPlan, `%${query.subscriptionPlan}%`))
+      whereConditions.push(
+        ilike(vessels.subscriptionPlan, `%${query.subscriptionPlan}%`)
+      );
     }
 
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined
+    if (query?.mikrotikFilter) {
+      if (query.mikrotikFilter === 'mikrotik') {
+        whereConditions.push(eq(vessels.isMikrotik, true));
+      } else if (query.mikrotikFilter === 'non-mikrotik') {
+        whereConditions.push(eq(vessels.isMikrotik, false));
+      }
+    }
 
-    if (pagination.all === "true") {
+    // For non-system users, only show active vessels
+    if (reqObject.user) {
+      const isSystemUser = await hasSystemRole(reqObject.user.id);
+      if (!isSystemUser) {
+        whereConditions.push(eq(vessels.isActive, true));
+      }
+    }
+
+    // For non-admin users, only show vessels from permitted vessel groups
+    if (
+      !isAdmin(reqObject.user) &&
+      reqObject.user?.role?.permittedVesselGroups?.length
+    ) {
+      whereConditions.push(
+        inArray(vessels.groupId, reqObject.user.role.permittedVesselGroups)
+      );
+    } else if (!isAdmin(reqObject.user)) {
+      // If user has no permitted vessel groups and is not admin, return empty result
+      return {
+        success: true,
+        message: 'No vessels found for your account',
+        data: [],
+        pagination: {
+          currentPage: 1,
+          pageSize: 0,
+          totalItems: 0,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const whereClause =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    if (pagination.all === 'true') {
       // Get all vessels with their group information
       const allVessels = await db
         .select({
@@ -47,14 +108,17 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
           subscriptionPlan: vessels.subscriptionPlan,
           groupId: vessels.groupId,
           deviceId: vessels.deviceId,
+          isActive: vessels.isActive,
+          isMikrotik: vessels.isMikrotik,
+          api_port: vessels.apiPort,
           createdAt: vessels.createdAt,
           updatedAt: vessels.updatedAt,
-          groupName: vesselGroups.groupName
+          groupName: vesselGroups.groupName,
         })
         .from(vessels)
         .leftJoin(vesselGroups, eq(vessels.groupId, vesselGroups.id))
         .where(whereClause)
-        .orderBy(vessels.name)
+        .orderBy(vessels.name);
 
       return {
         success: true,
@@ -64,12 +128,12 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
           currentPage: 1,
           pageSize: allVessels.length,
           totalItems: allVessels.length,
-          totalPages: 1
-        }
-      }
+          totalPages: 1,
+        },
+      };
     } else {
       // Get paginated vessels
-      const offset = (pagination.currentPage - 1) * pagination.pageSize
+      const offset = (pagination.currentPage - 1) * pagination.pageSize;
 
       const [paginatedVessels, totalCount] = await Promise.all([
         db
@@ -80,9 +144,12 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
             subscriptionPlan: vessels.subscriptionPlan,
             groupId: vessels.groupId,
             deviceId: vessels.deviceId,
+            isMikrotik: vessels.isMikrotik,
+            apiPort: vessels.apiPort,
+            isActive: vessels.isActive,
             createdAt: vessels.createdAt,
             updatedAt: vessels.updatedAt,
-            groupName: vesselGroups.groupName
+            groupName: vesselGroups.groupName,
           })
           .from(vessels)
           .leftJoin(vesselGroups, eq(vessels.groupId, vesselGroups.id))
@@ -90,14 +157,11 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
           .limit(pagination.pageSize)
           .offset(offset)
           .orderBy(vessels.name),
-        
-        db
-          .select({ count: vessels.id })
-          .from(vessels)
-          .where(whereClause)
-      ])
 
-      const totalPages = Math.ceil(totalCount.length / pagination.pageSize)
+        db.select({ count: vessels.id }).from(vessels).where(whereClause),
+      ]);
+
+      const totalPages = Math.ceil(totalCount.length / pagination.pageSize);
 
       return {
         success: true,
@@ -107,16 +171,16 @@ export async function getVessels_func({ reqObject, query, pagination }: GetVesse
           currentPage: pagination.currentPage,
           pageSize: pagination.pageSize,
           totalItems: totalCount.length,
-          totalPages
-        }
-      }
+          totalPages,
+        },
+      };
     }
   } catch (error) {
-    console.error('Error in getVessels_func:', error)
+    console.error('Error in getVessels_func:', error);
     return {
       success: false,
       message: 'Failed to fetch vessels',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }

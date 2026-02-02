@@ -97,6 +97,14 @@ src/
 - `GET /api/system/status` - System status
 - `GET /api/system/version` - API version
 
+### Starlink Usage
+- `GET /api/starlink-usage` - Get starlink usage records
+- `POST /api/starlink-usage` - Create new starlink usage record
+- `PUT /api/starlink-usage` - Update existing starlink usage record
+- `DELETE /api/starlink-usage` - Delete starlink usage record
+- `POST /api/starlink-usage/sync` - Sync starlink usage data from external API
+- `GET /api/starlink-usage/date-range` - Get starlink usage data by date range with vessel info
+
 ## Database Schema
 
 ### Users Table

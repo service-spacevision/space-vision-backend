@@ -1,0 +1,1 @@
+ALTER TABLE "starlink_usage" DROP CONSTRAINT "starlink_usage_id_unique";

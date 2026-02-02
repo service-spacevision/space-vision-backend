@@ -7,7 +7,7 @@ interface UpdateVesselGroupParams {
     user: any
   }
   query: {
-    groupName: string
+    id: number
   }
   data: {
     groupName?: string
@@ -16,10 +16,10 @@ interface UpdateVesselGroupParams {
 
 export async function updateVesselGroup_func({ reqObject, query, data }: UpdateVesselGroupParams) {
   try {
-    if (!query.groupName) {
+    if (!query.id) {
       return {
         success: false,
-        message: 'Group name is required'
+        message: 'Group id is required'
       }
     }
 
@@ -31,7 +31,7 @@ export async function updateVesselGroup_func({ reqObject, query, data }: UpdateV
     const result = await db
       .update(vesselGroups)
       .set(updateData)
-      .where(eq(vesselGroups.groupName, query.groupName))
+      .where(eq(vesselGroups.id, query.id))
       .returning()
 
     if (result.length === 0) {

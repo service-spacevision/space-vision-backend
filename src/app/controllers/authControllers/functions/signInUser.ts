@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { JWT_CONFIG } from '../../../constants/constants'
 import { createSession } from '../../../middlewares/session'
 import { ReqObjectType } from '../../../utils/types'
+import { rolesPermission } from '../../../models/RolePermission'
 
 export const signInUser_func = async (
   {
@@ -30,21 +31,24 @@ export const signInUser_func = async (
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
+        mfaSecret: users.mfaSecret,
         lastLoginAt: users.lastLoginAt,
         profilePicture: users.profilePicture,
+        organizationId: users.organizationId,
         bio: users.bio,
         preferences: users.preferences,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         role: {
-          id: userRoles.id,
-          name: userRoles.name,
-          displayName: userRoles.displayName,
-          permissions: userRoles.permissions
+          ...userRoles,
+        },
+        permissions: {
+          ...rolesPermission
         }
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+      .leftJoin(rolesPermission, eq(users.roleId, rolesPermission.id))
       .where(eq(users.email, body.email))
       .limit(1)
 
@@ -98,14 +102,16 @@ export const signInUser_func = async (
       .update(users)
       .set({ lastLoginAt: new Date() })
       .where(eq(users.id, user.id))
+    console.log("");
 
     // Create JWT token
     const tokenPayload = {
       id: user.id,
       email: user.email,
-      // role: user.role,
+      role: user.role,
       fullName: user.fullName,
-      username: user.username
+      username: user.username,
+      organizationId: user.organizationId
     }
 
     const token = jwt.sign(
@@ -119,6 +125,9 @@ export const signInUser_func = async (
     // Create session
     const session = await createSession({
       user_Id: user.id,
+      token: token,
+      mfaEnabled: user.mfaEnabled || false,
+      mfaVerified: false,
       sessionData: {
         loginTime: new Date(),
       },
@@ -133,7 +142,8 @@ export const signInUser_func = async (
       data: {
         user: others,
         token,
-        sessionId: session.id
+        sessionId: session.id,
+        ...(user.mfaEnabled && { mfaEnabled: user.mfaEnabled })
       }
     }
   } catch (error: any) {

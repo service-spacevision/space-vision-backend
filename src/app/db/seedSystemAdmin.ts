@@ -1,6 +1,7 @@
 import { db } from './connection'
 import { users } from '../models/User'
 import { userRoles } from '../models/UserRole'
+import { rolesPermission } from '../models/RolePermission'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 
@@ -21,20 +22,9 @@ export async function seedSystemAdmin() {
         name: 'system',
         displayName: 'System Administrator',
         description: 'System-level administrator with full access',
-        permissions: [
-          'create_user_role',
-          'read_user_roles',
-          'read_user_role',
-          'update_user_role',
-          'delete_user_role',
-          'read_user_profile',
-          'update_user_profile',
-          'change_password',
-          'delete_user_account',
-          'system_admin'
-        ],
-        isSystem: true
-      }).returning()
+        isSystem: true,
+        created_by: 'system'
+      } as any).returning()
       console.log('✓ Created system role')
     }
 
@@ -72,6 +62,16 @@ export async function seedSystemAdmin() {
       
       return
     }
+
+    // Ensure roles_permission exists for system role
+    try {
+      await db.insert(rolesPermission).values({
+        roleId: systemRole[0].id,
+        api_permissions: JSON.stringify([]),
+        component_permissions: JSON.stringify([]),
+        navigation_permissions: JSON.stringify([])
+      }).onConflictDoNothing()
+    } catch {}
 
     // Hash the password using bcrypt (same as login system)
     const hashedPassword = await bcrypt.hash(adminPassword, 12)

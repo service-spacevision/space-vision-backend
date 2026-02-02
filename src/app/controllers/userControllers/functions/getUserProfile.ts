@@ -1,15 +1,16 @@
-import { db } from '../../../db/connection'
-import { users } from '../../../models/User'
-import { userRoles } from '../../../models/UserRole'
-import { eq } from 'drizzle-orm'
-import { ReqObjectType } from '../../../utils/types'
+import { db } from '../../../db/connection';
+import { users } from '../../../models/User';
+import { userRoles } from '../../../models/UserRole';
+import { eq } from 'drizzle-orm';
+import { ReqObjectType } from '../../../utils/types';
+import { rolesPermission } from '../../../models/RolePermission';
+import { permissions } from '../../../models/Permission';
 
 export const getUserProfile_func = async ({
   reqObject,
 }: {
-  reqObject: ReqObjectType,
-}
-) => {
+  reqObject: ReqObjectType;
+}) => {
   try {
     // Get user profile with role information
     const result = await db
@@ -22,6 +23,7 @@ export const getUserProfile_func = async ({
         isActive: users.isActive,
         isEmailVerified: users.isEmailVerified,
         mfaEnabled: users.mfaEnabled,
+        mfaSecret: users.mfaSecret,
         lastLoginAt: users.lastLoginAt,
         profilePicture: users.profilePicture,
         bio: users.bio,
@@ -29,36 +31,40 @@ export const getUserProfile_func = async ({
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         role: {
-          id: userRoles.id,
-          name: userRoles.name,
-          displayName: userRoles.displayName,
-          permissions: userRoles.permissions
-        }
+          ...userRoles,
+        },
+        permissions: {
+          ...rolesPermission,
+        },
       })
       .from(users)
       .leftJoin(userRoles, eq(users.roleId, userRoles.id))
-      .where(eq(users.id, reqObject.user.id))
-      .limit(1)
+      .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
+      .where(eq(users.id, Number(reqObject.user.id)))
+      .limit(1);
 
     if (result.length === 0) {
       return {
         success: false,
-        message: 'User not found'
-      }
+        message: 'User not found',
+      };
     }
 
-    const userProfile = result[0]
-
+    const userProfile = result[0];
+    console.log('user', userProfile.permissions?.api_permissions);
+    if (userProfile.mfaSecret && userProfile.mfaSecret !== '') {
+      userProfile.mfaSecret = 'true';
+    }
     return {
       success: true,
       message: 'Profile retrieved successfully',
-      data: userProfile
-    }
+      data: userProfile,
+    };
   } catch (error: any) {
-    console.error('Get user profile error:', error)
+    console.error('Get user profile error:', error);
     return {
       success: false,
-      message: error.message || 'Failed to retrieve user profile'
-    }
+      message: error.message || 'Failed to retrieve user profile',
+    };
   }
-}
+};

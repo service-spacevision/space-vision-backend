@@ -1,0 +1,21 @@
+CREATE TABLE "bluetide_telemetry" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"account_number" text NOT NULL,
+	"device_id" text NOT NULL,
+	"timestamp" timestamp with time zone NOT NULL,
+	"downlink_throughput_mbps" real,
+	"uplink_throughput_mbps" real,
+	"ping_drop_rate_avg" real,
+	"ping_latency_ms_avg" integer,
+	"obstruction_percent_time" real,
+	"uptime_seconds" integer,
+	"signal_quality_percent" real,
+	"h3_cell_id" text,
+	"latitude" double precision,
+	"longitude" double precision,
+	"seconds_until_swupdate_reboot_possible" integer,
+	"running_software_version" text,
+	"active_alert_count" integer,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);

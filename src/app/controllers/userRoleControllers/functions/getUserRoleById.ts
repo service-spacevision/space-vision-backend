@@ -1,29 +1,72 @@
 import { db } from '../../../db/connection'
 import { userRoles } from '../../../models/UserRole'
+import { rolesPermission } from '../../../models/RolePermission'
 import { eq } from 'drizzle-orm'
 
 interface GetUserRoleByIdParams {
-  roleId: string
+  roleId: string | number
 }
 
 export async function getUserRoleById_func({ roleId }: GetUserRoleByIdParams) {
   try {
-    const [role] = await db.select()
+    // Convert roleId to number since userRoles.id is a serial (number)
+    const idNum = typeof roleId === 'string' ? Number(roleId) : roleId
+
+    if (!Number.isInteger(idNum)) {
+      return {
+        success: false,
+        message: 'Invalid role id'
+      }
+    }
+
+    const [roleData] = await db
+      .select({
+        id: userRoles.id,
+        name: userRoles.name,
+        displayName: userRoles.displayName,
+        description: userRoles.description,
+        isActive: userRoles.isActive,
+        isSystem: userRoles.isSystem,
+        created_by: userRoles.createdBy,
+        organizationName: userRoles.organizationName,
+        permittedVesselGroups: userRoles.permittedVesselGroups,
+        organization_id: userRoles.organizationId,
+        createdAt: userRoles.createdAt,
+        updatedAt: userRoles.updatedAt,
+        api_permissions: rolesPermission.api_permissions,
+        component_permissions: rolesPermission.component_permissions,
+        navigation_permissions: rolesPermission.navigation_permissions
+      })
       .from(userRoles)
-      .where(eq(userRoles.id, roleId))
+      .leftJoin(rolesPermission, eq(userRoles.id, rolesPermission.roleId))
+      .where(eq(userRoles.id, idNum))
       .limit(1)
 
-    if (!role) {
+    if (!roleData) {
       return {
         success: false,
         message: 'User role not found'
       }
     }
 
+    const {
+      api_permissions,
+      component_permissions,
+      navigation_permissions,
+      ...role
+    } = roleData
+
     return {
       success: true,
       message: 'User role retrieved successfully',
-      data: role
+      data: {
+        ...role,
+        permissions: {
+          api_permissions,
+          component_permissions,
+          navigation_permissions
+        }
+      }
     }
   } catch (error: any) {
     console.error('Error fetching user role:', error)
