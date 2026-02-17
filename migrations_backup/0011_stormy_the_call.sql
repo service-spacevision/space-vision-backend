@@ -1,0 +1,1 @@
+ALTER TABLE "user_roles" ADD COLUMN "forbidden_vessel_groups" integer[];
