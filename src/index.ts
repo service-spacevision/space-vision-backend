@@ -122,9 +122,13 @@ const app: any = new Elysia()
             url: 'http://45.8.133.216:4001',
             description: 'Production server',
           },
+          {
+            url: 'http://158.220.119.2:18020',
+            description: 'Production server',
+          },
         ],
       },
-    })
+    }),
   )
   .use(corsMiddleware)
   // .use(loggingMiddleware)
@@ -249,11 +253,11 @@ async function startServer() {
 startServer();
 
 console.log(
-  `🦊 ${APP_CONFIG.NAME} is running at http://${app.server?.hostname}:${app.server?.port}`
+  `🦊 ${APP_CONFIG.NAME} is running at http://${app.server?.hostname}:${app.server?.port}`,
 );
 console.log(
-  `📚 API Documentation available at http://${app.server?.hostname}:${app.server?.port}/swagger`
+  `📚 API Documentation available at http://${app.server?.hostname}:${app.server?.port}/swagger`,
 );
 console.log(
-  `🏥 Health check available at http://${app.server?.hostname}:${app.server?.port}/api/system/health`
+  `🏥 Health check available at http://${app.server?.hostname}:${app.server?.port}/api/system/health`,
 );
