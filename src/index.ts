@@ -32,6 +32,7 @@ import {
   permissionRoutes,
   rolesPermissionRoutes,
   organizationRoutes,
+  hrEmployeeProfileRoutes,
 } from './routes/indexRoute';
 
 const app: any = new Elysia()
@@ -98,6 +99,10 @@ const app: any = new Elysia()
             name: 'RolesPermission',
             description: 'Flattened role permissions endpoints',
           },
+          {
+            name: 'HR Employee Profile',
+            description: 'HR employee profile management endpoints',
+          },
         ],
         servers: [
           {
@@ -156,6 +161,7 @@ const app: any = new Elysia()
       organizations: '/api/organizations',
       permissions: '/api/permissions',
       rolesPermissions: '/api/roles-permissions',
+      hrEmployeeProfiles: '/api/hr-employee-profiles',
     },
   }))
   .use(authRoutes)
@@ -174,6 +180,7 @@ const app: any = new Elysia()
   .use(permissionRoutes)
   .use(rolesPermissionRoutes)
   .use(organizationRoutes)
+  .use(hrEmployeeProfileRoutes)
   .onError(({ error, code, set }) => {
     console.error('Application error:', error);
 

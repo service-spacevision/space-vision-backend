@@ -19,6 +19,7 @@ import { permission as userRolePermissions } from '../../../../routes/userRoleRo
 import { permission as userPermissions } from '../../../../routes/userRoute/userRoute'
 import { permission as vesselGroupPermissions } from '../../../../routes/vesselGroupRoute/vesselGroupRoute'
 import { permission as vesselPermissions } from '../../../../routes/vesselRoute/vesselRoute'
+import { permission as hrEmployeeProfilePermissions } from '../../../../routes/hrEmployeeProfileRoute/hrEmployeeProfileRoute'
 
 interface ExtractedPermission {
   method: string
@@ -49,6 +50,7 @@ function gatherPermissionsFromExports(): ExtractedPermission[] {
     { map: userPermissions, section: 'organization' },
     { map: vesselGroupPermissions, section: 'organization' },
     { map: vesselPermissions, section: 'organization' },
+    { map: hrEmployeeProfilePermissions, section: 'organization' },
   ]
 
   const items: ExtractedPermission[] = []

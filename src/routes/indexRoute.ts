@@ -15,6 +15,7 @@ import pinManagementRoute from "./pinManagementRoute/pinManagementRoute";
 import permissionRoute from "./permissionRoute/permissionRoute";
 import rolesPermissionRoute from "./rolesPermissionRoute/rolesPermissionRoute";
 import organizationRoute from "./organizationRoute/organizationRoute";
+import hrEmployeeProfileRoute from "./hrEmployeeProfileRoute/hrEmployeeProfileRoute";
 
 export {
   authRoute as authRoutes,
@@ -33,4 +34,5 @@ export {
   permissionRoute as permissionRoutes,
   rolesPermissionRoute as rolesPermissionRoutes,
   organizationRoute as organizationRoutes,
+  hrEmployeeProfileRoute as hrEmployeeProfileRoutes,
 };
