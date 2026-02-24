@@ -1,7 +1,8 @@
 import { db } from './connection'
 import { sql } from 'drizzle-orm'
-import { readdir } from 'fs/promises'
+import { readdir, readFile } from 'fs/promises'
 import { join } from 'path'
+import { createHash } from 'crypto'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import migrationHelpers from './migrationUtils'
 import * as schema from './schema'
@@ -78,29 +79,33 @@ export async function smartMigrate() {
 }
 
 async function syncMigrationState() {
-    try {
-        // Get all migration files
-        const migrationsDir = join(process.cwd(), 'src/app/db/migrations')
-        const files = await readdir(migrationsDir)
-        const migrationFiles = files
-            .filter(file => file.endsWith('.sql'))
-            .sort()
+  try {
+    // Get all migration entries (supports both legacy .sql files and folder-based migrations)
+    const migrationsDir = join(process.cwd(), 'src/app/db/migrations')
+    const entries = await readdir(migrationsDir, { withFileTypes: true })
 
-        // Check which tables actually exist
-        const existingTables = await db.execute(sql`
-      SELECT table_name 
-      FROM information_schema.tables 
+    const migrationEntries = entries
+      .filter((entry) => {
+        if (entry.isFile()) return entry.name.endsWith('.sql')
+        if (entry.isDirectory()) return /^\d+_.+/.test(entry.name)
+        return false
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    // Check which tables actually exist
+    const existingTables = await db.execute(sql`
+      SELECT table_name
+      FROM information_schema.tables
       WHERE table_schema = 'public'
     `)
 
-        const tableNames = existingTables.map((row: any) => row.table_name)
+    const tableNames = existingTables.map((row: any) => row.table_name)
 
-        // If we have tables, ensure migration tracking is set up
-        if (tableNames.length > 0) {
-            // Create the drizzle migrations table if it doesn't exist
-            await db.execute(sql`CREATE SCHEMA IF NOT EXISTS drizzle`)
+    // If we have tables, ensure migration tracking is set up
+    if (tableNames.length > 0) {
+      await db.execute(sql`CREATE SCHEMA IF NOT EXISTS drizzle`)
 
-            await db.execute(sql`
+      await db.execute(sql`
         CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
           id SERIAL PRIMARY KEY,
           hash text NOT NULL,
@@ -108,29 +113,62 @@ async function syncMigrationState() {
         )
       `)
 
-            // Get existing migration records
-            const existingMigrations = await db.execute(sql`
-        SELECT hash FROM drizzle.__drizzle_migrations
+      const existingMigrations = await db.execute(sql`
+        SELECT hash, created_at FROM drizzle.__drizzle_migrations
       `)
-            const appliedMigrations = existingMigrations.map((row: any) => row.hash)
+      const appliedHashes = new Set(existingMigrations.map((row: any) => row.hash))
+      const appliedCreatedAt = new Set(existingMigrations.map((row: any) => Number(row.created_at)))
 
-            // Mark missing migrations as applied (opt-in). This does not validate every object; use with care.
-            for (const file of migrationFiles) {
-                const migrationName = file.replace('.sql', '')
-                if (!appliedMigrations.includes(migrationName)) {
-                    await db.execute(sql`
-            INSERT INTO drizzle.__drizzle_migrations (hash, created_at) 
-            VALUES (${migrationName}, ${Date.now()})
-          `)
-                    console.log(`✓ Marked ${migrationName} as applied`)
-                }
-            }
+      // Mark missing migrations as applied (opt-in).
+      // Drizzle decides what to run using created_at (folderMillis), and also stores hash.
+      for (const entry of migrationEntries) {
+        const migrationName = entry.name.replace(/\.sql$/, '')
+        const migrationSqlPath = entry.isDirectory()
+          ? join(migrationsDir, entry.name, 'migration.sql')
+          : join(migrationsDir, entry.name)
+        const folderMillis = getMigrationFolderMillis(migrationName)
+
+        if (folderMillis === null) {
+          console.log(`Skipping ${migrationName}: cannot parse migration timestamp from name`)
+          continue
         }
 
-    } catch (error) {
-        console.error('Error syncing migration state:', error)
-        throw error
+        let migrationHash: string
+        try {
+          const migrationSql = await readFile(migrationSqlPath, 'utf8')
+          migrationHash = createHash('sha256').update(migrationSql).digest('hex')
+        } catch {
+          console.log(`Skipping ${migrationName}: cannot read migration SQL file`)
+          continue
+        }
+
+        if (!appliedHashes.has(migrationHash) || !appliedCreatedAt.has(folderMillis)) {
+          await db.execute(sql`
+            INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+            VALUES (${migrationHash}, ${folderMillis})
+          `)
+          console.log(`Marked ${migrationName} as applied`)
+        }
+      }
     }
+  } catch (error) {
+    console.error('Error syncing migration state:', error)
+    throw error
+  }
+}
+
+function getMigrationFolderMillis(migrationName: string): number | null {
+  const dateStr = migrationName.slice(0, 14)
+  if (!/^\d{14}$/.test(dateStr)) return null
+
+  const year = Number(dateStr.slice(0, 4))
+  const month = Number(dateStr.slice(4, 6)) - 1
+  const day = Number(dateStr.slice(6, 8))
+  const hour = Number(dateStr.slice(8, 10))
+  const minute = Number(dateStr.slice(10, 12))
+  const second = Number(dateStr.slice(12, 14))
+
+  return Date.UTC(year, month, day, hour, minute, second)
 }
 
 async function handleSchemaMismatch() {
@@ -302,7 +340,7 @@ async function ensureCriticalTablesExist() {
             }
         }
         
-        console.log(`📋 Found ${schemaTableConfigs.length} tables in schema`)
+        console.log(` Found ${schemaTableConfigs.length} tables in schema`)
         
         let missingTables = 0
         let missingColumns = 0
@@ -313,7 +351,7 @@ async function ensureCriticalTablesExist() {
             
             // Check if table exists
             if (!existingSchema[tableName]) {
-                console.log(`⚠️  Missing table: ${tableName}`)
+                console.log(`  Missing table: ${tableName}`)
                 // For missing tables, let Drizzle migrations handle creation
                 // We'll just log it for now
                 missingTables++
@@ -326,7 +364,7 @@ async function ensureCriticalTablesExist() {
                 const columnName = column.name
                 
                 if (!existingColumns.has(columnName)) {
-                    console.log(`⚠️  Missing column: ${tableName}.${columnName}`)
+                    console.log(`  Missing column: ${tableName}.${columnName}`)
                     
                     // Try to add the missing column
                     try {
@@ -334,22 +372,22 @@ async function ensureCriticalTablesExist() {
                         const columnType = getColumnTypeFromDrizzle(column)
                         const addColumnSql = migrationHelpers.addColumnIfNotExists(tableName, columnName, columnType)
                         await db.execute(sql.raw(addColumnSql))
-                        console.log(`✅ Added missing column: ${tableName}.${columnName}`)
+                        console.log(` Added missing column: ${tableName}.${columnName}`)
                         missingColumns++
                     } catch (error: any) {
-                        console.log(`❌ Failed to add column ${tableName}.${columnName}:`, error.message)
+                        console.log(` Failed to add column ${tableName}.${columnName}:`, error.message)
                     }
                 }
             }
         }
         
         if (missingTables > 0 || missingColumns > 0) {
-            console.log(`✅ Schema check complete: ${missingTables} missing tables, ${missingColumns} missing columns fixed`)
+            console.log(` Schema check complete: ${missingTables} missing tables, ${missingColumns} missing columns fixed`)
             if (missingTables > 0) {
-                console.log('💡 Run `bun run db:generate` to create migrations for missing tables')
+                console.log(' Run `bun run db:generate` to create migrations for missing tables')
             }
         } else {
-            console.log('✅ All schema tables and columns exist')
+            console.log(' All schema tables and columns exist')
         }
         
     } catch (error) {
@@ -391,3 +429,4 @@ if (require.main === module) {
             process.exit(1)
         })
 }
+

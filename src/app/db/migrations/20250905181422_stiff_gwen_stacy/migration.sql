@@ -1,4 +1,4 @@
-CREATE TABLE "pins" (
+CREATE TABLE IF NOT EXISTS "pins" (
 	"id" serial NOT NULL,
 	"vessel_id" integer NOT NULL,
 	"kitp" text NOT NULL,

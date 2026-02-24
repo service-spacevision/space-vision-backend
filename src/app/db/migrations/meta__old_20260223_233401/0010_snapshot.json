@@ -1,6 +1,6 @@
 {
-  "id": "7d420c50-ebaf-42b4-8648-d17405f8b7fe",
-  "prevId": "1e66e960-f84e-4804-bedd-4736761b5c12",
+  "id": "4e33239b-936a-4c1b-beb6-3af009e2c3b1",
+  "prevId": "cc26764a-bc34-472a-9ce6-16a9a86f070e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -202,13 +202,13 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "group_id": {
           "name": "group_id",
-          "type": "integer",
+          "type": "integer[]",
           "primaryKey": false,
           "notNull": true
         },
@@ -218,31 +218,10 @@
           "primaryKey": false,
           "notNull": false,
           "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "group_access_group_id_vessel_groups_id_fk": {
-          "name": "group_access_group_id_vessel_groups_id_fk",
-          "tableFrom": "group_access",
-          "tableTo": "vessel_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -498,14 +477,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'own'"
-        },
-        "section": {
-          "name": "section",
-          "type": "permission_section",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'organization'"
         },
         "category": {
           "name": "category",
@@ -1081,8 +1052,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "organization_id": {
-          "name": "organization_id",
+        "organization_name": {
+          "name": "organization_name",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
@@ -1227,20 +1198,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by": {
-          "name": "updated_by",
+        "organization_name": {
+          "name": "organization_name",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
@@ -1416,34 +1375,7 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {
-    "public.permission_category": {
-      "name": "permission_category",
-      "schema": "public",
-      "values": [
-        "navigation",
-        "component",
-        "api"
-      ]
-    },
-    "public.permission_scope": {
-      "name": "permission_scope",
-      "schema": "public",
-      "values": [
-        "own",
-        "organization",
-        "all"
-      ]
-    },
-    "public.permission_section": {
-      "name": "permission_section",
-      "schema": "public",
-      "values": [
-        "admin",
-        "organization"
-      ]
-    }
-  },
+  "enums": {},
   "schemas": {},
   "sequences": {},
   "roles": {},

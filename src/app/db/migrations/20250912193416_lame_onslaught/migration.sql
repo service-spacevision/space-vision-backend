@@ -1,4 +1,4 @@
-CREATE TABLE "bluetide_telemetry" (
+CREATE TABLE IF NOT EXISTS "bluetide_telemetry" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"account_number" text NOT NULL,
 	"device_id" text NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE "bluetide_telemetry" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "mikrotik_usage_session" (
+CREATE TABLE IF NOT EXISTS "mikrotik_usage_session" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"vessel_name" text NOT NULL,
 	"username" text NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE "mikrotik_usage_session" (
 	"last_updated" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "organizations" (
+CREATE TABLE IF NOT EXISTS "organizations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
@@ -46,7 +46,7 @@ CREATE TABLE "organizations" (
 	CONSTRAINT "organizations_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "permissions" (
+CREATE TABLE IF NOT EXISTS "permissions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"resource" varchar(255) NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE "permissions" (
 	CONSTRAINT "permissions_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "roles_permission" (
+CREATE TABLE IF NOT EXISTS "roles_permission" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"roleId" integer NOT NULL,
 	"api_permissions" text,
@@ -69,7 +69,7 @@ CREATE TABLE "roles_permission" (
 	CONSTRAINT "roles_permission_roleId_unique" UNIQUE("roleId")
 );
 --> statement-breakpoint
-CREATE TABLE "sync_state" (
+CREATE TABLE IF NOT EXISTS "sync_state" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"source" text NOT NULL,
 	"partition_key" text DEFAULT 'default' NOT NULL,
@@ -81,8 +81,12 @@ CREATE TABLE "sync_state" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-ALTER TABLE "user_roles" ADD COLUMN "created_by" varchar(100);--> statement-breakpoint
-ALTER TABLE "user_roles" ADD COLUMN "organization_name" varchar(100);--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "organization_name" varchar(100);--> statement-breakpoint
-CREATE UNIQUE INDEX "sync_state_source_partition_unique" ON "sync_state" USING btree ("source","partition_key");--> statement-breakpoint
-ALTER TABLE "user_roles" DROP COLUMN "permissions";
+ALTER TABLE "user_roles" ADD COLUMN IF NOT EXISTS "created_by" varchar(100);
+--> statement-breakpoint
+ALTER TABLE "user_roles" ADD COLUMN IF NOT EXISTS "organization_name" varchar(100);
+--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "organization_name" varchar(100);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "sync_state_source_partition_unique" ON "sync_state" USING btree ("source","partition_key");
+--> statement-breakpoint
+ALTER TABLE "user_roles" DROP COLUMN IF EXISTS "permissions";
