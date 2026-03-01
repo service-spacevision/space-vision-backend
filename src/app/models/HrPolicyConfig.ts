@@ -7,6 +7,7 @@ export const hrPolicyConfigs = pgTable('hr_policy_configs', {
   casualLeaveNoticeDays: integer('casual_leave_notice_days').notNull().default(14),
   maxConsecutiveLeaveDays: integer('max_consecutive_leave_days').notNull().default(3),
   probationDays: integer('probation_days').notNull().default(90),
+  allowedBreakMinutes: integer('allowed_break_minutes').notNull().default(30),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => [

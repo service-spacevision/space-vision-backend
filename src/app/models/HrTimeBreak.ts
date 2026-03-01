@@ -14,6 +14,8 @@ export const hrTimeBreaks = pgTable('hr_time_breaks', {
   timeSessionId: integer('time_session_id').notNull(),
   breakStartAt: timestamp('break_start_at').notNull(),
   breakEndAt: timestamp('break_end_at'),
+  durationMinutes: integer('duration_minutes').notNull().default(0),
+  complianceStatus: varchar('compliance_status', { length: 20 }).notNull().default('PENDING'),
   status: varchar('status', { length: 20 }).notNull().default('OPEN'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

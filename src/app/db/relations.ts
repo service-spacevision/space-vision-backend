@@ -236,6 +236,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.hrTimeSessionApprovals.timeSessionId,
       alias: 'hr_time_session_approval_session',
     }),
+    punchEvents: r.many.hrTimePunchEvents({
+      from: r.hrTimeSessions.id,
+      to: r.hrTimePunchEvents.timeSessionId,
+      alias: 'hr_time_punch_event_session',
+    }),
   },
 
   hrTimeBreaks: {
@@ -368,6 +373,29 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrLeaveBalances.leaveTypeId,
       to: r.hrLeaveTypes.id,
       alias: 'hr_leave_balance_leave_type',
+    }),
+  },
+
+  hrTimePunchEvents: {
+    session: r.one.hrTimeSessions({
+      from: r.hrTimePunchEvents.timeSessionId,
+      to: r.hrTimeSessions.id,
+      alias: 'hr_time_punch_event_session',
+    }),
+    employeeProfile: r.one.hrEmployeeProfiles({
+      from: r.hrTimePunchEvents.employeeProfileId,
+      to: r.hrEmployeeProfiles.id,
+      alias: 'hr_time_punch_event_employee',
+    }),
+    organization: r.one.organizations({
+      from: r.hrTimePunchEvents.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_time_punch_event_organization',
+    }),
+    user: r.one.users({
+      from: r.hrTimePunchEvents.userId,
+      to: r.users.id,
+      alias: 'hr_time_punch_event_user',
     }),
   },
 }));
