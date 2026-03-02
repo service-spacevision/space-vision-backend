@@ -17,6 +17,7 @@ import rolesPermissionRoute from "./rolesPermissionRoute/rolesPermissionRoute";
 import organizationRoute from "./organizationRoute/organizationRoute";
 import hrEmployeeProfileRoute from "./hrEmployeeProfileRoute/hrEmployeeProfileRoute";
 import hrTimeClockRoute from "./hrTimeClockRoute/hrTimeClockRoute";
+import hrPolicyConfigRoute from "./hrPolicyConfigRoute/hrPolicyConfigRoute";
 
 export {
   authRoute as authRoutes,
@@ -37,4 +38,5 @@ export {
   organizationRoute as organizationRoutes,
   hrEmployeeProfileRoute as hrEmployeeProfileRoutes,
   hrTimeClockRoute as hrTimeClockRoutes,
+  hrPolicyConfigRoute as hrPolicyConfigRoutes,
 };

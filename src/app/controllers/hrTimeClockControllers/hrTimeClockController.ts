@@ -9,6 +9,7 @@ import { getPendingBreakApprovals_func } from './functions/getPendingBreakApprov
 import { getPendingClockOutApprovals_func } from './functions/getPendingClockOutApprovals'
 import { getTimeClockStatus_func } from './functions/getTimeClockStatus'
 import { punch_func } from './functions/punch'
+import { punchBreak_func } from './functions/punchBreak'
 import { rejectBreakCompliance_func } from './functions/rejectBreakCompliance'
 import { rejectClockOut_func } from './functions/rejectClockOut'
 import { startBreak_func } from './functions/startBreak'
@@ -65,6 +66,22 @@ export class HrTimeClockController {
       return {
         success: false,
         message: 'Internal server error while clocking in',
+      }
+    }
+  }
+
+  static async punchBreak(ctx: CustomContext) {
+    try {
+      const result = await punchBreak_func({
+        reqObject: { user: ctx.user! },
+      })
+      ctx.set.status = result?.success ? 200 : 400
+      return result
+    } catch {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while processing break action',
       }
     }
   }
@@ -137,8 +154,18 @@ export class HrTimeClockController {
 
   static async pendingApprovals(ctx: CustomContext) {
     try {
+      const userId = ctx.query?.userId ? Number(ctx.query.userId) : undefined
+      if (ctx.query?.userId && (userId === undefined || isNaN(userId))) {
+        ctx.set.status = 400
+        return {
+          success: false,
+          message: 'Invalid userId query parameter',
+        }
+      }
+
       const result = await getPendingClockOutApprovals_func({
         reqObject: { user: ctx.user! },
+        userId,
       })
       ctx.set.status = result?.success ? 200 : 400
       return result

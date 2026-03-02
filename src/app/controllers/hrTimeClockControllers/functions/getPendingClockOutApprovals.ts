@@ -8,12 +8,26 @@ import { ReqObjectType } from '../../../utils/types'
 
 interface Params {
   reqObject: ReqObjectType
+  userId?: number
 }
 
-export async function getPendingClockOutApprovals_func({ reqObject }: Params) {
+export async function getPendingClockOutApprovals_func({
+  reqObject,
+  userId,
+}: Params) {
   try {
     const approverUserId = Number(reqObject.user.id)
     const organizationId = Number(reqObject.user.organizationId)
+
+    const conditions = [
+      eq(hrTimeSessionApprovals.organizationId, organizationId),
+      eq(hrTimeSessionApprovals.approverUserId, approverUserId),
+      eq(hrTimeSessionApprovals.status, 'PENDING'),
+    ] as any[]
+
+    if (userId && !isNaN(userId)) {
+      conditions.push(eq(hrTimeSessionApprovals.requestedByUserId, userId))
+    }
 
     const rows = await db
       .select({
@@ -37,13 +51,7 @@ export async function getPendingClockOutApprovals_func({ reqObject }: Params) {
         eq(hrEmployeeProfiles.id, hrTimeSessions.employeeProfileId),
       )
       .leftJoin(users, eq(users.id, hrEmployeeProfiles.userId))
-      .where(
-        and(
-          eq(hrTimeSessionApprovals.organizationId, organizationId),
-          eq(hrTimeSessionApprovals.approverUserId, approverUserId),
-          eq(hrTimeSessionApprovals.status, 'PENDING'),
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(hrTimeSessionApprovals.requestedAt))
 
     return {

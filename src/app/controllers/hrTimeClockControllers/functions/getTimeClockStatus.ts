@@ -2,7 +2,6 @@ import { ReqObjectType } from '../../../utils/types'
 import {
   getAllowedBreakMinutes,
   getBreakMinutesBySession,
-  getCompletedBreakCount,
   getEmployeeProfileForUser,
   getOpenBreak,
   getOpenSession,
@@ -35,6 +34,8 @@ export async function getTimeClockStatus_func({ reqObject }: Params) {
         data: {
           state: 'CLOCKED_OUT',
           nextPunchAction: 'CLOCK_IN',
+          nextWorkAction: 'CLOCK_IN',
+          nextBreakAction: 'DISABLED',
           employeeProfileId: profile.id,
           openSession: null,
           openBreak: null,
@@ -47,18 +48,14 @@ export async function getTimeClockStatus_func({ reqObject }: Params) {
 
     const openBreak = await getOpenBreak(orgId, openSession.id)
     const totalBreakMinutes = await getBreakMinutesBySession(openSession.id)
-    const completedBreakCount = await getCompletedBreakCount(openSession.id)
-
     return {
       success: true,
       message: 'Time clock status fetched successfully',
       data: {
         state: openBreak ? 'ON_BREAK' : 'CLOCKED_IN',
-        nextPunchAction: openBreak
-          ? 'BREAK_END'
-          : completedBreakCount > 0
-            ? 'CLOCK_OUT'
-            : 'BREAK_START',
+        nextPunchAction: openBreak ? 'BREAK_END' : 'CLOCK_OUT',
+        nextWorkAction: openBreak ? 'DISABLED' : 'CLOCK_OUT',
+        nextBreakAction: openBreak ? 'BREAK_IN' : 'BREAK_OUT',
         employeeProfileId: profile.id,
         openSession,
         openBreak,

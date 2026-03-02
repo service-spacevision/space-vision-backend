@@ -1,5 +1,93 @@
 import { Context } from 'elysia';
 import { authMiddleware, orgAccessToken } from './auth';
+import { db } from '../db/connection';
+import { users } from '../models/User';
+import { userRoles } from '../models/UserRole';
+import { rolesPermission } from '../models/RolePermission';
+import { eq } from 'drizzle-orm';
+
+function normalizePermissionList(value: unknown): string[] {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => String(v).trim())
+      .filter((v) => v.length > 0);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((v) => String(v).trim())
+          .filter((v) => v.length > 0);
+      }
+    } catch {}
+
+    return trimmed
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
+  }
+
+  return [];
+}
+
+async function hasApiPermission(userId: number, requiredPermission: string) {
+  const [userWithRole] = await db
+    .select({
+      roleId: users.roleId,
+      roleName: userRoles.name,
+      roleIsSystem: userRoles.isSystem,
+      apiPermissions: rolesPermission.api_permissions,
+    })
+    .from(users)
+    .leftJoin(userRoles, eq(users.roleId, userRoles.id))
+    .leftJoin(rolesPermission, eq(users.roleId, rolesPermission.roleId))
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!userWithRole) {
+    return {
+      allowed: false,
+      reason: 'User role not found',
+      apiPermissions: [] as string[],
+      roleName: undefined as string | undefined,
+    };
+  }
+
+  const roleName = (userWithRole.roleName || '').toLowerCase();
+  const isSystemBypass =
+    userWithRole.roleIsSystem === true ||
+    roleName === 'system' ||
+    roleName === 'admin';
+
+  const apiPermissions = normalizePermissionList(userWithRole.apiPermissions);
+
+  if (
+    isSystemBypass ||
+    apiPermissions.includes('*') ||
+    apiPermissions.includes(requiredPermission)
+  ) {
+    return {
+      allowed: true,
+      reason: '',
+      apiPermissions,
+      roleName: userWithRole.roleName || undefined,
+    };
+  }
+
+  return {
+    allowed: false,
+    reason: `Missing permission: ${requiredPermission}`,
+    apiPermissions,
+    roleName: userWithRole.roleName || undefined,
+  };
+}
 
 export const checkUser = (permission: string) => {
   return async (ctx: Context) => {
@@ -16,7 +104,24 @@ export const checkUser = (permission: string) => {
         return orgAuthResult;
       }
 
-      (ctx as any).user = orgAuthResult.data;
+      const userData = orgAuthResult.data as any;
+      const permissionCheck = await hasApiPermission(
+        Number(userData.id),
+        permission,
+      );
+      if (!permissionCheck.allowed) {
+        ctx.set.status = 403;
+        return {
+          success: false,
+          message: permissionCheck.reason || 'Access denied',
+          permission,
+        };
+      }
+
+      userData.permissions = {
+        api_permissions: permissionCheck.apiPermissions,
+      };
+      (ctx as any).user = userData;
       return;
     }
 
@@ -37,23 +142,22 @@ export const checkUser = (permission: string) => {
       ctx.set.status = 401;
       return authResult;
     }
-    // if (!authResult.success) {
-    //   ctx.set.status = authResult.status || 401
-    //   return { success: false, error: authResult.error }
-    // }
 
-    // // Check if user has required permission
-    // const userRole = ctx.user?.role as UserRole
-    // const allowedRoles = PERMISSIONS[permission]
+    const userData = authResult.data as any;
+    const permissionCheck = await hasApiPermission(Number(userData.id), permission);
+    if (!permissionCheck.allowed) {
+      ctx.set.status = 403;
+      return {
+        success: false,
+        message: permissionCheck.reason || 'Access denied',
+        permission,
+      };
+    }
 
-    // if (!userRole || !allowedRoles.includes(userRole)) {
-    //   ctx.set.status = 403
-    //   return {
-    //     success: false,
-    //     message: "Access denied"
-    //   }
-    // }
-    (ctx as any).user = authResult.data;
+    userData.permissions = {
+      api_permissions: permissionCheck.apiPermissions,
+    };
+    (ctx as any).user = userData;
     return;
   };
 };

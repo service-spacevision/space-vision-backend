@@ -7,6 +7,7 @@ const permission = {
   'GET_/api/hr-time-clock/status': 'read_hr_time_clock_status',
   'GET_/api/hr-time-clock/my-audit': 'read_hr_time_clock_audit',
   'POST_/api/hr-time-clock/punch': 'punch_hr_time_clock',
+  'POST_/api/hr-time-clock/punch-break': 'punch_hr_time_clock_break',
   'POST_/api/hr-time-clock/clock-in': 'clock_in_hr_time_clock',
   'POST_/api/hr-time-clock/start-break': 'start_break_hr_time_clock',
   'POST_/api/hr-time-clock/end-break': 'end_break_hr_time_clock',
@@ -47,9 +48,18 @@ const hrTimeClockRoute = new Elysia({ prefix: '/api/hr-time-clock' })
     ),
     tags: ['HR Time Clock'],
     detail: {
-      summary: 'Auto punch',
-      description: 'Auto transition: clock-in -> break-start -> break-end -> clock-out. Optional endDay=true can still force clock-out.',
+      summary: 'Work button punch',
+      description: 'Two-button mode work action: toggles clock-in/clock-out only. If on break, end break first.',
       operationId: 'punchHrTimeClock',
+    },
+  })
+  .post('/punch-break', HrTimeClockController.punchBreak, {
+    beforeHandle: [checkUser(permission['POST_/api/hr-time-clock/punch-break'])],
+    tags: ['HR Time Clock'],
+    detail: {
+      summary: 'Break button punch',
+      description: 'Two-button mode break action: toggles break-out/break-in within active session',
+      operationId: 'punchBreakHrTimeClock',
     },
   })
   .post('/clock-in', HrTimeClockController.clockIn, {
@@ -109,10 +119,18 @@ const hrTimeClockRoute = new Elysia({ prefix: '/api/hr-time-clock' })
     beforeHandle: [
       checkUser(permission['GET_/api/hr-time-clock/approvals/pending']),
     ],
+    query: t.Object({
+      userId: t.Optional(
+        t.String({
+          description: 'Optional employee user ID to filter pending approvals',
+        }),
+      ),
+    }),
     tags: ['HR Time Clock'],
     detail: {
       summary: 'Get pending clock-out approvals',
-      description: 'List all pending clock-out approvals assigned to current approver',
+      description:
+        'List pending clock-out approvals assigned to current approver. Optional userId filters by employee user.',
       operationId: 'getPendingHrTimeClockApprovals',
     },
   })

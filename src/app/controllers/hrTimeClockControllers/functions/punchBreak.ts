@@ -1,18 +1,17 @@
 import { ReqObjectType } from '../../../utils/types'
-import { clockIn_func } from './clockIn'
-import { clockOut_func } from './clockOut'
+import { endBreak_func } from './endBreak'
 import {
   getEmployeeProfileForUser,
   getOpenBreak,
   getOpenSession,
 } from './_helpers'
+import { startBreak_func } from './startBreak'
 
 interface Params {
   reqObject: ReqObjectType
-  endDay?: boolean
 }
 
-export async function punch_func({ reqObject, endDay }: Params) {
+export async function punchBreak_func({ reqObject }: Params) {
   const orgId = Number(reqObject.user.organizationId)
   if (!orgId) return { success: false, message: 'Organization not found for user' }
 
@@ -26,24 +25,19 @@ export async function punch_func({ reqObject, endDay }: Params) {
 
   const openSession = await getOpenSession(orgId, profile.id)
   if (!openSession) {
-    const result = await clockIn_func({ reqObject })
-    return { ...result, action: 'CLOCK_IN' }
+    return {
+      success: false,
+      message: 'No active session found. Clock in first.',
+      action: 'CLOCK_IN_REQUIRED',
+    }
   }
 
   const openBreak = await getOpenBreak(orgId, openSession.id)
   if (openBreak) {
-    return {
-      success: false,
-      message: 'You are on a break. Use break button to end break first.',
-      action: 'BREAK_REQUIRED',
-    }
+    const result = await endBreak_func({ reqObject })
+    return { ...result, action: 'BREAK_IN' }
   }
 
-  if (endDay) {
-    const result = await clockOut_func({ reqObject })
-    return { ...result, action: 'CLOCK_OUT' }
-  }
-
-  const result = await clockOut_func({ reqObject })
-  return { ...result, action: 'CLOCK_OUT' }
+  const result = await startBreak_func({ reqObject })
+  return { ...result, action: 'BREAK_OUT' }
 }

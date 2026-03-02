@@ -4,6 +4,7 @@ import {
   hrEmployeeProfiles,
   NewHrEmployeeProfile,
 } from '../../../models/HrEmployeeProfile'
+import { hrPolicyConfigs } from '../../../models/HrPolicyConfig'
 import { users } from '../../../models/User'
 import { ReqObjectType } from '../../../utils/types'
 
@@ -91,14 +92,61 @@ export async function assignHrEmployeeProfile_func({
       }
     }
 
+    const [appliedPolicy] = await db
+      .select()
+      .from(hrPolicyConfigs)
+      .where(
+        and(
+          eq(hrPolicyConfigs.organizationId, incomingOrgId),
+          eq(hrPolicyConfigs.isApplied, true),
+        ),
+      )
+      .limit(1)
+
+    const joinDate = normalizeNullableDate((data as any).joinDate) as
+      | Date
+      | string
+      | null
+    let probationStartAt = normalizeNullableDate(
+      (data as any).probationStartAt,
+    ) as Date | string | null
+    let probationEndAt = normalizeNullableDate((data as any).probationEndAt) as
+      | Date
+      | string
+      | null
+    let leaveEligibilityStartAt = normalizeNullableDate(
+      (data as any).leaveEligibilityStartAt,
+    ) as Date | string | null
+
+    if (
+      data.isProbationApplicable !== false &&
+      joinDate &&
+      !probationStartAt &&
+      !probationEndAt &&
+      Number(appliedPolicy?.probationDays || 0) > 0
+    ) {
+      const joinAt = new Date(joinDate as any)
+      probationStartAt = joinAt
+      const probationEnd = new Date(joinAt)
+      probationEnd.setDate(probationEnd.getDate() + Number(appliedPolicy?.probationDays || 0))
+      probationEndAt = probationEnd
+    }
+
+    if (!leaveEligibilityStartAt) {
+      leaveEligibilityStartAt =
+        data.isProbationApplicable === false
+          ? (joinDate as any)
+          : (probationEndAt as any) || (joinDate as any)
+    }
+
     const [created] = await db
       .insert(hrEmployeeProfiles)
       .values({
         ...data,
-        joinDate: normalizeNullableDate((data as any).joinDate),
-        probationStartAt: normalizeNullableDate((data as any).probationStartAt),
-        probationEndAt: normalizeNullableDate((data as any).probationEndAt),
-        leaveEligibilityStartAt: normalizeNullableDate((data as any).leaveEligibilityStartAt),
+        joinDate: joinDate as any,
+        probationStartAt: probationStartAt as any,
+        probationEndAt: probationEndAt as any,
+        leaveEligibilityStartAt: leaveEligibilityStartAt as any,
         contractStartAt: normalizeNullableDate((data as any).contractStartAt),
         contractEndAt: normalizeNullableDate((data as any).contractEndAt),
         ...(data.isProbationApplicable === false

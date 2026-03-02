@@ -34,6 +34,7 @@ import {
   organizationRoutes,
   hrEmployeeProfileRoutes,
   hrTimeClockRoutes,
+  hrPolicyConfigRoutes,
 } from './routes/indexRoute';
 
 const app: any = new Elysia()
@@ -108,6 +109,10 @@ const app: any = new Elysia()
             name: 'HR Time Clock',
             description: 'HR time clock operation endpoints',
           },
+          {
+            name: 'HR Policy',
+            description: 'HR policy config endpoints',
+          },
         ],
         servers: [
           {
@@ -168,6 +173,7 @@ const app: any = new Elysia()
       rolesPermissions: '/api/roles-permissions',
       hrEmployeeProfiles: '/api/hr-employee-profiles',
       hrTimeClock: '/api/hr-time-clock',
+      hrPolicies: '/api/hr-policies',
     },
   }))
   .use(authRoutes)
@@ -188,6 +194,7 @@ const app: any = new Elysia()
   .use(organizationRoutes)
   .use(hrEmployeeProfileRoutes)
   .use(hrTimeClockRoutes)
+  .use(hrPolicyConfigRoutes)
   .onError(({ error, code, set }) => {
     console.error('Application error:', error);
 
