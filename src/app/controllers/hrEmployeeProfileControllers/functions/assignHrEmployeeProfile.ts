@@ -92,16 +92,45 @@ export async function assignHrEmployeeProfile_func({
       }
     }
 
-    const [appliedPolicy] = await db
-      .select()
-      .from(hrPolicyConfigs)
-      .where(
-        and(
-          eq(hrPolicyConfigs.organizationId, incomingOrgId),
-          eq(hrPolicyConfigs.isApplied, true),
-        ),
-      )
-      .limit(1)
+    let effectivePolicy: any = null
+    let resolvedPolicyId: number | null = null
+
+    const hasPolicyIdField = Object.prototype.hasOwnProperty.call(data, 'policyId')
+    if (hasPolicyIdField && data.policyId) {
+      const [selectedPolicy] = await db
+        .select()
+        .from(hrPolicyConfigs)
+        .where(eq(hrPolicyConfigs.id, Number(data.policyId)))
+        .limit(1)
+
+      if (!selectedPolicy) {
+        return { success: false, message: 'Selected policy not found' }
+      }
+
+      if (Number(selectedPolicy.organizationId) !== incomingOrgId) {
+        return {
+          success: false,
+          message: 'Selected policy does not belong to this organization',
+        }
+      }
+
+      effectivePolicy = selectedPolicy
+      resolvedPolicyId = Number(selectedPolicy.id)
+    } else {
+      const [appliedPolicy] = await db
+        .select()
+        .from(hrPolicyConfigs)
+        .where(
+          and(
+            eq(hrPolicyConfigs.organizationId, incomingOrgId),
+            eq(hrPolicyConfigs.isApplied, true),
+          ),
+        )
+        .limit(1)
+
+      effectivePolicy = appliedPolicy || null
+      resolvedPolicyId = appliedPolicy ? Number(appliedPolicy.id) : null
+    }
 
     const joinDate = normalizeNullableDate((data as any).joinDate) as
       | Date
@@ -123,12 +152,12 @@ export async function assignHrEmployeeProfile_func({
       joinDate &&
       !probationStartAt &&
       !probationEndAt &&
-      Number(appliedPolicy?.probationDays || 0) > 0
+      Number(effectivePolicy?.probationDays || 0) > 0
     ) {
       const joinAt = new Date(joinDate as any)
       probationStartAt = joinAt
       const probationEnd = new Date(joinAt)
-      probationEnd.setDate(probationEnd.getDate() + Number(appliedPolicy?.probationDays || 0))
+      probationEnd.setDate(probationEnd.getDate() + Number(effectivePolicy?.probationDays || 0))
       probationEndAt = probationEnd
     }
 
@@ -155,6 +184,11 @@ export async function assignHrEmployeeProfile_func({
               probationEndAt: null,
             }
           : {}),
+        policyId: resolvedPolicyId,
+        policyAssignedAt: resolvedPolicyId ? new Date() : null,
+        policyAssignedByUserId: resolvedPolicyId
+          ? Number(reqObject.user.id)
+          : null,
         organizationId: incomingOrgId,
       })
       .returning()

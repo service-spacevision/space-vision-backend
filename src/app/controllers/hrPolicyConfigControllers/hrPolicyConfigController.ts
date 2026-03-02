@@ -1,8 +1,10 @@
 import { CustomContext } from '../../utils/types'
 import { applyHrPolicyConfig_func } from './functions/applyHrPolicyConfig'
+import { assignHrPolicyToEmployees_func } from './functions/assignHrPolicyToEmployees'
 import { createHrPolicyConfig_func } from './functions/createHrPolicyConfig'
 import { deleteHrPolicyConfig_func } from './functions/deleteHrPolicyConfig'
 import { getHrPolicyConfig_func } from './functions/getHrPolicyConfig'
+import { listHrPolicyConfigs_func } from './functions/listHrPolicyConfigs'
 import { updateHrPolicyConfig_func } from './functions/updateHrPolicyConfig'
 
 export class HrPolicyConfigController {
@@ -64,6 +66,51 @@ export class HrPolicyConfigController {
       return {
         success: false,
         message: 'Internal server error while fetching HR policy',
+      }
+    }
+  }
+
+  static async list(ctx: CustomContext) {
+    try {
+      const organizationId = ctx.query?.organizationId
+        ? Number(ctx.query.organizationId)
+        : undefined
+      if (ctx.query?.organizationId && isNaN(Number(ctx.query.organizationId))) {
+        ctx.set.status = 400
+        return {
+          success: false,
+          message: 'Invalid organizationId query parameter',
+        }
+      }
+
+      const result = await listHrPolicyConfigs_func({
+        reqObject: { user: ctx.user! },
+        organizationId,
+      })
+      ctx.set.status = result?.success ? 200 : 400
+      return result
+    } catch {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while fetching HR policies',
+      }
+    }
+  }
+
+  static async assignEmployees(ctx: CustomContext) {
+    try {
+      const result = await assignHrPolicyToEmployees_func({
+        reqObject: { user: ctx.user! },
+        data: ctx.body as any,
+      })
+      ctx.set.status = result?.success ? 200 : 400
+      return result
+    } catch {
+      ctx.set.status = 500
+      return {
+        success: false,
+        message: 'Internal server error while assigning policy to employees',
       }
     }
   }

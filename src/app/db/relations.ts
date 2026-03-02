@@ -177,6 +177,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.organizations.id,
       alias: 'hr_policy_config_organization',
     }),
+    employeeProfiles: r.many.hrEmployeeProfiles({
+      from: r.hrPolicyConfigs.id,
+      to: r.hrEmployeeProfiles.policyId,
+      alias: 'hr_employee_profile_policy',
+    }),
   },
 
   hrLeaveTypes: {
@@ -202,6 +207,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrEmployeeProfiles.reportsToUserId,
       to: r.users.id,
       alias: 'hr_employee_profile_manager',
+    }),
+    policy: r.one.hrPolicyConfigs({
+      from: r.hrEmployeeProfiles.policyId,
+      to: r.hrPolicyConfigs.id,
+      alias: 'hr_employee_profile_policy',
     }),
     timeSessions: r.many.hrTimeSessions({
       from: r.hrEmployeeProfiles.id,

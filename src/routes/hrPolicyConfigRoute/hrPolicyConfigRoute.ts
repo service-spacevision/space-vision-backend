@@ -3,6 +3,7 @@ import { Elysia, t } from 'elysia'
 import { HrPolicyConfigController } from '../../app/controllers/hrPolicyConfigControllers/hrPolicyConfigController'
 import { checkUser } from '../../app/middlewares/permissions'
 import {
+  AssignHrPolicyToEmployeesSchema,
   ApplyHrPolicyConfigSchema,
   CreateHrPolicyConfigSchema,
   UpdateHrPolicyConfigSchema,
@@ -11,6 +12,8 @@ import {
 const permission = {
   'POST_/api/hr-policies': 'create_hr_policy',
   'POST_/api/hr-policies/apply': 'apply_hr_policy',
+  'POST_/api/hr-policies/assign-employees': 'assign_hr_policy_to_employees',
+  'GET_/api/hr-policies': 'read_hr_policies',
   'GET_/api/hr-policies/current': 'read_hr_policy',
   'PATCH_/api/hr-policies/:id': 'update_hr_policy',
   'DELETE_/api/hr-policies/:id': 'delete_hr_policy',
@@ -18,6 +21,22 @@ const permission = {
 
 const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
   .use(cookie())
+  .get('/', HrPolicyConfigController.list, {
+    beforeHandle: [checkUser(permission['GET_/api/hr-policies'])],
+    query: t.Object({
+      organizationId: t.Optional(
+        t.String({
+          description: 'Optional organization ID override (defaults to current user organization)',
+        }),
+      ),
+    }),
+    tags: ['HR Policy'],
+    detail: {
+      summary: 'List HR policies',
+      description: 'List all policy templates under an organization',
+      operationId: 'listHrPolicies',
+    },
+  })
   .post('/', HrPolicyConfigController.create, {
     beforeHandle: [checkUser(permission['POST_/api/hr-policies'])],
     body: CreateHrPolicyConfigSchema,
@@ -36,6 +55,16 @@ const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
       summary: 'Apply HR policy',
       description: 'Apply an existing policy row to an organization by policyId',
       operationId: 'applyHrPolicy',
+    },
+  })
+  .post('/assign-employees', HrPolicyConfigController.assignEmployees, {
+    beforeHandle: [checkUser(permission['POST_/api/hr-policies/assign-employees'])],
+    body: AssignHrPolicyToEmployeesSchema,
+    tags: ['HR Policy'],
+    detail: {
+      summary: 'Assign policy to employees',
+      description: 'Assign a selected policy to specific employee profiles and/or all employees of a role in your organization',
+      operationId: 'assignHrPolicyToEmployees',
     },
   })
   .get('/current', HrPolicyConfigController.getCurrent, {

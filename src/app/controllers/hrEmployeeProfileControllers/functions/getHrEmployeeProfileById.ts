@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { hrEmployeeProfiles } from '../../../models/HrEmployeeProfile'
+import { hrPolicyConfigs } from '../../../models/HrPolicyConfig'
 import { users } from '../../../models/User'
 import { ReqObjectType } from '../../../utils/types'
 
@@ -29,9 +30,15 @@ export async function getHrEmployeeProfileById_func({
           username: users.username,
           organizationId: users.organizationId,
         },
+        policy: {
+          id: hrPolicyConfigs.id,
+          policyName: hrPolicyConfigs.policyName,
+          isApplied: hrPolicyConfigs.isApplied,
+        },
       })
       .from(hrEmployeeProfiles)
       .leftJoin(users, eq(users.id, hrEmployeeProfiles.userId))
+      .leftJoin(hrPolicyConfigs, eq(hrPolicyConfigs.id, hrEmployeeProfiles.policyId))
       .where(
         and(
           eq(hrEmployeeProfiles.id, Number(id)),

@@ -21,7 +21,7 @@ export type NewHrPolicyConfig = InferInsertModel<typeof hrPolicyConfigs>
 
 export const CreateHrPolicyConfigSchema = t.Object({
   organizationId: t.Optional(t.Number({ description: 'Organization ID (defaults to current user organization)' })),
-  policyName: t.String({ minLength: 1, maxLength: 120 }),
+  policyName: t.String({ maxLength: 120 }),
   casualLeaveNoticeDays: t.Optional(t.Number({ minimum: 0 })),
   maxConsecutiveLeaveDays: t.Optional(t.Number({ minimum: 1 })),
   probationDays: t.Optional(t.Number({ minimum: 0 })),
@@ -39,4 +39,20 @@ export const UpdateHrPolicyConfigSchema = t.Object({
   maxConsecutiveLeaveDays: t.Optional(t.Number({ minimum: 1 })),
   probationDays: t.Optional(t.Number({ minimum: 0 })),
   allowedBreakMinutes: t.Optional(t.Number({ minimum: 0 })),
+})
+
+export const AssignHrPolicyToEmployeesSchema = t.Object({
+  policyId: t.Number({ minimum: 1, description: 'Policy row ID to assign to employees' }),
+  employeeProfileIds: t.Optional(
+    t.Array(
+      t.Number({ minimum: 1 }),
+      { minItems: 1, description: 'Optional explicit employee profile IDs to receive this policy' },
+    ),
+  ),
+  roleId: t.Optional(
+    t.Number({
+      minimum: 1,
+      description: 'Optional role ID to assign this policy to all matching employees in your organization',
+    }),
+  ),
 })

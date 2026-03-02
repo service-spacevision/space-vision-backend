@@ -12,6 +12,9 @@ export const hrEmployeeProfiles = pgTable('hr_employee_profiles', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),
   organizationId: integer('organization_id').notNull(),
+  policyId: integer('policy_id'),
+  policyAssignedAt: timestamp('policy_assigned_at'),
+  policyAssignedByUserId: integer('policy_assigned_by_user_id'),
   employeeCode: varchar('employee_code', { length: 50 }),
   jobTitle: varchar('job_title', { length: 150 }),
   timezone: varchar('timezone', { length: 80 }),
@@ -36,6 +39,7 @@ export type NewHrEmployeeProfile = InferInsertModel<typeof hrEmployeeProfiles>
 export const CreateHrEmployeeProfileSchema = t.Object({
   userId: t.Number({ description: 'Existing user ID to assign as employee' }),
   organizationId: t.Optional(t.Number({ description: 'Organization ID (defaults to current user organization)' })),
+  policyId: t.Optional(t.Number({ minimum: 1, description: 'Optional policy template ID for this employee' })),
   employeeCode: t.Optional(t.String({ maxLength: 50 })),
   jobTitle: t.Optional(t.String({ maxLength: 150 })),
   timezone: t.Optional(t.String({ maxLength: 80 })),
@@ -51,6 +55,7 @@ export const CreateHrEmployeeProfileSchema = t.Object({
 })
 
 export const UpdateHrEmployeeProfileSchema = t.Object({
+  policyId: t.Optional(t.Nullable(t.Number({ minimum: 1, description: 'Optional policy template ID for this employee' }))),
   employeeCode: t.Optional(t.String({ maxLength: 50 })),
   jobTitle: t.Optional(t.String({ maxLength: 150 })),
   timezone: t.Optional(t.String({ maxLength: 80 })),
@@ -69,6 +74,9 @@ export const HrEmployeeProfileResponseSchema = t.Object({
   id: t.Number(),
   userId: t.Number(),
   organizationId: t.Number(),
+  policyId: t.Optional(t.Nullable(t.Number())),
+  policyAssignedAt: t.Optional(t.Nullable(t.Date())),
+  policyAssignedByUserId: t.Optional(t.Nullable(t.Number())),
   employeeCode: t.Optional(t.String()),
   jobTitle: t.Optional(t.String()),
   timezone: t.Optional(t.String()),

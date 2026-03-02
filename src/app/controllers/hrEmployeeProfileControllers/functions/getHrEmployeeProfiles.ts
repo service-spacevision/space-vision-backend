@@ -1,6 +1,7 @@
 import { and, count, desc, eq, ilike, or } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { hrEmployeeProfiles } from '../../../models/HrEmployeeProfile'
+import { hrPolicyConfigs } from '../../../models/HrPolicyConfig'
 import { users } from '../../../models/User'
 import { IPagination, ReqObjectType } from '../../../utils/types'
 
@@ -47,9 +48,15 @@ export async function getHrEmployeeProfiles_func({
             username: users.username,
             organizationId: users.organizationId,
           },
+          policy: {
+            id: hrPolicyConfigs.id,
+            policyName: hrPolicyConfigs.policyName,
+            isApplied: hrPolicyConfigs.isApplied,
+          },
         })
         .from(hrEmployeeProfiles)
         .leftJoin(users, eq(users.id, hrEmployeeProfiles.userId))
+        .leftJoin(hrPolicyConfigs, eq(hrPolicyConfigs.id, hrEmployeeProfiles.policyId))
         .where(filter)
         .orderBy(desc(hrEmployeeProfiles.id))
 
@@ -79,9 +86,15 @@ export async function getHrEmployeeProfiles_func({
           username: users.username,
           organizationId: users.organizationId,
         },
+        policy: {
+          id: hrPolicyConfigs.id,
+          policyName: hrPolicyConfigs.policyName,
+          isApplied: hrPolicyConfigs.isApplied,
+        },
       })
       .from(hrEmployeeProfiles)
       .leftJoin(users, eq(users.id, hrEmployeeProfiles.userId))
+      .leftJoin(hrPolicyConfigs, eq(hrPolicyConfigs.id, hrEmployeeProfiles.policyId))
       .where(filter)
       .orderBy(desc(hrEmployeeProfiles.id))
       .limit(pageSize)

@@ -4,6 +4,7 @@ import {
   hrEmployeeProfiles,
   NewHrEmployeeProfile,
 } from '../../../models/HrEmployeeProfile'
+import { hrPolicyConfigs } from '../../../models/HrPolicyConfig'
 import { users } from '../../../models/User'
 import { ReqObjectType } from '../../../utils/types'
 
@@ -42,6 +43,26 @@ export async function updateHrEmployeeProfile_func({
 
     if (!existing) {
       return { success: false, message: 'Employee profile not found' }
+    }
+
+    const hasPolicyIdField = Object.prototype.hasOwnProperty.call(data, 'policyId')
+    if (hasPolicyIdField && (data as any).policyId !== null && (data as any).policyId !== undefined) {
+      const [selectedPolicy] = await db
+        .select({ id: hrPolicyConfigs.id, organizationId: hrPolicyConfigs.organizationId })
+        .from(hrPolicyConfigs)
+        .where(eq(hrPolicyConfigs.id, Number((data as any).policyId)))
+        .limit(1)
+
+      if (!selectedPolicy) {
+        return { success: false, message: 'Selected policy not found' }
+      }
+
+      if (Number(selectedPolicy.organizationId) !== orgId) {
+        return {
+          success: false,
+          message: 'Selected policy does not belong to this organization',
+        }
+      }
     }
 
     if (data.reportsToUserId) {
@@ -104,6 +125,20 @@ export async function updateHrEmployeeProfile_func({
               probationStartAt: null,
               probationEndAt: null,
             }
+          : {}),
+        ...(hasPolicyIdField
+          ? (data as any).policyId === null
+            ? {
+                policyId: null,
+                policyAssignedAt: null,
+                policyAssignedByUserId: null,
+              }
+            : Number((data as any).policyId) !== Number(existing.policyId || 0)
+              ? {
+                  policyAssignedAt: new Date(),
+                  policyAssignedByUserId: Number(reqObject.user.id),
+                }
+              : {}
           : {}),
         updatedAt: new Date(),
       })
