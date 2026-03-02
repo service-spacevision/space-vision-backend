@@ -83,9 +83,18 @@ export class HrPolicyConfigController {
         }
       }
 
+      const pagination = {
+        currentPage: Number(ctx.query.currentPage) || 1,
+        pageSize: Number(ctx.query.pageSize) || 10,
+        all: ctx.query.all || 'false',
+      }
+      const searchQuery = ctx.query.search ? String(ctx.query.search) : ''
+
       const result = await listHrPolicyConfigs_func({
         reqObject: { user: ctx.user! },
         organizationId,
+        pagination,
+        searchQuery,
       })
       ctx.set.status = result?.success ? 200 : 400
       return result

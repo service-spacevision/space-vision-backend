@@ -24,6 +24,10 @@ const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
   .get('/', HrPolicyConfigController.list, {
     beforeHandle: [checkUser(permission['GET_/api/hr-policies'])],
     query: t.Object({
+      currentPage: t.Optional(t.String({ default: '1' })),
+      pageSize: t.Optional(t.String({ default: '10' })),
+      all: t.Optional(t.String({ default: 'false' })),
+      search: t.Optional(t.String({ default: '' })),
       organizationId: t.Optional(
         t.String({
           description: 'Optional organization ID override (defaults to current user organization)',
