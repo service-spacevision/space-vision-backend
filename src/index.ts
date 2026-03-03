@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { swagger } from '@elysiajs/swagger';
 import { cookie } from '@elysiajs/cookie';
-import { APP_CONFIG } from './app/constants/constants';
+import { APP_CONFIG, CREW_VOUCHER_CONFIG } from './app/constants/constants';
 import { connectDatabase, db } from './app/db/connection';
 import { initializeSystem } from './app/db/initializeSystem';
 import { smartMigrate } from './app/db/syncMigrations';
@@ -47,6 +47,16 @@ const app: any = new Elysia()
           title: APP_CONFIG.NAME,
           version: APP_CONFIG.VERSION,
           description: APP_CONFIG.DESCRIPTION,
+        },
+        components: {
+          securitySchemes: {
+            AdminApiKey: {
+              type: 'apiKey',
+              in: 'header',
+              name: 'X-API-Key',
+              description: `Crew Voucher admin API key (test): ${CREW_VOUCHER_CONFIG.ADMIN_API_KEY}`,
+            },
+          },
         },
         tags: [
           { name: 'Authentication', description: 'Authentication endpoints' },
