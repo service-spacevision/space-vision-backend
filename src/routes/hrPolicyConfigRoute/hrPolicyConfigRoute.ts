@@ -15,8 +15,8 @@ const permission = {
   'POST_/api/hr-policies/assign-employees': 'assign_hr_policy_to_employees',
   'GET_/api/hr-policies': 'read_hr_policies',
   'GET_/api/hr-policies/current': 'read_hr_policy',
-  'PATCH_/api/hr-policies/:id': 'update_hr_policy',
-  'DELETE_/api/hr-policies/:id': 'delete_hr_policy',
+  'PUT_/api/hr-policies/update': 'update_hr_policy',
+  'DELETE_/api/hr-policies/delete': 'delete_hr_policy',
 }
 
 const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
@@ -87,10 +87,12 @@ const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
       operationId: 'getCurrentHrPolicy',
     },
   })
-  .patch('/:id', HrPolicyConfigController.update, {
-    beforeHandle: [checkUser(permission['PATCH_/api/hr-policies/:id'])],
-    params: t.Object({
-      id: t.String(),
+  .put('/update', HrPolicyConfigController.update, {
+    beforeHandle: [checkUser(permission['PUT_/api/hr-policies/update'])],
+    query: t.Object({
+      id: t.String({
+        description: 'HR policy ID',
+      }),
     }),
     body: UpdateHrPolicyConfigSchema,
     tags: ['HR Policy'],
@@ -100,10 +102,12 @@ const hrPolicyConfigRoute = new Elysia({ prefix: '/api/hr-policies' })
       operationId: 'updateHrPolicy',
     },
   })
-  .delete('/:id', HrPolicyConfigController.delete, {
-    beforeHandle: [checkUser(permission['DELETE_/api/hr-policies/:id'])],
-    params: t.Object({
-      id: t.String(),
+  .delete('/delete', HrPolicyConfigController.delete, {
+    beforeHandle: [checkUser(permission['DELETE_/api/hr-policies/delete'])],
+    query: t.Object({
+      id: t.String({
+        description: 'HR policy ID',
+      }),
     }),
     tags: ['HR Policy'],
     detail: {

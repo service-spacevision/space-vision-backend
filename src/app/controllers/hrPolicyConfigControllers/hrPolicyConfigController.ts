@@ -126,7 +126,7 @@ export class HrPolicyConfigController {
 
   static async update(ctx: CustomContext) {
     try {
-      const id = Number(ctx.params.id)
+      const id = Number(ctx.query.id)
       if (isNaN(id)) {
         ctx.set.status = 400
         return { success: false, message: 'Invalid policy ID' }
@@ -150,7 +150,7 @@ export class HrPolicyConfigController {
 
   static async delete(ctx: CustomContext) {
     try {
-      const id = Number(ctx.params.id)
+      const id = Number(ctx.query.id)
       if (isNaN(id)) {
         ctx.set.status = 400
         return { success: false, message: 'Invalid policy ID' }
