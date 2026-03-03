@@ -1,4 +1,6 @@
 import { validateRouterSerial_func } from './functions/validateRouterSerial';
+import { createOrUpdateCrewProfile_func } from './functions/createOrUpdateCrewProfile';
+import { listAvailablePackages_func } from './functions/listAvailablePackages';
 
 function maskAuthHeader(value?: string) {
   if (!value) return 'none';
@@ -53,6 +55,65 @@ export class CrewVoucherController {
       }
 
       return { data: result.data };
+    } catch {
+      ctx.set.status = 500;
+      return { error: 'Internal server error' };
+    }
+  }
+
+  static async createOrUpdateCrewProfile(ctx: any) {
+    try {
+      const authorizationHeader =
+        ctx.headers?.authorization ||
+        ctx.headers?.Authorization ||
+        ctx.request?.headers?.get?.('authorization') ||
+        undefined;
+
+      const result = await createOrUpdateCrewProfile_func({
+        data: (ctx.body ?? {}) as any,
+        authorization: authorizationHeader,
+      });
+
+      ctx.set.status = result.status as any;
+
+      if (!result.success) {
+        return { error: result.error ?? 'Internal server error' };
+      }
+
+      if (!result.data) {
+        ctx.set.status = 500;
+        return { error: 'Internal server error' };
+      }
+
+      return { data: result.data };
+    } catch {
+      ctx.set.status = 500;
+      return { error: 'Internal server error' };
+    }
+  }
+
+  static async listAvailablePackages(ctx: any) {
+    try {
+      const authorizationHeader =
+        ctx.headers?.authorization ||
+        ctx.headers?.Authorization ||
+        ctx.request?.headers?.get?.('authorization') ||
+        undefined;
+
+      const vesselId = ctx.query?.vessel_id ?? ctx.request?.query?.vessel_id;
+
+      const result = await listAvailablePackages_func({
+        vessel_id: vesselId,
+        authorization: authorizationHeader,
+      });
+
+      ctx.set.status = result.status as any;
+
+      if (!result.success) {
+        return { error: result.error ?? 'Internal server error' };
+      }
+
+      return { data: result.data ?? [] };
     } catch {
       ctx.set.status = 500;
       return { error: 'Internal server error' };
