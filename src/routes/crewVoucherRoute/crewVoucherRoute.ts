@@ -255,6 +255,67 @@ const crewVoucherRoute = new Elysia({ prefix: '/api/crew-voucher' }).get(
       'Returns active voucher packages for a vessel. Inactive packages are hidden by upstream service.',
     operationId: 'listCrewVoucherPackages',
   },
+})
+.post('/balance', CrewVoucherController.checkVoucherBalance, {
+  headers: t.Object({
+    authorization: t.Optional(
+      t.String({
+        description: 'Optional bearer token to forward to upstream PI service',
+        example: 'Bearer <your-token>',
+      }),
+    ),
+  }),
+  body: t.Object({
+    router_serial: t.Optional(
+      t.Union([t.String(), t.Null()], {
+        description: 'Router serial',
+        example: CREW_VOUCHER_CONFIG.TEST_ROUTER_SERIAL,
+      }),
+    ),
+    hotspot_user: t.Optional(
+      t.Union([t.String(), t.Null()], {
+        description: 'Optional hotspot username filter',
+        example: 'crew-a1b2',
+      }),
+    ),
+  }),
+  response: {
+    200: t.Object({
+      data: t.Array(
+        t.Object({
+          order_id: t.Number({ example: 5 }),
+          payment_status: t.String({ example: 'PAID' }),
+          provision_status: t.String({ example: 'DONE' }),
+          order_date: t.String({ example: '2026-02-28T18:53:01.521Z' }),
+          package_name: t.String({ example: '24h Basic WiFi' }),
+          duration_hours: t.Number({ example: 24 }),
+          data_limit_mb: t.Nullable(t.Number({ example: 1024 })),
+          hotspot_user: t.String({ example: 'crew-a1b2' }),
+          provision_status_detail: t.String({ example: 'DONE' }),
+          provisioned_at: t.Nullable(
+            t.String({ example: '2026-02-28T18:53:05.000Z' }),
+          ),
+        }),
+      ),
+    }),
+    400: t.Object({
+      error: t.String({
+        example: 'router_serial is required',
+      }),
+    }),
+    502: t.Object({
+      error: t.String({
+        example: 'Failed to contact upstream crew voucher service',
+      }),
+    }),
+  },
+  tags: ['Crew Voucher'],
+  detail: {
+    summary: 'Check voucher balance/history',
+    description:
+      'Returns paid vouchers for a router and optionally filters by hotspot username.',
+    operationId: 'checkCrewVoucherBalance',
+  },
 });
 
 export default crewVoucherRoute;
