@@ -29,14 +29,36 @@ export async function getEmployeeProfileForUser(reqObject: ReqObjectType) {
   return profile || null
 }
 
-export async function getAllowedBreakMinutes(orgId: number) {
-  const [policy] = await db
+export async function getAllowedBreakMinutes(orgId: number, employeePolicyId?: number | null) {
+  if (employeePolicyId) {
+    const [employeePolicy] = await db
+      .select({ allowedBreakMinutes: hrPolicyConfigs.allowedBreakMinutes })
+      .from(hrPolicyConfigs)
+      .where(
+        and(
+          eq(hrPolicyConfigs.id, Number(employeePolicyId)),
+          eq(hrPolicyConfigs.organizationId, orgId),
+        ),
+      )
+      .limit(1)
+
+    if (employeePolicy) {
+      return Number(employeePolicy.allowedBreakMinutes || 30)
+    }
+  }
+
+  const [appliedPolicy] = await db
     .select({ allowedBreakMinutes: hrPolicyConfigs.allowedBreakMinutes })
     .from(hrPolicyConfigs)
-    .where(eq(hrPolicyConfigs.organizationId, orgId))
+    .where(
+      and(
+        eq(hrPolicyConfigs.organizationId, orgId),
+        eq(hrPolicyConfigs.isApplied, true),
+      ),
+    )
     .limit(1)
 
-  return Number(policy?.allowedBreakMinutes || 30)
+  return Number(appliedPolicy?.allowedBreakMinutes || 30)
 }
 
 export async function getOpenSession(orgId: number, employeeProfileId: number) {

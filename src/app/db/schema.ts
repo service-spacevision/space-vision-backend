@@ -29,6 +29,11 @@ import { hrTimeBreakApprovals } from '../models/HrTimeBreakApproval';
 import { hrLeaveRequests } from '../models/HrLeaveRequest';
 import { hrLeaveApprovals } from '../models/HrLeaveApproval';
 import { hrLeaveBalances } from '../models/HrLeaveBalance';
+import { hrShifts } from '../models/HrShift';
+import { hrShiftGroups } from '../models/HrShiftGroup';
+import { hrShiftGroupMembers } from '../models/HrShiftGroupMember';
+import { hrShiftLayouts } from '../models/HrShiftLayout';
+import { hrShiftLayoutRules } from '../models/HrShiftLayoutRule';
 
 // Re-export all models
 export { users } from '../models/User';
@@ -61,6 +66,11 @@ export { hrTimeBreakApprovals } from '../models/HrTimeBreakApproval';
 export { hrLeaveRequests } from '../models/HrLeaveRequest';
 export { hrLeaveApprovals } from '../models/HrLeaveApproval';
 export { hrLeaveBalances } from '../models/HrLeaveBalance';
+export { hrShifts } from '../models/HrShift';
+export { hrShiftGroups } from '../models/HrShiftGroup';
+export { hrShiftGroupMembers } from '../models/HrShiftGroupMember';
+export { hrShiftLayouts } from '../models/HrShiftLayout';
+export { hrShiftLayoutRules } from '../models/HrShiftLayoutRule';
 
 // Export enum values with type-safe names
 export {

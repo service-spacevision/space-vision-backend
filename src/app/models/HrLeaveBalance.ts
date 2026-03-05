@@ -7,6 +7,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core'
+import { t } from 'elysia'
 
 export const hrLeaveBalances = pgTable('hr_leave_balances', {
   id: serial('id').primaryKey(),
@@ -31,3 +32,12 @@ export const hrLeaveBalances = pgTable('hr_leave_balances', {
 
 export type HrLeaveBalance = InferSelectModel<typeof hrLeaveBalances>
 export type NewHrLeaveBalance = InferInsertModel<typeof hrLeaveBalances>
+
+export const UpsertHrLeaveBalanceSchema = t.Object({
+  employeeProfileId: t.Number({ minimum: 1 }),
+  leaveTypeId: t.Number({ minimum: 1 }),
+  year: t.Number({ minimum: 2000 }),
+  allocatedDays: t.Optional(t.Number({ minimum: 0 })),
+  carriedOverDays: t.Optional(t.Number({ minimum: 0 })),
+  usedDays: t.Optional(t.Number({ minimum: 0 })),
+})

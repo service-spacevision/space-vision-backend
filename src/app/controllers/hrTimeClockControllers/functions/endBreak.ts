@@ -54,7 +54,7 @@ export async function endBreak_func({ reqObject }: Params) {
     )
 
     const usedBreakMinutes = await getBreakMinutesBySession(openSession.id)
-    const allowedBreakMinutes = await getAllowedBreakMinutes(orgId)
+    const allowedBreakMinutes = await getAllowedBreakMinutes(orgId, profile.policyId)
     const cumulativeBreakMinutes = usedBreakMinutes + currentBreakMinutes
     const complianceStatus =
       cumulativeBreakMinutes > allowedBreakMinutes ? 'LATE' : 'ON_TIME'

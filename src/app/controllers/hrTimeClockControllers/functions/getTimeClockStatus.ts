@@ -25,7 +25,7 @@ export async function getTimeClockStatus_func({ reqObject }: Params) {
     }
 
     const openSession = await getOpenSession(orgId, profile.id)
-    const allowedBreakMinutes = await getAllowedBreakMinutes(orgId)
+    const allowedBreakMinutes = await getAllowedBreakMinutes(orgId, profile.policyId)
 
     if (!openSession) {
       return {

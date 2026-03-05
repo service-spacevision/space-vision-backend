@@ -9,6 +9,7 @@ import {
   date,
   index,
 } from 'drizzle-orm/pg-core'
+import { t } from 'elysia'
 
 export const hrLeaveRequests = pgTable('hr_leave_requests', {
   id: serial('id').primaryKey(),
@@ -29,3 +30,14 @@ export const hrLeaveRequests = pgTable('hr_leave_requests', {
 
 export type HrLeaveRequest = InferSelectModel<typeof hrLeaveRequests>
 export type NewHrLeaveRequest = InferInsertModel<typeof hrLeaveRequests>
+
+export const CreateHrLeaveRequestSchema = t.Object({
+  leaveTypeId: t.Number({ minimum: 1 }),
+  startDate: t.String({ format: 'date' }),
+  endDate: t.String({ format: 'date' }),
+  reason: t.Optional(t.Nullable(t.String())),
+})
+
+export const LeaveApprovalDecisionSchema = t.Object({
+  note: t.Optional(t.Nullable(t.String())),
+})

@@ -1,11 +1,18 @@
+import { eq } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { permissions } from '../../../models/Permission'
-import { eq } from 'drizzle-orm'
+import { rolesPermission } from '../../../models/RolePermission'
+import { userRoles } from '../../../models/UserRole'
 
 // Import permissions from all route files
 import { permission as authPermissions } from '../../../../routes/authRoute/authRoute'
 import { permission as bluetideUsagePermissions } from '../../../../routes/bluetideUsageRoute/bluetideUsageRoute'
 import { permission as groupAccessPermissions } from '../../../../routes/groupAccessRoute/groupAccessRoute'
+import { permission as hrEmployeeProfilePermissions } from '../../../../routes/hrEmployeeProfileRoute/hrEmployeeProfileRoute'
+import { permission as hrLeavePermissions } from '../../../../routes/hrLeaveRoute/hrLeaveRoute'
+import { permission as hrShiftPermissions } from '../../../../routes/hrShiftRoute/hrShiftRoute'
+import { permission as hrPolicyConfigPermissions } from '../../../../routes/hrPolicyConfigRoute/hrPolicyConfigRoute'
+import { permission as hrTimeClockPermissions } from '../../../../routes/hrTimeClockRoute/hrTimeClockRoute'
 import { permission as mikrotikUsagePermissions } from '../../../../routes/mikrotikUsageRoute/mikrotikUsageRoute'
 import { permission as mikrotikVesselPermissions } from '../../../../routes/mikrotikVesselRoute/mikrotikVesselRoute'
 import { permission as organizationPermissions } from '../../../../routes/organizationRoute/organizationRoute'
@@ -15,13 +22,10 @@ import { permission as rolesPermissionPermissions } from '../../../../routes/rol
 import { permission as starlinkUsagePermissions } from '../../../../routes/starlinkUsageRoute/starlinkUsageRoute'
 import { permission as systemPermissions } from '../../../../routes/systemRoute/systemRoute'
 import { permission as telephonyDidPermissions } from '../../../../routes/telephonyDidRoute/telephonyDidRoute'
-import { permission as userRolePermissions } from '../../../../routes/userRoleRoute/userRoleRoute'
 import { permission as userPermissions } from '../../../../routes/userRoute/userRoute'
+import { permission as userRolePermissions } from '../../../../routes/userRoleRoute/userRoleRoute'
 import { permission as vesselGroupPermissions } from '../../../../routes/vesselGroupRoute/vesselGroupRoute'
 import { permission as vesselPermissions } from '../../../../routes/vesselRoute/vesselRoute'
-import { permission as hrEmployeeProfilePermissions } from '../../../../routes/hrEmployeeProfileRoute/hrEmployeeProfileRoute'
-import { permission as hrTimeClockPermissions } from '../../../../routes/hrTimeClockRoute/hrTimeClockRoute'
-import { permission as hrPolicyConfigPermissions } from '../../../../routes/hrPolicyConfigRoute/hrPolicyConfigRoute'
 
 interface ExtractedPermission {
   method: string
@@ -31,11 +35,10 @@ interface ExtractedPermission {
 }
 
 function gatherPermissionsFromExports(): ExtractedPermission[] {
-  // Group route maps with their corresponding section
-  const sources: Array<{ map: Record<string, string>; section: 'admin' | 'organization' }> = [
-    // Admin routes -> section: admin (add admin routes here when available)
-    
-    // Organization routes -> section: organization
+  const sources: Array<{
+    map: Record<string, string>
+    section: 'admin' | 'organization'
+  }> = [
     { map: authPermissions, section: 'organization' },
     { map: bluetideUsagePermissions, section: 'organization' },
     { map: groupAccessPermissions, section: 'organization' },
@@ -55,6 +58,8 @@ function gatherPermissionsFromExports(): ExtractedPermission[] {
     { map: hrEmployeeProfilePermissions, section: 'organization' },
     { map: hrTimeClockPermissions, section: 'organization' },
     { map: hrPolicyConfigPermissions, section: 'organization' },
+    { map: hrLeavePermissions, section: 'organization' },
+    { map: hrShiftPermissions, section: 'organization' },
   ]
 
   const items: ExtractedPermission[] = []
@@ -63,46 +68,115 @@ function gatherPermissionsFromExports(): ExtractedPermission[] {
     for (const [key, code] of Object.entries(map)) {
       const underscore = key.indexOf('_')
       if (underscore === -1) continue
-
       const method = key.slice(0, underscore)
       const routePath = key.slice(underscore + 1)
-
       items.push({ method, path: routePath, code, section })
     }
   }
-
   return items
 }
 
-function extractResourceAndAction(permissionCode: string): { resource: string; action: string } {
-  // Extract resource and action from permission codes like "read_user_roles", "create_telephony_did"
+function extractResourceAndAction(permissionCode: string): {
+  resource: string
+  action: string
+} {
   const parts = permissionCode.split('_')
   if (parts.length < 2) {
     return { resource: 'unknown', action: permissionCode }
   }
-
   const action = parts[0]
   const resource = parts.slice(1).join('_')
-  
   return { resource, action }
+}
+
+function normalizePermissionArray(value: unknown): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter((v) => v.length > 0)
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.map((v) => String(v).trim()).filter((v) => v.length > 0)
+      }
+    } catch {}
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0)
+  }
+  return []
+}
+
+async function syncSystemRoleApiPermissions(codes: string[]) {
+  if (!codes.length) return
+
+  const allRoles = await db
+    .select({
+      id: userRoles.id,
+      name: userRoles.name,
+      isSystem: userRoles.isSystem,
+    })
+    .from(userRoles)
+
+  const targetRoles = allRoles.filter((role) => {
+    const roleName = String(role.name || '').toLowerCase()
+    return role.isSystem === true || roleName === 'admin' || roleName === 'system'
+  })
+
+  for (const role of targetRoles) {
+    const [existing] = await db
+      .select()
+      .from(rolesPermission)
+      .where(eq(rolesPermission.roleId, Number(role.id)))
+      .limit(1)
+
+    const existingCodes = normalizePermissionArray(existing?.api_permissions)
+    const mergedCodes = Array.from(new Set([...existingCodes, ...codes]))
+
+    if (!existing) {
+      await db.insert(rolesPermission).values({
+        roleId: Number(role.id),
+        api_permissions: mergedCodes,
+        component_permissions: [],
+        navigation_permissions: [],
+      })
+      console.log(`Created roles_permission for role: ${role.name}`)
+      continue
+    }
+
+    const changed =
+      mergedCodes.length !== existingCodes.length ||
+      mergedCodes.some((code) => !existingCodes.includes(code))
+
+    if (changed) {
+      await db
+        .update(rolesPermission)
+        .set({
+          api_permissions: mergedCodes,
+          updatedAt: new Date(),
+        })
+        .where(eq(rolesPermission.roleId, Number(role.id)))
+      console.log(`Updated API permissions for role: ${role.name}`)
+    }
+  }
 }
 
 export async function syncApiPermissions(): Promise<void> {
   try {
-    console.log('🔄 Starting API permissions sync...')
-    
+    console.log('Starting API permissions sync...')
+
     const extractedPermissions = gatherPermissionsFromExports()
-    
-    // Remove duplicates based on permission code
     const uniquePermissions = extractedPermissions.reduce((acc, current) => {
-      const existing = acc.find(item => item.code === current.code)
-      if (!existing) {
-        acc.push(current)
-      }
+      const exists = acc.find((item) => item.code === current.code)
+      if (!exists) acc.push(current)
       return acc
     }, [] as ExtractedPermission[])
-    
-    console.log(`📊 Found ${extractedPermissions.length} API permissions (${uniquePermissions.length} unique) to sync`)
+
+    console.log(
+      `Found ${extractedPermissions.length} API permissions (${uniquePermissions.length} unique)`,
+    )
 
     let syncedCount = 0
     let createdCount = 0
@@ -110,9 +184,7 @@ export async function syncApiPermissions(): Promise<void> {
 
     for (const { method, path, code, section } of uniquePermissions) {
       const { resource, action } = extractResourceAndAction(code)
-      
-      // Check if permission already exists
-      const existingPermission = await db
+      const [existingPermission] = await db
         .select()
         .from(permissions)
         .where(eq(permissions.name, code))
@@ -125,27 +197,22 @@ export async function syncApiPermissions(): Promise<void> {
         category: 'api' as const,
         section,
         scope: 'organization' as const,
-        description: `API permission for ${method} ${path}`
+        description: `API permission for ${method} ${path}`,
       }
 
-      if (existingPermission.length === 0) {
-        // Create new permission
+      if (!existingPermission) {
         await db.insert(permissions).values(permissionData)
         createdCount++
-        console.log(`✅ Created permission: ${code}`)
       } else {
-        // Check if update is needed by comparing values
-        const existing = existingPermission[0]
-        const needsUpdate = 
-          existing.resource !== permissionData.resource ||
-          existing.action !== permissionData.action ||
-          existing.category !== permissionData.category ||
-          existing.section !== permissionData.section ||
-          existing.scope !== permissionData.scope ||
-          existing.description !== permissionData.description
+        const needsUpdate =
+          existingPermission.resource !== permissionData.resource ||
+          existingPermission.action !== permissionData.action ||
+          existingPermission.category !== permissionData.category ||
+          existingPermission.section !== permissionData.section ||
+          existingPermission.scope !== permissionData.scope ||
+          existingPermission.description !== permissionData.description
 
         if (needsUpdate) {
-          // Update existing permission
           await db
             .update(permissions)
             .set({
@@ -155,32 +222,24 @@ export async function syncApiPermissions(): Promise<void> {
               section: permissionData.section,
               scope: permissionData.scope,
               description: permissionData.description,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(permissions.name, code))
           updatedCount++
-          console.log(`🔄 Updated permission: ${code}`)
         }
-        // If no update needed, we don't log anything (silent)
       }
-      
+
       syncedCount++
     }
 
     const skippedCount = syncedCount - createdCount - updatedCount
+    console.log(
+      `API permissions sync completed: processed=${syncedCount}, created=${createdCount}, updated=${updatedCount}, unchanged=${skippedCount}`,
+    )
 
-    if (createdCount > 0 || updatedCount > 0) {
-      console.log(`✅ API permissions sync completed:`)
-      console.log(`   📈 Total processed: ${syncedCount}`)
-      console.log(`   🆕 Created: ${createdCount}`)
-      console.log(`   🔄 Updated: ${updatedCount}`)
-      console.log(`   ⏭️  Skipped (no changes): ${skippedCount}`)
-    } else {
-      console.log(`✅ API permissions sync completed: ${syncedCount} permissions checked, no changes needed`)
-    }
-
+    await syncSystemRoleApiPermissions(uniquePermissions.map((p) => p.code))
   } catch (error) {
-    console.error('❌ Failed to sync API permissions:', error)
+    console.error('Failed to sync API permissions:', error)
     throw error
   }
 }

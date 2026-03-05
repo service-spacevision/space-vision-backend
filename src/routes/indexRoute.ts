@@ -18,6 +18,8 @@ import organizationRoute from "./organizationRoute/organizationRoute";
 import hrEmployeeProfileRoute from "./hrEmployeeProfileRoute/hrEmployeeProfileRoute";
 import hrTimeClockRoute from "./hrTimeClockRoute/hrTimeClockRoute";
 import hrPolicyConfigRoute from "./hrPolicyConfigRoute/hrPolicyConfigRoute";
+import hrLeaveRoute from "./hrLeaveRoute/hrLeaveRoute";
+import hrShiftRoute from "./hrShiftRoute/hrShiftRoute";
 import crewVoucherRoute from "./crewVoucherRoute/crewVoucherRoute";
 
 export {
@@ -40,5 +42,7 @@ export {
   hrEmployeeProfileRoute as hrEmployeeProfileRoutes,
   hrTimeClockRoute as hrTimeClockRoutes,
   hrPolicyConfigRoute as hrPolicyConfigRoutes,
+  hrLeaveRoute as hrLeaveRoutes,
+  hrShiftRoute as hrShiftRoutes,
   crewVoucherRoute as crewVoucherRoutes,
 };

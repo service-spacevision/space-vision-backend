@@ -70,6 +70,16 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.hrEmployeeProfiles.organizationId,
       alias: 'hr_employee_profile_organization',
     }),
+    shiftGroups: r.many.hrShiftGroups({
+      from: r.organizations.id,
+      to: r.hrShiftGroups.organizationId,
+      alias: 'hr_shift_group_organization',
+    }),
+    shifts: r.many.hrShifts({
+      from: r.organizations.id,
+      to: r.hrShifts.organizationId,
+      alias: 'hr_shift_organization',
+    }),
   },
 
   rolesPermission: {
@@ -222,6 +232,16 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrEmployeeProfiles.id,
       to: r.hrLeaveRequests.employeeProfileId,
       alias: 'hr_leave_request_employee_profile',
+    }),
+    shifts: r.many.hrShifts({
+      from: r.hrEmployeeProfiles.id,
+      to: r.hrShifts.employeeProfileId,
+      alias: 'hr_shift_employee_profile',
+    }),
+    shiftGroupMembers: r.many.hrShiftGroupMembers({
+      from: r.hrEmployeeProfiles.id,
+      to: r.hrShiftGroupMembers.employeeProfileId,
+      alias: 'hr_shift_group_member_employee_profile',
     }),
   },
 
@@ -383,6 +403,116 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrLeaveBalances.leaveTypeId,
       to: r.hrLeaveTypes.id,
       alias: 'hr_leave_balance_leave_type',
+    }),
+  },
+
+  hrShiftGroups: {
+    organization: r.one.organizations({
+      from: r.hrShiftGroups.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_group_organization',
+    }),
+    members: r.many.hrShiftGroupMembers({
+      from: r.hrShiftGroups.id,
+      to: r.hrShiftGroupMembers.shiftGroupId,
+      alias: 'hr_shift_group_member_group',
+    }),
+    layouts: r.many.hrShiftLayouts({
+      from: r.hrShiftGroups.id,
+      to: r.hrShiftLayouts.shiftGroupId,
+      alias: 'hr_shift_layout_group',
+    }),
+    shifts: r.many.hrShifts({
+      from: r.hrShiftGroups.id,
+      to: r.hrShifts.shiftGroupId,
+      alias: 'hr_shift_group_shift',
+    }),
+  },
+
+  hrShiftGroupMembers: {
+    group: r.one.hrShiftGroups({
+      from: r.hrShiftGroupMembers.shiftGroupId,
+      to: r.hrShiftGroups.id,
+      alias: 'hr_shift_group_member_group',
+    }),
+    employeeProfile: r.one.hrEmployeeProfiles({
+      from: r.hrShiftGroupMembers.employeeProfileId,
+      to: r.hrEmployeeProfiles.id,
+      alias: 'hr_shift_group_member_employee_profile',
+    }),
+    organization: r.one.organizations({
+      from: r.hrShiftGroupMembers.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_group_member_organization',
+    }),
+  },
+
+  hrShiftLayouts: {
+    group: r.one.hrShiftGroups({
+      from: r.hrShiftLayouts.shiftGroupId,
+      to: r.hrShiftGroups.id,
+      alias: 'hr_shift_layout_group',
+    }),
+    organization: r.one.organizations({
+      from: r.hrShiftLayouts.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_layout_organization',
+    }),
+    rules: r.many.hrShiftLayoutRules({
+      from: r.hrShiftLayouts.id,
+      to: r.hrShiftLayoutRules.layoutId,
+      alias: 'hr_shift_layout_rule_layout',
+    }),
+    shifts: r.many.hrShifts({
+      from: r.hrShiftLayouts.id,
+      to: r.hrShifts.layoutId,
+      alias: 'hr_shift_layout_shift',
+    }),
+  },
+
+  hrShiftLayoutRules: {
+    layout: r.one.hrShiftLayouts({
+      from: r.hrShiftLayoutRules.layoutId,
+      to: r.hrShiftLayouts.id,
+      alias: 'hr_shift_layout_rule_layout',
+    }),
+    organization: r.one.organizations({
+      from: r.hrShiftLayoutRules.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_layout_rule_organization',
+    }),
+    shifts: r.many.hrShifts({
+      from: r.hrShiftLayoutRules.id,
+      to: r.hrShifts.layoutRuleId,
+      alias: 'hr_shift_layout_rule_shift',
+    }),
+  },
+
+  hrShifts: {
+    organization: r.one.organizations({
+      from: r.hrShifts.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_organization',
+    }),
+    employeeProfile: r.one.hrEmployeeProfiles({
+      from: r.hrShifts.employeeProfileId,
+      to: r.hrEmployeeProfiles.id,
+      alias: 'hr_shift_employee_profile',
+    }),
+    group: r.one.hrShiftGroups({
+      from: r.hrShifts.shiftGroupId,
+      to: r.hrShiftGroups.id,
+      alias: 'hr_shift_group_shift',
+    }),
+    layout: r.one.hrShiftLayouts({
+      from: r.hrShifts.layoutId,
+      to: r.hrShiftLayouts.id,
+      alias: 'hr_shift_layout_shift',
+    }),
+    layoutRule: r.one.hrShiftLayoutRules({
+      from: r.hrShifts.layoutRuleId,
+      to: r.hrShiftLayoutRules.id,
+      alias: 'hr_shift_layout_rule_shift',
     }),
   },
 

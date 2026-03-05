@@ -35,6 +35,8 @@ import {
   hrEmployeeProfileRoutes,
   hrTimeClockRoutes,
   hrPolicyConfigRoutes,
+  hrLeaveRoutes,
+  hrShiftRoutes,
   crewVoucherRoutes,
 } from './routes/indexRoute';
 
@@ -125,6 +127,14 @@ const app: any = new Elysia()
             description: 'HR policy config endpoints',
           },
           {
+            name: 'HR Leave',
+            description: 'HR leave management endpoints',
+          },
+          {
+            name: 'HR Shift',
+            description: 'HR shift assignment and auto-layout endpoints',
+          },
+          {
             name: 'Crew Voucher',
             description: 'Crew voucher purchase and lookup endpoints',
           },
@@ -189,6 +199,8 @@ const app: any = new Elysia()
       hrEmployeeProfiles: '/api/hr-employee-profiles',
       hrTimeClock: '/api/hr-time-clock',
       hrPolicies: '/api/hr-policies',
+      hrLeaves: '/api/hr-leaves',
+      hrShifts: '/api/hr-shifts',
       crewVoucher: '/api/crew-voucher',
     },
   }))
@@ -211,6 +223,8 @@ const app: any = new Elysia()
   .use(hrEmployeeProfileRoutes)
   .use(hrTimeClockRoutes)
   .use(hrPolicyConfigRoutes)
+  .use(hrLeaveRoutes)
+  .use(hrShiftRoutes)
   .use(crewVoucherRoutes)
   .onError(({ error, code, set }) => {
     console.error('Application error:', error);
