@@ -1,6 +1,7 @@
 import { and, eq, lte, gte, ne } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { hrEmployeeProfiles } from '../../../models/HrEmployeeProfile'
+import { hrShiftEvents } from '../../../models/HrShiftEvent'
 import { hrShiftGroups } from '../../../models/HrShiftGroup'
 import { hrShifts } from '../../../models/HrShift'
 
@@ -180,4 +181,30 @@ export async function hasShiftOverlap(params: {
     .limit(1)
 
   return Boolean(overlap)
+}
+
+export async function logShiftEvent(params: {
+  organizationId: number
+  shiftId: number
+  employeeProfileId: number
+  actorUserId: number
+  eventType:
+    | 'SHIFT_CREATED_MANUAL'
+    | 'SHIFT_CREATED_LAYOUT'
+    | 'SHIFT_UPDATED'
+    | 'SHIFT_CANCELLED'
+  source?: string
+  payload?: Record<string, unknown> | null
+  eventAt?: Date
+}) {
+  await db.insert(hrShiftEvents).values({
+    organizationId: params.organizationId,
+    shiftId: params.shiftId,
+    employeeProfileId: params.employeeProfileId,
+    actorUserId: params.actorUserId,
+    eventType: params.eventType,
+    source: params.source || 'API',
+    payload: params.payload || null,
+    eventAt: params.eventAt || new Date(),
+  })
 }

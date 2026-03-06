@@ -1,7 +1,7 @@
 import { db } from '../../../db/connection'
 import { hrShifts } from '../../../models/HrShift'
 import { ReqObjectType } from '../../../utils/types'
-import { getEmployeeProfile, hasShiftOverlap } from './_helpers'
+import { getEmployeeProfile, hasShiftOverlap, logShiftEvent } from './_helpers'
 
 interface Params {
   reqObject: ReqObjectType
@@ -52,10 +52,23 @@ export async function createManualHrShift_func({ reqObject, data }: Params) {
       })
       .returning()
 
+    await logShiftEvent({
+      organizationId: orgId,
+      shiftId: Number(created.id),
+      employeeProfileId: Number(employee.id),
+      actorUserId: Number(reqObject.user.id),
+      eventType: 'SHIFT_CREATED_MANUAL',
+      payload: {
+        shiftStartAt: created.shiftStartAt,
+        shiftEndAt: created.shiftEndAt,
+        source: created.source,
+        status: created.status,
+      },
+    })
+
     return { success: true, message: 'Manual shift created successfully', data: created }
   } catch (error: any) {
     console.error('Error creating manual shift:', error)
     return { success: false, message: 'Failed to create manual shift', error: error?.message }
   }
 }
-

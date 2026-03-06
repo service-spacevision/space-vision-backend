@@ -34,6 +34,7 @@ import { hrShiftGroups } from '../models/HrShiftGroup';
 import { hrShiftGroupMembers } from '../models/HrShiftGroupMember';
 import { hrShiftLayouts } from '../models/HrShiftLayout';
 import { hrShiftLayoutRules } from '../models/HrShiftLayoutRule';
+import { hrShiftEvents } from '../models/HrShiftEvent';
 
 // Re-export all models
 export { users } from '../models/User';
@@ -71,6 +72,7 @@ export { hrShiftGroups } from '../models/HrShiftGroup';
 export { hrShiftGroupMembers } from '../models/HrShiftGroupMember';
 export { hrShiftLayouts } from '../models/HrShiftLayout';
 export { hrShiftLayoutRules } from '../models/HrShiftLayoutRule';
+export { hrShiftEvents } from '../models/HrShiftEvent';
 
 // Export enum values with type-safe names
 export {

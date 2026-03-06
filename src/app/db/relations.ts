@@ -22,6 +22,11 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.hrEmployeeProfiles.userId,
       alias: 'hr_employee_profile_user',
     }),
+    shiftEvents: r.many.hrShiftEvents({
+      from: r.users.id,
+      to: r.hrShiftEvents.actorUserId,
+      alias: 'hr_shift_event_actor_user',
+    }),
   },
 
   sessions: {
@@ -79,6 +84,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.organizations.id,
       to: r.hrShifts.organizationId,
       alias: 'hr_shift_organization',
+    }),
+    shiftEvents: r.many.hrShiftEvents({
+      from: r.organizations.id,
+      to: r.hrShiftEvents.organizationId,
+      alias: 'hr_shift_event_organization',
     }),
   },
 
@@ -242,6 +252,11 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrEmployeeProfiles.id,
       to: r.hrShiftGroupMembers.employeeProfileId,
       alias: 'hr_shift_group_member_employee_profile',
+    }),
+    shiftEvents: r.many.hrShiftEvents({
+      from: r.hrEmployeeProfiles.id,
+      to: r.hrShiftEvents.employeeProfileId,
+      alias: 'hr_shift_event_employee_profile',
     }),
   },
 
@@ -513,6 +528,34 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.hrShifts.layoutRuleId,
       to: r.hrShiftLayoutRules.id,
       alias: 'hr_shift_layout_rule_shift',
+    }),
+    events: r.many.hrShiftEvents({
+      from: r.hrShifts.id,
+      to: r.hrShiftEvents.shiftId,
+      alias: 'hr_shift_event_shift',
+    }),
+  },
+
+  hrShiftEvents: {
+    shift: r.one.hrShifts({
+      from: r.hrShiftEvents.shiftId,
+      to: r.hrShifts.id,
+      alias: 'hr_shift_event_shift',
+    }),
+    employeeProfile: r.one.hrEmployeeProfiles({
+      from: r.hrShiftEvents.employeeProfileId,
+      to: r.hrEmployeeProfiles.id,
+      alias: 'hr_shift_event_employee_profile',
+    }),
+    organization: r.one.organizations({
+      from: r.hrShiftEvents.organizationId,
+      to: r.organizations.id,
+      alias: 'hr_shift_event_organization',
+    }),
+    actor: r.one.users({
+      from: r.hrShiftEvents.actorUserId,
+      to: r.users.id,
+      alias: 'hr_shift_event_actor_user',
     }),
   },
 

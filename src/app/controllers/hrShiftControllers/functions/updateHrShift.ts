@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { hrShifts } from '../../../models/HrShift'
 import { ReqObjectType } from '../../../utils/types'
-import { hasShiftOverlap } from './_helpers'
+import { hasShiftOverlap, logShiftEvent } from './_helpers'
 
 interface Params {
   reqObject: ReqObjectType
@@ -61,10 +61,31 @@ export async function updateHrShift_func({ reqObject, id, data }: Params) {
       .where(eq(hrShifts.id, Number(id)))
       .returning()
 
+    await logShiftEvent({
+      organizationId: orgId,
+      shiftId: Number(updated.id),
+      employeeProfileId: Number(existing.employeeProfileId),
+      actorUserId: Number(reqObject.user.id),
+      eventType: 'SHIFT_UPDATED',
+      payload: {
+        before: {
+          shiftStartAt: existing.shiftStartAt,
+          shiftEndAt: existing.shiftEndAt,
+          status: existing.status,
+          notes: existing.notes,
+        },
+        after: {
+          shiftStartAt: updated.shiftStartAt,
+          shiftEndAt: updated.shiftEndAt,
+          status: updated.status,
+          notes: updated.notes,
+        },
+      },
+    })
+
     return { success: true, message: 'Shift updated successfully', data: updated }
   } catch (error: any) {
     console.error('Error updating shift:', error)
     return { success: false, message: 'Failed to update shift', error: error?.message }
   }
 }
-

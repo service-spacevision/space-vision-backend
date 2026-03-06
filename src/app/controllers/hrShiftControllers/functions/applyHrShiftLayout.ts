@@ -9,6 +9,7 @@ import {
   addDaysUTC,
   dateToYmdUTC,
   hasShiftOverlap,
+  logShiftEvent,
   minutesOfTime,
   parseDateOnly,
   zonedDateTimeToUtc,
@@ -124,7 +125,7 @@ export async function applyHrShiftLayout_func({ reqObject, data }: Params) {
             continue
           }
 
-          await db.insert(hrShifts).values({
+          const [createdShift] = await db.insert(hrShifts).values({
             organizationId: orgId,
             employeeProfileId,
             shiftGroupId: Number(layout.shiftGroupId),
@@ -135,6 +136,22 @@ export async function applyHrShiftLayout_func({ reqObject, data }: Params) {
             source: 'LAYOUT',
             status: 'SCHEDULED',
             createdByUserId: Number(reqObject.user.id),
+          }).returning()
+
+          await logShiftEvent({
+            organizationId: orgId,
+            shiftId: Number(createdShift.id),
+            employeeProfileId,
+            actorUserId: Number(reqObject.user.id),
+            eventType: 'SHIFT_CREATED_LAYOUT',
+            payload: {
+              layoutId: Number(layout.id),
+              layoutRuleId: Number(rule.id),
+              shiftStartAt: createdShift.shiftStartAt,
+              shiftEndAt: createdShift.shiftEndAt,
+              source: createdShift.source,
+              status: createdShift.status,
+            },
           })
           createdCount++
         }

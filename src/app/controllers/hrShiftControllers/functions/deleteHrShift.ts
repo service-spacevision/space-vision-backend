@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '../../../db/connection'
 import { hrShifts } from '../../../models/HrShift'
 import { ReqObjectType } from '../../../utils/types'
+import { logShiftEvent } from './_helpers'
 
 interface Params {
   reqObject: ReqObjectType
@@ -35,10 +36,21 @@ export async function deleteHrShift_func({ reqObject, id }: Params) {
       .where(eq(hrShifts.id, Number(id)))
       .returning()
 
+    await logShiftEvent({
+      organizationId: orgId,
+      shiftId: Number(updated.id),
+      employeeProfileId: Number(existing.employeeProfileId),
+      actorUserId: Number(reqObject.user.id),
+      eventType: 'SHIFT_CANCELLED',
+      payload: {
+        previousStatus: existing.status,
+        status: updated.status,
+      },
+    })
+
     return { success: true, message: 'Shift cancelled successfully', data: updated }
   } catch (error: any) {
     console.error('Error deleting shift:', error)
     return { success: false, message: 'Failed to delete shift', error: error?.message }
   }
 }
-
