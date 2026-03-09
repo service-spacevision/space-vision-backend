@@ -6,6 +6,13 @@ import { invalidateUserSessions } from '../../middlewares/session'
 import { verifyMfaToken_func } from './functions/verifyMFA'
 import { requestPasswordReset_func } from './functions/requestPasswordReset'
 import { resetPassword_func } from './functions/resetPassword'
+import {
+  checkLoginRateLimit,
+  clearLoginFailures,
+  getClientIp,
+  getLoginRateLimitKey,
+  registerLoginFailure,
+} from '../../security/loginRateLimit'
 
 export class AuthController {
   static async signUpUser(ctx: CustomContext) {
@@ -29,11 +36,40 @@ export class AuthController {
   static async signIn(ctx: CustomContext) {
     try {
       const { body } = ctx
+      const normalizedEmail =
+        typeof (body as any)?.email === 'string'
+          ? (body as any).email.trim().toLowerCase()
+          : 'unknown'
+      const clientIp = getClientIp((ctx as any).request.headers as Headers)
+      const rateLimitKey = getLoginRateLimitKey(clientIp, normalizedEmail)
+      const rateLimitState = checkLoginRateLimit(rateLimitKey)
+
+      if (rateLimitState.blocked) {
+        ctx.set.status = 429
+        return {
+          success: false,
+          message: `Too many failed login attempts. Try again in ${rateLimitState.retryAfterSeconds} seconds.`,
+        }
+      }
+
       const result = await signInUser_func(
         {
           data: body as any
         }
       )
+
+      if (!result.success) {
+        const failureState = registerLoginFailure(rateLimitKey)
+        if (failureState.blockedNow) {
+          ctx.set.status = 429
+          return {
+            success: false,
+            message: `Too many failed login attempts. Try again in ${failureState.retryAfterSeconds} seconds.`,
+          }
+        }
+      } else {
+        clearLoginFailures(rateLimitKey)
+      }
 
       if (result.success && result.data?.token) {
         // Set JWT token as HTTP-only cookie

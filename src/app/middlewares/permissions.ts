@@ -6,6 +6,24 @@ import { userRoles } from '../models/UserRole';
 import { rolesPermission } from '../models/RolePermission';
 import { eq } from 'drizzle-orm';
 
+const shouldMaskProtectedRoutes =
+  process.env.MASK_PROTECTED_ROUTES === 'true' ||
+  process.env.NODE_ENV === 'production';
+
+const handleUnauthenticated = (ctx: Context, fallback: any) => {
+  if (shouldMaskProtectedRoutes) {
+    ctx.set.status = 404;
+    return {
+      success: false,
+      message: 'Route not found',
+      status: 404,
+    };
+  }
+
+  ctx.set.status = 401;
+  return fallback;
+};
+
 function normalizePermissionList(value: unknown): string[] {
   if (!value) return [];
 
@@ -95,13 +113,10 @@ export const checkUser = (permission: string) => {
     const spaceContextToken = ctx.headers['x-space-context'];
     
     if (spaceContextToken) {
-      console.log('Using x-space-context');
       const orgAuthResult = await orgAccessToken(spaceContextToken);
-      console.log('org auth', orgAuthResult);
 
       if (!orgAuthResult || !orgAuthResult.success) {
-        ctx.set.status = 401;
-        return orgAuthResult;
+        return handleUnauthenticated(ctx, orgAuthResult);
       }
 
       const userData = orgAuthResult.data as any;
@@ -131,16 +146,13 @@ export const checkUser = (permission: string) => {
     if (!contextToken) {
       contextToken = ctx.headers.authorization?.split(' ')[1];
     }
-    console.log('contextToken', contextToken);
     const authResult = await authMiddleware({
       cookieToken: contextToken!,
       permission: permission,
     });
-    console.log('auth result', authResult);
 
     if (!authResult || !authResult.success) {
-      ctx.set.status = 401;
-      return authResult;
+      return handleUnauthenticated(ctx, authResult);
     }
 
     const userData = authResult.data as any;
