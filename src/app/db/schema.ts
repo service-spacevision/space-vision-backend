@@ -36,7 +36,6 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   }),
 }));
 
-
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
@@ -76,7 +75,7 @@ export const rolesPermissionRelations = relations(
       references: [userRoles.id],
       relationName: 'role_permission_role',
     }),
-  })
+  }),
 );
 
 export const vesselGroupsRelations = relations(vesselGroups, ({ many }) => ({
@@ -115,7 +114,7 @@ export const mikrotikVesselsRelations = relations(
       references: [vessels.name],
       relationName: 'vessel_mikrotik',
     }),
-  })
+  }),
 );
 
 export const mikrotikPermissionsRelations = relations(
@@ -136,7 +135,7 @@ export const mikrotikPermissionsRelations = relations(
       references: [users.id],
       relationName: 'mikrotik_permission_assigned_by',
     }),
-  })
+  }),
 );
 
 export const groupAccessRelations = relations(groupAccess, ({ one }) => ({
@@ -187,7 +186,7 @@ export { mikrotikPermissions } from '../models/MikrotikPermission';
 export { rolesPermission } from '../models/RolePermission';
 export { telephonyDids } from '../models/TelephonyDid';
 export { pins } from '../models/Pin';
-export {permissions} from '../models/Permission';
+export { permissions } from '../models/Permission';
 export { syncState } from '../models/SyncState';
 export { mikrotikUsageAlltime } from '../models/MikrotikUsageAlltime';
 

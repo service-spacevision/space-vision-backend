@@ -2,6 +2,7 @@ import { db } from './connection'
 import { sql } from 'drizzle-orm'
 import { readdir } from 'fs/promises'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import migrationHelpers from './migrationUtils'
 import * as schema from './schema'
@@ -15,9 +16,28 @@ const allowStateSync = process.env.ALLOW_MIGRATION_STATE_SYNC === 'true'
 // Fix missing critical tables (helps with Drizzle's migration hallucinations)
 const allowCriticalTableFix = process.env.ALLOW_CRITICAL_TABLE_FIX === 'true' || process.env.NODE_ENV !== 'production'
 
+function resolveMigrationsFolder(): string {
+    const candidates = [
+        process.env.MIGRATIONS_FOLDER,
+        './src/app/db/migrations',
+        './dist/app/db/migrations',
+        join(process.cwd(), 'src/app/db/migrations'),
+        join(process.cwd(), 'dist/app/db/migrations'),
+    ].filter((v): v is string => Boolean(v))
+
+    for (const candidate of candidates) {
+        if (existsSync(candidate)) return candidate
+    }
+
+    return './src/app/db/migrations'
+}
+
 export async function smartMigrate() {
     try {
         console.log('🔄 Smart migration system starting...')
+
+        const migrationsFolder = resolveMigrationsFolder()
+        console.log(`Using migrations folder: ${migrationsFolder}`)
 
         // Preflight: apply idempotent ensures for known schema bits
         await preflightEnsureSchema()
@@ -30,7 +50,7 @@ export async function smartMigrate() {
         // First, try normal migration
         try {
             console.log('Attempting standard migration...')
-            await migrate(db, { migrationsFolder: './src/app/db/migrations' })
+            await migrate(db, { migrationsFolder })
             console.log('✅ Standard migration completed successfully')
             return
         } catch (migrationError: any) {
@@ -49,7 +69,7 @@ export async function smartMigrate() {
 
             // Try migration again after state sync
             try {
-                await migrate(db, { migrationsFolder: './src/app/db/migrations' })
+                await migrate(db, { migrationsFolder })
                 console.log('✅ Migration completed after state sync')
                 return
             } catch (retryError: any) {
@@ -58,7 +78,7 @@ export async function smartMigrate() {
 
                 // Final attempt - if this fails, let it fail with proper error
                 try {
-                    await migrate(db, { migrationsFolder: './src/app/db/migrations' })
+                    await migrate(db, { migrationsFolder })
                     console.log('✅ Migration completed after basic table setup')
                     return
                 } catch (finalError: any) {
@@ -80,7 +100,7 @@ export async function smartMigrate() {
 async function syncMigrationState() {
     try {
         // Get all migration files
-        const migrationsDir = join(process.cwd(), 'src/app/db/migrations')
+        const migrationsDir = resolveMigrationsFolder()
         const files = await readdir(migrationsDir)
         const migrationFiles = files
             .filter(file => file.endsWith('.sql'))

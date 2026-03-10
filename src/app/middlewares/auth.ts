@@ -13,7 +13,7 @@ export const authMiddleware = async ({
   cookieToken,
   permission,
 }: {
-  cookieToken: string;
+  cookieToken?: string;
   permission?: string;
 }) => {
   try {
@@ -36,8 +36,6 @@ export const authMiddleware = async ({
     if (!session || !session.isActive || new Date() > session.expiresAt) {
       return { success: false, message: 'Invalid or expired session' };
     }
-    console.log('check log', session.mfaEnabled);
-    console.log('check log verified', session.mfaVerified);
     if (session.mfaEnabled === true && session.mfaVerified === false) {
       if (permission === 'verify_mfa_token') {
         const user: AuthUser = {
@@ -56,7 +54,6 @@ export const authMiddleware = async ({
         };
         return { success: true, message: 'verify token', data: user };
       }
-      console.log('mfa not verified');
 
       return {
         success: false,
@@ -84,8 +81,6 @@ export const authMiddleware = async ({
 
     return { success: true, message: 'User found', data: user };
   } catch (error: any) {
-    console.log('error', error);
-
     if (error.name === 'TokenExpiredError') {
       return { success: false, message: 'Token expired' };
     }
@@ -179,7 +174,7 @@ export const orgAccessToken = async (token: string) => {
 
     return { success: true, message: 'Access token verified', data: authUser };
   } catch (error: any) {
-    console.log('orgAccessToken error', error);
+    console.error('orgAccessToken error:', error);
 
     return { success: false, message: 'Access token verification failed' };
   }

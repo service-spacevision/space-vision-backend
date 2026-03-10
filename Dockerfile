@@ -34,6 +34,7 @@ RUN adduser --system --uid 1001 bunjs
 # Copy built application and production dependencies
 COPY --from=deps --chown=bunjs:bunjs /app/node_modules ./node_modules
 COPY --from=builder --chown=bunjs:bunjs /app/dist ./dist
+COPY --from=builder --chown=bunjs:bunjs /app/src/app/db/migrations ./src/app/db/migrations
 COPY --from=builder --chown=bunjs:bunjs /app/package.json ./
 
 # Set environment variables
